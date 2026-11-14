@@ -46,7 +46,6 @@ export class WaveView {
 
   constructor(
     private canvas: HTMLCanvasElement,
-    private now: () => number,
     private cb: WaveCallbacks,
   ) {
     this.ctx = canvas.getContext('2d')!;
@@ -99,12 +98,13 @@ export class WaveView {
   /** Keeps the playhead visible while playing. */
   follow(t: number) {
     const span = this.end - this.start;
-    if (span >= this.duration - 0.01) return;
-    if (t > this.end - span * 0.1 || t < this.start) {
-      this.start = t - span * 0.25;
-      this.end = this.start + span;
-      this.clamp();
-    }
+    if (span >= this.duration - 0.01) return false;
+    if (t <= this.end - span * 0.1 && t >= this.start) return false;
+    const previous = this.start;
+    this.start = t - span * 0.25;
+    this.end = this.start + span;
+    this.clamp();
+    return this.start !== previous;
   }
   private clamp() {
     const span = this.end - this.start;
@@ -413,19 +413,11 @@ export class WaveView {
         ctx.fillText('🔒', x + this.FLAG + 2, this.SEC_H + this.FLAG / 2 + 1);
       }
     }
-    ctx.font = '11px system-ui, sans-serif';
-
-    // playhead
-    const px = this.x(this.now(), w);
-    if (px >= 0 && px <= w) {
-      ctx.fillStyle = token('--wave-playhead');
-      ctx.fillRect(Math.round(px), this.SEC_H, 1.5, hgt - this.SEC_H);
-    }
   }
 }
 
 /** Overview strip under the detailed view: whole track + visible window. */
-export function drawOverview(canvas: HTMLCanvasElement, r: AnalysisResult | null, view: { start: number; end: number }, now: number) {
+export function drawOverview(canvas: HTMLCanvasElement, r: AnalysisResult | null, view: { start: number; end: number }) {
   const ctx = canvas.getContext('2d')!;
   const dpr = window.devicePixelRatio || 1;
   const W = Math.max(10, Math.floor(canvas.clientWidth * dpr));
@@ -459,6 +451,4 @@ export function drawOverview(canvas: HTMLCanvasElement, r: AnalysisResult | null
   const x0 = (view.start / r.durationSec) * w;
   const x1 = (view.end / r.durationSec) * w;
   ctx.fillRect(x0, 0, Math.max(2, x1 - x0), hgt);
-  ctx.fillStyle = token('--wave-playhead');
-  ctx.fillRect((now / r.durationSec) * w, 0, 1, hgt);
 }

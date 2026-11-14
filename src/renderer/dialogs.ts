@@ -150,6 +150,7 @@ export function openHelp() {
     ['+ / − / 0', 'Zoom avant / arrière / tout le morceau'],
     ['⌘Z / ⇧⌘Z', 'Annuler / rétablir'],
     ['⌘E', 'Exporter'],
+    ['⌘ / Ctrl + F', 'Filtrer la bibliothèque'],
   ];
   dlg.replaceChildren(
     h('h2', { id: 'dlg-help-title' }, 'Raccourcis clavier'),

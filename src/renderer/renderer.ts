@@ -18,7 +18,11 @@ const audio = $<HTMLAudioElement>('audio');
 const rowEls = new Map<string, HTMLTableRowElement>();
 let sortKey = '';
 let sortDir = 1;
-let filter = '';
+let searchTerms: string[] = [];
+let visibleRecords: TrackRecord[] = [];
+let visibleIndex = new Map<string, number>();
+let libraryFrame = 0;
+const searchText = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 let activeTab = 'cues';
 let loopPlay: Loop | null = null;
 let batchTotal = 0;
@@ -45,7 +49,10 @@ function edit(r: AnalysisResult, change: () => void) {
 
 function refreshTrack(path: string) {
   const rec = state.tracks.get(path);
-  if (rec) renderRow(rec);
+  if (rec) {
+    renderRow(rec);
+    if (sortKey || searchTerms.length || libView !== 'all') scheduleLibrary();
+  }
   if (path === state.selected) renderDetail();
   updateUndo();
 }
@@ -84,10 +91,10 @@ function reviewReasons(rec: TrackRecord): string[] {
 function matchesFilter(rec: TrackRecord) {
   if (libView === 'review' && !reviewReasons(rec).length) return false;
   if (libView === 'missing' && !rec.missing) return false;
-  if (!filter) return true;
+  if (!searchTerms.length) return true;
   const r = rec.result;
-  const hay = [rec.fileName, r?.title, r?.artist, r?.key.camelot, r?.key.musical, r ? fmtBpm(r.bpm) : ''].join(' ').toLowerCase();
-  return filter.split(/\s+/).every((w) => hay.includes(w));
+  const hay = searchText([rec.fileName, r?.title, r?.artist, r?.key.camelot, r?.key.musical, r ? fmtBpm(r.bpm) : ''].join(' '));
+  return searchTerms.every((word) => hay.includes(word));
 }
 
 function sortValue(rec: TrackRecord): string | number {
@@ -105,14 +112,27 @@ function sortValue(rec: TrackRecord): string | number {
   }
 }
 
+function scheduleLibrary() {
+  if (!libraryFrame) libraryFrame = requestAnimationFrame(renderLibrary);
+}
+
 function renderLibrary() {
+  cancelAnimationFrame(libraryFrame);
+  libraryFrame = 0;
   const recs = [...state.tracks.values()].filter(matchesFilter);
   recs.sort((a, b) => {
     const x = sortValue(a), y = sortValue(b);
     return (x < y ? -1 : x > y ? 1 : 0) * (sortKey ? sortDir : 1);
   });
+  visibleRecords = recs;
+  visibleIndex = new Map(recs.map(({ path }, index) => [path, index]));
   const body = $('rows');
-  const frag = document.createDocumentFragment();
+  const focusedRow = document.activeElement?.closest('tr.row');
+  const shownRows = new Set(recs.map(({ path }) => rowEls.get(path)));
+  for (const row of Array.from(body.children)) {
+    if (!shownRows.has(row as HTMLTableRowElement)) row.remove();
+  }
+  let next = body.firstElementChild;
   for (const rec of recs) {
     let tr = rowEls.get(rec.path);
     if (!tr) {
@@ -126,17 +146,22 @@ function renderLibrary() {
       rowEls.set(rec.path, tr);
       renderRow(rec, tr);
     }
-    frag.append(tr);
+    if (tr === next) next = next.nextElementSibling;
+    else body.insertBefore(tr, next);
   }
-  body.replaceChildren(frag);
+  if (focusedRow instanceof HTMLElement && focusedRow.isConnected && document.activeElement !== focusedRow) {
+    focusedRow.focus({ preventScroll: true });
+  }
   const total = state.tracks.size;
   $('empty').hidden = total > 0;
-  $('tracks').hidden = total === 0;
+  $('tracks').hidden = recs.length === 0;
+  $('no-matches').hidden = total === 0 || recs.length > 0;
   setText($('lib-count'), total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '');
   document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
     th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
   });
   updateGlobalButtons();
+  updateTransport();
 }
 
 const td = (text: string | Node, cls = '') => h('td', { class: cls }, text);
@@ -155,10 +180,11 @@ function busyText(rec: TrackRecord): string {
   return `${rec.result ? 'Ré-analyse' : 'Analyse'} ${Math.round((rec.progress ?? 0) * 100)} % — ${rec.stage ?? 'démarrage'}${step}`;
 }
 /** Progress bar + stage text; indeterminate while queued, animated while running. */
-function busyLine(rec: TrackRecord) {
-  const bar = h('progress', { max: 100, 'aria-label': busyText(rec) });
+function busyLine(rec: TrackRecord, inRow = false) {
+  const label = inRow && rec.status === 'queued' ? 'En attente' : busyText(rec);
+  const bar = h('progress', { max: 100, 'aria-label': label });
   if (rec.status === 'analyzing') bar.value = Math.max(2, Math.round((rec.progress ?? 0) * 100));
-  return h('span', { class: `busy-line ${rec.status}` }, bar, h('span', { class: 'muted' }, busyText(rec)));
+  return h('span', { class: `busy-line ${rec.status}` }, bar, h('span', { class: 'muted' }, label));
 }
 
 function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
@@ -182,7 +208,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
   if (r && rec.status !== 'error') {
     const reanalysing = rec.status !== 'done';
     tr.append(
-      td(h('span', {}, r.title, reanalysing && isBusy(rec) ? busyLine(rec) : '')),
+      td(h('span', {}, r.title, reanalysing && isBusy(rec) ? busyLine(rec, true) : '')),
       td(r.artist, 'muted'),
       td(h('span', {}, fmtBpm(r.bpm), r.tempo ? confBadge(r.tempo.confidence, true) : ''), 'c-num'),
       td(r.key.camelot
@@ -198,7 +224,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
       td(fmtDur(r.durationSec), 'c-num muted'),
     );
   } else {
-    tr.append(td(rec.fileName), td(isBusy(rec) ? busyLine(rec) : h('span', { class: rec.status === 'error' ? 'err' : 'muted' }, stateText), ''));
+    tr.append(td(rec.fileName), td(isBusy(rec) ? busyLine(rec, true) : h('span', { class: rec.status === 'error' ? 'err' : 'muted' }, stateText), ''));
     (tr.lastChild as HTMLTableCellElement).colSpan = 8;
   }
 }
@@ -233,10 +259,15 @@ function onQueue() {
 }
 
 // ===================================================================== selection & detail
-const wave = new WaveView($<HTMLCanvasElement>('wave'), () => audio.currentTime, {
+const overview = $<HTMLCanvasElement>('overview');
+const waveCanvas = $<HTMLCanvasElement>('wave');
+const wavePlayhead = $('wave-playhead');
+const overviewPlayhead = $('overview-playhead');
+const timeDisplay = $('time');
+const wave = new WaveView(waveCanvas, {
   seek: (t) => jump(t),
   cueSelected: () => renderDetail(),
-  viewChanged: () => drawOverview($<HTMLCanvasElement>('overview'), current(), wave, audio.currentTime),
+  viewChanged: () => { drawOverview(overview, current(), wave); updatePlayheads(); },
   cueMoved: (cue, t, done) => {
     const r = current();
     if (!r) return;
@@ -278,15 +309,15 @@ let dragStart: { id: string; time: number; wasAuto: boolean } | null = null;
 /** Track whose audio / peaks are loaded in the player */
 let audioPath = '';
 
-function select(path: string) {
+function select(path: string | null) {
   const prev = state.selected;
   state.selected = path;
-  if (prev && state.tracks.has(prev)) renderRow(state.tracks.get(prev)!);
-  const rec = state.tracks.get(path);
-  if (rec) renderRow(rec);
+  if (prev) rowEls.get(prev)?.removeAttribute('aria-current');
+  if (path) rowEls.get(path)?.setAttribute('aria-current', 'true');
+  const rec = path ? state.tracks.get(path) : undefined;
   const r = rec?.result ?? null;
   // (re)load the media when the track changes OR when its first result just arrived (selected while pending)
-  if (r && (prev !== path || audioPath !== path)) {
+  if (path && r && (prev !== path || audioPath !== path)) {
     tx?.stop();
     audio.pause();
     audioPath = path;
@@ -301,25 +332,48 @@ function select(path: string) {
       }
     });
   }
+  if (!r && audioPath) {
+    tx?.stop();
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    audioPath = '';
+    loopPlay = null;
+    wave.set(null);
+  }
   renderDetail();
-  rowEls.get(path)?.scrollIntoView({ block: 'nearest' });
+  updateTransport();
+  if (path) rowEls.get(path)?.scrollIntoView({ block: 'nearest' });
 }
 
 function jump(t: number) {
   const r = current();
   audio.currentTime = Math.max(0, Math.min(r?.durationSec ?? t, t));
-  redrawWave();
+  updatePlayheads();
+}
+
+function movePlayhead(el: HTMLElement, fraction: number) {
+  const hidden = !(fraction >= 0 && fraction <= 1);
+  if (el.hidden !== hidden) el.hidden = hidden;
+  if (!hidden) el.style.transform = `translateX(${fraction * 100}%)`;
+}
+
+function updatePlayheads() {
+  const now = audio.currentTime;
+  movePlayhead(wavePlayhead, wave.track ? (now - wave.start) / (wave.end - wave.start) : NaN);
+  movePlayhead(overviewPlayhead, now / (wave.track?.durationSec ?? 0));
+  const label = fmtTime(now);
+  if (timeDisplay.textContent !== label) {
+    timeDisplay.textContent = label;
+    waveCanvas.setAttribute('aria-valuenow', String(Math.round(now)));
+    waveCanvas.setAttribute('aria-valuetext', label);
+  }
 }
 
 function redrawWave() {
-  const r = current();
   wave.draw();
-  drawOverview($<HTMLCanvasElement>('overview'), r, wave, audio.currentTime);
-  const label = fmtTime(audio.currentTime);
-  $('time').textContent = label;
-  const c = $('wave');
-  c.setAttribute('aria-valuenow', String(Math.round(audio.currentTime)));
-  c.setAttribute('aria-valuetext', label);
+  drawOverview(overview, current(), wave);
+  updatePlayheads();
 }
 
 function renderBusy(rec?: TrackRecord) {
@@ -345,11 +399,17 @@ function renderDetail() {
   $('detail').hidden = !r;
   if (!r) return;
   if (wave.track !== r) wave.set(r, true);
-  $('d-title').textContent = r.title + (r.artist ? ` — ${r.artist}` : '');
-  const busy = '';
-  $('d-sub').textContent =
-    `${fmtBpm(r.bpm)} BPM · ${r.key.camelot} (${r.key.musical}) · ${fmtDur(r.durationSec)} · ${tr('énergie')} ${r.energy?.score ?? '—'}/10 · ` +
-    `${tr('profil')} ${tr(allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—')}${busy}`;
+  $('d-title').textContent = r.title;
+  const profile = tr(allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—');
+  $('d-sub').replaceChildren(
+    ...(r.artist ? [h('span', { class: 'd-artist' }, document.createTextNode(r.artist))] : []),
+    h('span', {}, `${fmtBpm(r.bpm)} BPM`),
+    r.key.camelot ? h('span', { class: 'key', style: { background: camelotColor(r.key.camelot) }, title: r.key.musical }, r.key.camelot) : '',
+    r.energy ? h('span', {}, `${tr('énergie')} ${r.energy.score}/10`) : '',
+    h('span', {}, profile),
+  );
+  $('time-total').textContent = `/ ${fmtDur(r.durationSec)}`;
+  waveCanvas.setAttribute('aria-valuemax', String(Math.round(r.durationSec)));
   $('d-warn').textContent = [...(rec?.missing ? ['Fichier introuvable à cet emplacement (déplacé, renommé ou disque débranché)'] : []), ...r.warnings].map(tr).join(' · ');
   const reviewed = !!rec?.reviewedAt;
   const reasons = rec ? reviewReasons({ ...rec, reviewedAt: undefined }) : [];
@@ -503,7 +563,7 @@ function renderCues(r: AnalysisResult) {
       h('button', { type: 'button', title, 'aria-label': `${title} — pad ${LETTERS[slot]}`, disabled, onclick: (e: Event) => { e.stopPropagation(); fn(); } }, label);
     const selected = wave.selectedCueId === cue.id;
     pads.push(h('div', {
-      class: `pad${selected ? ' selected' : ''}${dups.has(cue.id) ? ' dup' : ''}`, style: { '--pad-color': rgb(cue.color) } as never,
+      class: `pad${selected ? ' selected' : ''}${dups.has(cue.id) ? ' dup' : ''}`, style: { '--pad-color': rgb(cue.color) },
       title: dups.has(cue.id) ? 'Même position qu’un autre cue : ce pad est en double' : undefined,
       onclick: () => { wave.selectedCueId = cue.id; renderDetail(); },
     },
@@ -1100,8 +1160,8 @@ function loop() {
     const end = loopPlay.startSec + loopPlay.beats * beatOf(current()!);
     if (audio.currentTime >= end) audio.currentTime = loopPlay.startSec;
   }
-  wave.follow(audio.currentTime);
-  redrawWave();
+  if (wave.follow(audio.currentTime)) redrawWave();
+  else updatePlayheads();
   raf = audio.paused ? 0 : requestAnimationFrame(loop);
 }
 audio.addEventListener('play', () => {
@@ -1109,7 +1169,8 @@ audio.addEventListener('play', () => {
   if (!raf) raf = requestAnimationFrame(loop);
 });
 audio.addEventListener('pause', () => setText($('btn-play'), '▶︎ Lecture'));
-audio.addEventListener('seeked', redrawWave);
+audio.addEventListener('seeked', updatePlayheads);
+$('btn-help').addEventListener('click', openHelp);
 $('zoom-in').addEventListener('click', () => wave.zoom(2, audio.currentTime));
 $('zoom-out').addEventListener('click', () => wave.zoom(0.5, audio.currentTime));
 $('zoom-fit').addEventListener('click', () => wave.fit());
@@ -1125,7 +1186,9 @@ $('overview').addEventListener('click', (e) => {
   jump(t);
 });
 new ResizeObserver(() => redrawWave()).observe($('overview'));
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { clearTokenCache(); redrawWave(); });
+function redrawTheme() { clearTokenCache(); redrawWave(); }
+new MutationObserver(redrawTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawTheme);
 
 // undo / redo
 function undo() { const p = history.undo(); if (p) { void api.saveTrack(state.tracks.get(p)!.result!); refreshTrack(p); announce('Modification annulée'); } }
@@ -1140,6 +1203,12 @@ document.addEventListener('keydown', (e) => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
   if (mod && e.key.toLowerCase() === 'e') { e.preventDefault(); if (doneResults().length) openExport(state.selected); return; }
+  if (!document.querySelector('dialog[open]') && mod && e.key.toLowerCase() === 'f') {
+    e.preventDefault();
+    search.focus();
+    search.select();
+    return;
+  }
   if (typing || mod || document.querySelector('dialog[open]')) return;
   const r = current();
   const selCue = r?.cues.find((c) => c.id === wave.selectedCueId);
@@ -1160,10 +1229,8 @@ document.addEventListener('keydown', (e) => {
     jump(audio.currentTime + step);
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
-    const rows = Array.from($('rows').children) as HTMLTableRowElement[];
-    const paths = [...rowEls.entries()].filter(([, tr]) => rows.includes(tr)).sort((a, b) => rows.indexOf(a[1]) - rows.indexOf(b[1])).map(([p]) => p);
-    const i = state.selected ? paths.indexOf(state.selected) : -1;
-    const next = paths.at(Math.max(0, Math.min(paths.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))));
+    const index = state.selected ? visibleIndex.get(state.selected) : undefined;
+    const next = visibleRecords[Math.max(0, (index ?? -1) + (e.key === 'ArrowDown' ? 1 : -1))]?.path;
     if (next) { select(next); rowEls.get(next)?.focus({ preventScroll: true }); }
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && r && selCue) {
     e.preventDefault();
@@ -1184,8 +1251,44 @@ document.addEventListener('keydown', (e) => {
 });
 
 // library tools
-$('search').addEventListener('input', (e) => { filter = (e.target as HTMLInputElement).value.trim().toLowerCase(); renderLibrary(); });
-$('lib-view').addEventListener('change', (e) => { libView = (e.target as HTMLSelectElement).value as typeof libView; renderLibrary(); });
+const search = $<HTMLInputElement>('search');
+const viewSelect = $<HTMLSelectElement>('lib-view');
+
+function updateSearch() {
+  const query = searchText(search.value).trim();
+  searchTerms = query ? query.split(/\s+/) : [];
+  renderLibrary();
+}
+
+function adjacentTrack(direction: -1 | 1) {
+  const from = state.selected ? visibleIndex.get(state.selected) : undefined;
+  const start = from ?? (direction === 1 ? -1 : visibleRecords.length);
+  for (let i = start + direction; i >= 0 && i < visibleRecords.length; i += direction) {
+    const rec = state.tracks.get(visibleRecords[i].path);
+    if (rec?.result && !rec.missing && rec.status !== 'error') return rec.path;
+  }
+}
+
+function updateTransport() {
+  $<HTMLButtonElement>('btn-prev-track').disabled = !adjacentTrack(-1);
+  $<HTMLButtonElement>('btn-next-track').disabled = !adjacentTrack(1);
+}
+
+for (const [id, direction] of [['btn-prev-track', -1], ['btn-next-track', 1]] as const) {
+  $(id).addEventListener('click', () => {
+    const target = adjacentTrack(direction);
+    if (target) select(target);
+  });
+}
+
+search.addEventListener('input', updateSearch);
+viewSelect.addEventListener('change', () => { libView = viewSelect.value as typeof libView; renderLibrary(); });
+$('clear-filters').addEventListener('click', () => {
+  search.value = '';
+  viewSelect.value = libView = 'all';
+  updateSearch();
+  search.focus();
+});
 $('btn-reviewed').addEventListener('click', async () => {
   const rec = state.selected ? state.tracks.get(state.selected) : undefined;
   if (!rec) return;
@@ -1205,7 +1308,7 @@ document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
 });
 $('btn-order').addEventListener('click', () => {
   // the tracks currently shown (filter applies), analysed ones only
-  const shown = new Set([...rowEls.entries()].filter(([, tr]) => tr.isConnected).map(([p]) => p));
+  const shown = new Set(visibleRecords.map(({ path }) => path));
   const tracks = doneResults().filter((r) => shown.has(r.path));
   if (tracks.length < 2) return toast('Il faut au moins 2 morceaux analysés affichés');
   openSetOrder({
@@ -1230,10 +1333,8 @@ $('btn-remove').addEventListener('click', () => {
   void api.removeTracks([p]).then(() => {
     state.tracks.delete(p);
     rowEls.delete(p);
-    state.selected = null;
-    audio.pause();
+    if (state.selected === p) select(null);
     renderLibrary();
-    renderDetail();
   });
 });
 
@@ -1305,13 +1406,16 @@ async function boot() {
 
   api.onTrack(({ path, record }) => {
     const prev = state.tracks.get(path);
-    const isNew = !prev;
     // progress events carry no result: keep the previous one on screen meanwhile
     const merged: TrackRecord = { ...record, result: record.result ?? prev?.result };
     state.tracks.set(path, merged);
-    if (isNew) renderLibrary();
-    else renderRow(merged);
-    updateGlobalButtons();
+    if (prev) renderRow(merged);
+    const needsSort = !!prev && sortKey && sortValue(prev) !== sortValue(merged);
+    if (!prev || needsSort || matchesFilter(prev) !== matchesFilter(merged)) scheduleLibrary();
+    if (prev?.status !== merged.status || prev?.missing !== merged.missing || record.result !== undefined) {
+      updateGlobalButtons();
+      updateTransport();
+    }
     onQueue(); // the header names the track being analysed and its stage
     if (record.result && path === state.selected) {
       if (audioPath !== path) select(path); // first result of a track selected while pending
@@ -1319,7 +1423,10 @@ async function boot() {
         wave.set(merged.result!, true);
         renderDetail();
       }
-    } else if (path === state.selected) renderDetail();
+    } else if (path === state.selected) {
+      if (prev?.status !== merged.status || prev?.missing !== merged.missing || prev?.reviewedAt !== merged.reviewedAt) renderDetail();
+      else renderBusy(merged);
+    }
     if (record.result && !state.selected) select(path);
   });
   api.onQueue((q) => { state.queue = q; onQueue(); });
@@ -1334,7 +1441,7 @@ async function boot() {
   api.onRemoved(({ path: p, movedTo }) => {
     state.tracks.delete(p);
     rowEls.delete(p);
-    if (state.selected === p) state.selected = movedTo ?? null;
+    if (state.selected === p) select(movedTo ?? null);
     if (movedTo) toast(`Fichier retrouvé : ${movedTo.split(/[\\/]/).pop()} — vos corrections le suivent`);
     renderLibrary();
     renderDetail();

@@ -252,6 +252,7 @@ fonctionnement des algorithmes dans [ALGORITHMES.md](docs/ALGORITHMES.md).
 | + / − / 0 | Zoom avant / arrière / tout le morceau |
 | ⌘Z / ⇧⌘Z | Annuler / rétablir |
 | ⌘E | Exporter |
+| ⌘ / Ctrl + F | Filtrer la bibliothèque |
 | ? | Aide |
 
 ## Confidentialité et sécurité
