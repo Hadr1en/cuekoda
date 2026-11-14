@@ -3,6 +3,7 @@
  * runs the real analysis pipeline on the WAV files and checks BPM / key / grid / cues.
  *   npm test
  */
+import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -384,6 +385,25 @@ async function main() {
     check('Évaluation : clé', e.key!.score === 1, `${e.key!.detected}`);
     check('Évaluation : cues (rappel)', e.cues!.recall === 1, `${e.cues!.matched}/${e.cues!.reference}, F1 ${sum.cueF1.toFixed(2)}`);
     check('Évaluation : sections (rappel)', e.sections!.recall === 1, `${e.sections!.matched}/${e.sections!.reference}, F1 ${sum.sectionF1.toFixed(2)}`);
+  }
+
+  // ---- CLI tempo bounds override their own side of the DJ profile ---------------------------
+  {
+    console.log('\n▶ bornes de tempo en ligne de commande');
+    const cli = path.join(__dirname, '..', 'cli', 'cli.js');
+    const file = path.join(dir, `${SPECS[1].spec.name}.wav`);
+    const bpmWith = (profile: string, flag: string, value: string) => {
+      const out = path.join(dir, `cli-${profile}`);
+      execFileSync(process.execPath, [cli, file, '--profile', profile, flag, value, '--out', out]);
+      const [result] = JSON.parse(fs.readFileSync(path.join(out, 'analysis.json'), 'utf8')) as AnalysisResult[];
+      return result.bpm;
+    };
+    const upper = bpmWith('techno', '--max-bpm', '180');
+    check('Borne haute explicite prise en compte', Math.abs(upper - 174) < 0.05, `${upper} BPM`);
+    const lower = bpmWith('house', '--min-bpm', '90');
+    check('Borne haute du profil conservée avec une borne basse explicite', Math.abs(lower - 87) < 0.05, `${lower} BPM`);
+    const invalid = spawnSync(process.execPath, [cli, file, '--profile', 'house', '--max-bpm', '100'], { encoding: 'utf8' });
+    check('Plage de tempo invalide signalée', invalid.status === 1 && invalid.stderr.includes('Plage de tempo invalide'), invalid.stderr.trim());
   }
 
   // ---- manual corrections drive the re-analysis --------------------------------------------
