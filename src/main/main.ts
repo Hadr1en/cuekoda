@@ -13,6 +13,7 @@ import type { AdapterInfo, ExportResponse, InitialState, Settings, TrackRecord }
 import { AnalysisQueue, type WorkerLike } from './queue';
 import { backupIfExists, JsonStore } from './store';
 import { FolderWatcher } from './watch';
+import { referenceFrom, type Reference } from '../core/evaluate';
 import { computePeaks, type Peaks } from '../core/peaks';
 
 let win: BrowserWindow | null = null;
@@ -36,6 +37,8 @@ const DEFAULT_SETTINGS: Settings = {
 let library: JsonStore<{ version: 1; tracks: Record<string, TrackRecord> }>;
 let settingsStore: JsonStore<Settings>;
 let learningStore: JsonStore<LearningStats>;
+let referenceStore: JsonStore<{ version: 1; refs: Record<string, Reference> }>;
+const referenceIndex = () => Object.fromEntries(Object.values(referenceStore.data.refs).map((r) => [r.fileHash, r.createdAt]));
 let queue: AnalysisQueue;
 let watcher: FolderWatcher;
 
@@ -192,7 +195,29 @@ function registerIpc() {
     adapters: adapterInfo(),
     learning: describe(learningStore.data),
     cores,
+    references: referenceIndex(),
   }));
+
+  ipcMain.handle('reference-save', (_e, p: string, rating?: number) => {
+    const r = records()[p]?.result;
+    if (!r?.fileHash) return referenceIndex();
+    referenceStore.data.refs[r.fileHash] = referenceFrom(r, rating);
+    referenceStore.save(0);
+    return referenceIndex();
+  });
+
+  ipcMain.handle('references-export', async (): Promise<ExportResponse> => {
+    if (!win) return { ok: false };
+    const res = await dialog.showSaveDialog(win, {
+      title: 'Exporter les références',
+      defaultPath: path.join(app.getPath('documents'), 'cuekoda-references.json'),
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+    if (res.canceled || !res.filePath) return { ok: false, canceled: true };
+    const backup = backupIfExists(res.filePath);
+    fs.writeFileSync(res.filePath, JSON.stringify(Object.values(referenceStore.data.refs), null, 2));
+    return { ok: true, file: res.filePath, backup };
+  });
 
   ipcMain.handle('pick', async (_e, kind: 'files' | 'folder') => {
     if (!win) return [];
@@ -382,6 +407,7 @@ app.whenReady().then(() => {
   library = new JsonStore(path.join(userData(), 'library.json'), { version: 1 as const, tracks: {} });
   settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
+  referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });
   createQueue();
   watcher = new FolderWatcher(
     (file, folder) => {
@@ -407,6 +433,7 @@ app.on('before-quit', () => {
   library?.flush();
   settingsStore?.flush();
   learningStore?.flush();
+  referenceStore?.flush();
   watcher?.close();
   queue?.shutdown();
 });

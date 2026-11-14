@@ -90,6 +90,8 @@ export interface InitialState {
   adapters: AdapterInfo[];
   learning: string[];
   cores: number;
+  /** fileHash → date of the DJ-verified reference */
+  references: Record<string, string>;
 }
 
 export interface AddedFile {
@@ -121,6 +123,9 @@ export interface CueKodaApi {
   exportPreview(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<string[]>;
   exportCollection(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse>;
   addWatchFolder(): Promise<Settings>;
+  /** Store the current (checked) state of a track as a reference for engine evaluation (spec §21) */
+  saveReference(path: string, energyRating?: number): Promise<Record<string, string>>;
+  exportReferences(): Promise<ExportResponse>;
   /** High-resolution waveform of one track (computed on demand) */
   peaks(path: string): Promise<Peaks | null>;
   revealInFolder(path: string): void;

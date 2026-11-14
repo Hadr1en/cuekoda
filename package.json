@@ -21,7 +21,8 @@
     "preview": "npm run build && node dist/cli/cli.js samples --out cuekoda-out --preview dist/renderer/preview-data.js && node scripts/make-preview.mjs",
     "dist": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac --win",
     "dist:mac": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac",
-    "dist:win": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --win"
+    "dist:win": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --win",
+    "eval": "npm run build && node dist/test/evaluate.js"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",

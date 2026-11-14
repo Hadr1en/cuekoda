@@ -11,7 +11,7 @@
   };
   const adapters = window.__ADAPTERS__ || [];
   window.cuekoda = {
-    init: async () => ({ tracks, settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8 }),
+    init: async () => ({ tracks, settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8, references: {} }),
     pathsForFiles: () => [],
     pick: async () => [],
     addPaths: async () => [],
@@ -30,6 +30,8 @@
     exportPreview: async (id, paths) => [`${paths.length} morceau(x) (aperçu simulé)`],
     exportCollection: async () => ({ ok: true, file: '/tmp/demo.xml' }),
     addWatchFolder: async () => settings,
+    saveReference: async () => ({}),
+    exportReferences: async () => ({ ok: false, canceled: true }),
     peaks: async () => null,
     revealInFolder: () => {},
     onTrack: (f) => (cbs.track = f),

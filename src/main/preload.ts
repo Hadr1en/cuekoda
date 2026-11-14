@@ -25,6 +25,8 @@ const api: CueKodaApi = {
   exportPreview: (f, paths, opts) => ipcRenderer.invoke('export-preview', f, paths, opts),
   exportCollection: (f, paths, opts) => ipcRenderer.invoke('export', f, paths, opts),
   addWatchFolder: () => ipcRenderer.invoke('add-watch-folder'),
+  saveReference: (p, rating) => ipcRenderer.invoke('reference-save', p, rating),
+  exportReferences: () => ipcRenderer.invoke('references-export'),
   peaks: (p) => ipcRenderer.invoke('peaks', p),
   revealInFolder: (p) => ipcRenderer.send('reveal', p),
   onTrack: on('track'),

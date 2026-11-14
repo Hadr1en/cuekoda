@@ -588,6 +588,42 @@ function renderInfo(r: AnalysisResult) {
       h('button', { type: 'button', class: 'btn small ghost', onclick: () => api.revealInFolder(r.path) }, 'Afficher le fichier'),
       h('button', { type: 'button', class: 'btn small ghost', onclick: () => void api.reanalyze([r.path], true) }, 'Ré-analyser sans cache (corrections conservées)'),
     ),
+    referenceBlock(r),
+  );
+}
+
+// ---------------------------------------------------------------- reference annotations (spec §21)
+function referenceBlock(r: AnalysisResult): HTMLElement {
+  const saved = r.fileHash ? state.references[r.fileHash] : undefined;
+  const rating = h('select', { 'aria-label': 'Votre ressenti d’énergie (optionnel)' },
+    h('option', { value: '' }, 'Énergie ressentie : —'),
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => h('option', { value: String(v) }, `Énergie ressentie : ${v}/10`)));
+  const count = Object.keys(state.references).length;
+  return h('section', { class: 'set' },
+    h('h3', {}, 'Référence de qualité'),
+    h('p', { class: 'muted' },
+      'Quand ce morceau est vérifié à l’oreille et corrigé (BPM, temps 1, clé, cues, sections), enregistrez-le comme référence. ',
+      '« npm run eval » ré-analyse ensuite les références sans vos corrections et mesure la justesse du moteur.'),
+    saved ? h('p', {}, `✓ Référence enregistrée le ${new Date(saved).toLocaleString('fr-FR')}`) : null,
+    h('div', { class: 'hrow' },
+      rating,
+      h('button', {
+        type: 'button', class: 'btn small',
+        onclick: async () => {
+          state.references = await api.saveReference(r.path, rating.value ? Number(rating.value) : undefined);
+          toast('Référence enregistrée : elle servira à évaluer le moteur');
+          renderDetail();
+        },
+      }, saved ? 'Mettre à jour la référence' : '✓ Valider comme référence'),
+      h('span', { class: 'muted' }, `${count} référence${count > 1 ? 's' : ''} au total`),
+      count ? h('button', {
+        type: 'button', class: 'btn small ghost',
+        onclick: async () => {
+          const res = await api.exportReferences();
+          if (res.ok) toast(`Références exportées : ${res.file}`);
+        },
+      }, 'Exporter…') : null,
+    ),
   );
 }
 
@@ -787,6 +823,7 @@ async function boot() {
   state.adapters = s.adapters;
   state.learning = s.learning;
   state.cores = s.cores;
+  state.references = s.references ?? {};
   state.queue = s.queue;
   applyTheme(s.settings.theme ?? 'dark');
   for (const t of s.tracks) state.tracks.set(t.path, t);

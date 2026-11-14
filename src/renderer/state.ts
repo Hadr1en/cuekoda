@@ -19,6 +19,7 @@ export const state = {
   cores: 1,
   queue: { pending: 0, running: 0, paused: false, maxWorkers: 1 } as QueueState,
   selected: null as string | null,
+  references: {} as Record<string, string>,
 };
 
 export const doneResults = (): AnalysisResult[] =>

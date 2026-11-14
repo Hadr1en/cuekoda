@@ -481,3 +481,54 @@ test('local vocal model runs offline (skipped when the model files are absent)',
   assert.equal(out!.probs.length, 2, '7 s → two 3 s patches');
   assert.ok([...out!.probs].every((v) => v >= 0 && v <= 1));
 });
+
+// ---------------------------------------------------------------- evaluation against references (§21)
+import { evaluateTrack, keyScore, matchTimes, spearman, summarize, referenceFrom } from '../core/evaluate';
+
+test('MIREX key score', () => {
+  assert.equal(keyScore('8A', '8A'), 1); // Am / Am
+  assert.equal(keyScore('8A', '9A'), 0.5); // Am / Em (fifth)
+  assert.equal(keyScore('8A', '8B'), 0.3); // Am / C (relative)
+  assert.equal(keyScore('8B', '5A'), 0.2); // C / Cm (parallel)
+  assert.equal(keyScore('11B', '8A'), 0.2); // A / Am (parallel)
+  assert.equal(keyScore('8A', '2B'), 0);
+});
+
+test('matchTimes is one-to-one within tolerance', () => {
+  assert.deepEqual(matchTimes([10, 20, 30], [10.2, 19.6, 50], 0.5), [[10, 10.2], [20, 19.6]]);
+  assert.equal(matchTimes([20], [19.4], 0.5).length, 0, '0.6 s away: outside the tolerance');
+  assert.equal(matchTimes([10], [10.1, 10.2], 0.5).length, 1);
+});
+
+test('spearman', () => {
+  assert.equal(spearman([1, 2, 3, 4], [10, 20, 30, 40]), 1);
+  assert.equal(spearman([1, 2, 3, 4], [4, 3, 2, 1]), -1);
+  assert.equal(spearman([1, 2], [1, 2]), null);
+});
+
+test('evaluateTrack: perfect, octave error, shifted cues', () => {
+  const base = track({
+    path: 'x', fileHash: 'h', bpm: 128,
+    grid: { bpm: 128, firstDownbeatSec: 0.1, confidence: 1 },
+    cues: [cue({ kind: 'intro', timeSec: 0.1 }), cue({ kind: 'drop', timeSec: 30.1 })],
+    sections: [
+      { id: 'a', type: 'intro', label: 'Intro', startBar: 0, endBar: 16, startSec: 0.1, endSec: 30.1, energy: 0.3, confidence: 'high', origin: 'auto' },
+      { id: 'b', type: 'drop', label: 'Drop', startBar: 16, endBar: 32, startSec: 30.1, endSec: 60.1, energy: 0.9, confidence: 'high', origin: 'auto' },
+    ],
+    energy: { score: 7, curve: [], events: [] },
+  });
+  const ref = referenceFrom(base, 8);
+  const perfect = evaluateTrack(base, ref);
+  assert.equal(perfect.key.score, 1);
+  assert.equal(perfect.cues.recall, 1);
+  assert.equal(perfect.sections.recall, 1);
+  assert.ok(Math.abs(perfect.grid.phaseErrorMs) < 1e-6 && perfect.grid.downbeatOk);
+
+  const off = evaluateTrack({ ...base, bpm: 64, cues: [cue({ timeSec: 0.1 }), cue({ timeSec: 32 })], grid: { ...base.grid, firstDownbeatSec: 0.1 + 60 / 128 } }, ref);
+  assert.ok(off.bpm.octaveError);
+  assert.equal(off.grid.downbeatOk, false, 'one beat late = wrong bar start');
+  assert.equal(off.cues.matched, 1, '32 s is 4 beats away from 30.1 s: not matched');
+  const s = summarize([perfect, off]);
+  assert.equal(s.tracks, 2);
+  assert.equal(s.downbeatAccuracy, 0.5);
+});

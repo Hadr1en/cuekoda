@@ -332,6 +332,27 @@ async function main() {
     }
   }
 
+  // ---- evaluation pipeline against a ground truth (spec §21) -----------------------------------
+  {
+    console.log('\n▶ évaluation contre une vérité terrain');
+    const { evaluateTrack, summarize } = await import('../core/evaluate');
+    const spec = SPECS[0].spec;
+    const barSec = (4 * 60) / spec.bpm;
+    const truth = {
+      version: 1 as const, fileHash: '', path: '', fileName: spec.name, title: spec.name, createdAt: '', engineVersion: 'truth',
+      bpm: spec.bpm, firstDownbeatSec: spec.lead, key: 'Am', keyCamelot: '8A',
+      cues: Object.entries(SPECS[0].expect.cues).map(([role, bar]) => ({ kind: 'custom' as const, name: role, timeSec: spec.lead + bar * barSec })),
+      sections: [0, 8, 16, 32, 40, 48, 64].map((bar) => ({ type: 'section' as const, label: '', startSec: spec.lead + bar * barSec })),
+    };
+    const e = evaluateTrack(results[0], truth);
+    const sum = summarize([e]);
+    check('Évaluation : BPM', Math.abs(e.bpm.errorPct) < 0.05, `${e.bpm.errorPct.toFixed(3)} %`);
+    check('Évaluation : phase et temps 1', Math.abs(e.grid.phaseErrorMs) < 15 && e.grid.downbeatOk, `${e.grid.phaseErrorMs.toFixed(1)} ms`);
+    check('Évaluation : clé', e.key.score === 1, `${e.key.detected}`);
+    check('Évaluation : cues (rappel)', e.cues.recall === 1, `${e.cues.matched}/${e.cues.reference}, F1 ${sum.cueF1.toFixed(2)}`);
+    check('Évaluation : sections (rappel)', e.sections.recall === 1, `${e.sections.matched}/${e.sections.reference}, F1 ${sum.sectionF1.toFixed(2)}`);
+  }
+
   // ---- manual corrections drive the re-analysis --------------------------------------------
   {
     console.log('\n▶ corrections manuelles (overrides)');
