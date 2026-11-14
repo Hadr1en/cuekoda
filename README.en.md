@@ -207,8 +207,8 @@ Export safety: CueKoda writes a **new collection file** and never touches your D
 ## Reliability and limits
 CueKoda is upfront about what it can do:
 - **Checked by ear by a DJ**: rekordbox and Traktor imports; drops, downbeat and outro on 3 hand-corrected
-  EDM tracks (within 0.5 s).
-- **Still to confirm**: Engine DJ, VirtualDJ and djay Pro imports. The energy scale and confidence levels are
+  EDM tracks (within 0.5 s); automatic update on macOS.
+- **Still to confirm**: Engine DJ, VirtualDJ and djay Pro imports; automatic update on Windows. The energy scale and confidence levels are
   not calibrated on an annotated corpus.
 - **Experimental**: vocal detection (some vocals may be missed). Verse / chorus is only suggested on strong
   evidence.

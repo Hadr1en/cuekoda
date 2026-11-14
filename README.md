@@ -210,8 +210,8 @@ ton logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord
 ## Fiabilité et limites
 CueKoda est honnête sur ce qu'il sait faire :
 - **Validé à l'oreille par un DJ** : imports rekordbox et Traktor ; drops, temps 1 et outro sur 3 morceaux
-  EDM corrigés à la main (à 0,5 s près).
-- **À confirmer** : imports Engine DJ, VirtualDJ et djay Pro ; échelle d'énergie et niveaux de confiance non
+  EDM corrigés à la main (à 0,5 s près) ; mise à jour automatique sur macOS.
+- **À confirmer** : imports Engine DJ, VirtualDJ et djay Pro ; mise à jour automatique sous Windows ; échelle d'énergie et niveaux de confiance non
   calibrés sur un corpus annoté.
 - **Expérimental** : détection vocale (des voix peuvent être manquées) ; couplet / refrain proposés
   seulement sur preuve forte.
