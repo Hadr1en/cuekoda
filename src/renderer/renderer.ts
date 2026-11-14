@@ -1,8 +1,9 @@
-import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType } from '../core/types';
+import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
 import { allKeys } from '../core/key';
 import { CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
 import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
+import { bTimeAt, fadeGains, planTransition } from '../core/transition';
 import type { TrackRecord } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, history, state } from './state';
 import { WaveView, drawOverview } from './waveform';
@@ -115,11 +116,32 @@ function renderLibrary() {
 
 const td = (text: string | Node, cls = '') => h('td', { class: cls }, text);
 
+const isBusy = (rec?: TrackRecord) => !!rec && (rec.status === 'analyzing' || rec.status === 'queued');
+// Analysis stages in the order the engine reports them (src/core/analyzer.ts)
+const STAGES = ['décodage', 'tempo', 'grille', 'structure', 'voix', 'tonalité', 'terminé'];
+function busyText(rec: TrackRecord): string {
+  if (rec.status === 'queued') {
+    const waiting = [...state.tracks.values()].filter((t) => t.status === 'queued');
+    const pos = waiting.indexOf(rec) + 1;
+    return pos > 0 ? `En attente · ${pos}ᵉ dans la file` : 'En attente';
+  }
+  const i = STAGES.indexOf(rec.stage ?? '');
+  const step = i >= 0 ? ` · étape ${i + 1}/${STAGES.length - 1}` : '';
+  return `${rec.result ? 'Ré-analyse' : 'Analyse'} ${Math.round((rec.progress ?? 0) * 100)} % — ${rec.stage ?? 'démarrage'}${step}`;
+}
+/** Progress bar + stage text; indeterminate while queued, animated while running. */
+function busyLine(rec: TrackRecord) {
+  const bar = h('progress', { max: 100, 'aria-label': busyText(rec) });
+  if (rec.status === 'analyzing') bar.value = Math.max(2, Math.round((rec.progress ?? 0) * 100));
+  return h('span', { class: `busy-line ${rec.status}` }, bar, h('span', { class: 'muted' }, busyText(rec)));
+}
+
 function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
   if (!tr) return;
   tr.replaceChildren();
   if (rec.path === state.selected) tr.setAttribute('aria-current', 'true');
   else tr.removeAttribute('aria-current');
+  tr.classList.toggle('busy', isBusy(rec));
   const r = rec.result;
   const warn = rec.status === 'done' && (r?.warnings.length ?? 0) > 0;
   const stateText =
@@ -133,7 +155,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
   if (r && rec.status !== 'error') {
     const reanalysing = rec.status !== 'done';
     tr.append(
-      td(h('span', {}, r.title, reanalysing ? h('span', { class: 'muted' }, ` — ${stateText}`) : '')),
+      td(h('span', {}, r.title, reanalysing && isBusy(rec) ? busyLine(rec) : '')),
       td(r.artist, 'muted'),
       td(h('span', {}, fmtBpm(r.bpm), r.tempo ? confBadge(r.tempo.confidence, true) : ''), 'c-num'),
       td(r.key.camelot
@@ -149,7 +171,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
       td(fmtDur(r.durationSec), 'c-num muted'),
     );
   } else {
-    tr.append(td(rec.fileName), td(h('span', { class: rec.status === 'error' ? 'err' : 'muted' }, stateText), ''));
+    tr.append(td(rec.fileName), td(isBusy(rec) ? busyLine(rec) : h('span', { class: rec.status === 'error' ? 'err' : 'muted' }, stateText), ''));
     (tr.lastChild as HTMLTableCellElement).colSpan = 8;
   }
 }
@@ -172,9 +194,14 @@ function onQueue() {
   const bar = $<HTMLProgressElement>('queue-bar');
   bar.max = Math.max(1, batchTotal);
   bar.value = batchTotal - active;
+  const running = [...state.tracks.values()].filter((t) => t.status === 'analyzing');
+  const now = running.length === 1
+    ? ` · ${running[0].result?.title ?? running[0].fileName} — ${running[0].stage ?? '…'} ${Math.round((running[0].progress ?? 0) * 100)} %`
+    : running.length > 1 ? ` · ${running.length} en cours` : '';
   $('queue-label').textContent = q.paused
     ? `En pause · ${q.pending} en attente`
-    : `${batchTotal - active}/${batchTotal} · ${q.running} en cours`;
+    : `Analyse ${batchTotal - active}/${batchTotal}${now}`;
+  $('queue').classList.toggle('running', !q.paused && active > 0);
   $('btn-pause').textContent = q.paused ? 'Reprendre' : 'Pause';
 }
 
@@ -192,8 +219,10 @@ const wave = new WaveView($<HTMLCanvasElement>('wave'), () => audio.currentTime,
     }
     cue.timeSec = t;
     if (done) {
+      const oldBar = cue.bar;
       cue.bar = Math.round((t - r.grid.firstDownbeatSec) / (4 * (60 / r.bpm)));
       cue.origin = 'user';
+      syncSectionWithCue(r, cue, oldBar);
       if (dragStart.wasAuto) api.learningEvent({ type: 'moved', kind: cue.kind, beats: (t - dragStart.time) / (60 / r.bpm) });
       dragStart = null;
       persist(r);
@@ -219,6 +248,9 @@ const wave = new WaveView($<HTMLCanvasElement>('wave'), () => audio.currentTime,
 });
 let dragStart: { id: string; time: number; wasAuto: boolean } | null = null;
 
+/** Track whose audio / peaks are loaded in the player */
+let audioPath = '';
+
 function select(path: string) {
   const prev = state.selected;
   state.selected = path;
@@ -226,8 +258,11 @@ function select(path: string) {
   const rec = state.tracks.get(path);
   if (rec) renderRow(rec);
   const r = rec?.result ?? null;
-  if (r && prev !== path) {
+  // (re)load the media when the track changes OR when its first result just arrived (selected while pending)
+  if (r && (prev !== path || audioPath !== path)) {
+    tx?.stop();
     audio.pause();
+    audioPath = path;
     audio.src = toFileUrl(r.path);
     loopPlay = null;
     wave.selectedCueId = null;
@@ -260,14 +295,31 @@ function redrawWave() {
   c.setAttribute('aria-valuetext', label);
 }
 
+function renderBusy(rec?: TrackRecord) {
+  const el = $('d-busy');
+  const busy = isBusy(rec);
+  el.hidden = !busy;
+  if (busy) el.replaceChildren(h('span', { class: 'spinner', 'aria-hidden': 'true' }), busyLine(rec!),
+    rec!.result ? h('span', { class: 'muted' }, ' · l’analyse précédente reste affichée, tes corrections seront conservées') : '');
+  // first analysis: nothing to show yet except the progress
+  const pending = $('pending');
+  pending.hidden = !busy || !!rec!.result;
+  if (busy && !rec!.result) pending.replaceChildren(
+    h('div', { class: 'big' }, rec!.fileName),
+    h('div', { class: 'pending-line' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), busyLine(rec!)),
+    h('div', { class: 'sub muted' }, 'Tempo, grille, structure, voix puis tonalité : les cues apparaîtront à la fin de l’analyse.'),
+  );
+}
+
 function renderDetail() {
   const r = current();
   const rec = state.selected ? state.tracks.get(state.selected) : undefined;
+  renderBusy(rec);
   $('detail').hidden = !r;
   if (!r) return;
   if (wave.track !== r) wave.set(r, true);
   $('d-title').textContent = r.title + (r.artist ? ` — ${r.artist}` : '');
-  const busy = rec && rec.status !== 'done' ? ` · ${rec.status === 'analyzing' ? `ré-analyse ${Math.round((rec.progress ?? 0) * 100)} %` : 'en attente'}` : '';
+  const busy = '';
   $('d-sub').textContent =
     `${fmtBpm(r.bpm)} BPM · ${r.key.camelot} (${r.key.musical}) · ${fmtDur(r.durationSec)} · énergie ${r.energy?.score ?? '—'}/10 · ` +
     `profil ${allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—'}${busy}`;
@@ -320,9 +372,11 @@ function setCueAt(r: AnalysisResult, slot: number, t: number, kind?: CueKind) {
     const existing = r.cues.find((c) => c.slot === slot);
     const time = snapBeat(r, t);
     if (existing) {
+      const oldBar = existing.bar;
       existing.timeSec = time;
       existing.bar = barOf(r, time);
       existing.origin = 'user';
+      syncSectionWithCue(r, existing, oldBar);
     } else {
       const k = kind ?? 'custom';
       r.cues.push({
@@ -331,6 +385,37 @@ function setCueAt(r: AnalysisResult, slot: number, t: number, kind?: CueKind) {
       });
     }
     r.cues.sort((a, b) => a.slot - b.slot);
+  });
+}
+
+/**
+ * Adds a cue at time t: on the first free pad, or as a memory cue (no pad, slot −1) when the 8 pads are
+ * taken or when asked. Memory cues are exported as rekordbox memory cues / Traktor stored cues.
+ */
+function addCue(r: AnalysisResult, t: number, kind: CueKind, memory = false) {
+  const free = [0, 1, 2, 3, 4, 5, 6, 7].find((s) => !r.cues.some((c) => c.slot === s));
+  const slot = memory || free === undefined ? -1 : free;
+  edit(r, () => {
+    const time = snapBeat(r, t);
+    r.cues.push({
+      id: newId('c'), slot, role: 'custom', kind, name: CUE_KIND_LABEL[kind], timeSec: time, bar: barOf(r, time),
+      color: profileColors()[kind] ?? DEFAULT_COLORS[kind], confidence: 'high', reason: 'Placé manuellement', origin: 'user',
+    });
+    r.cues.sort((a, b) => a.slot - b.slot || a.timeSec - b.timeSec);
+  });
+  const where = slot < 0 ? (memory ? 'memory cue' : 'memory cue (les 8 pads sont occupés)') : `pad ${LETTERS[slot]}`;
+  toast(`${CUE_KIND_LABEL[kind]} ajouté à ${fmtTime(snapBeat(r, t))} — ${where}`);
+}
+
+/** Moves a memory cue onto a free pad (or swaps it with the pad's cue, which becomes a memory cue). */
+function promoteCue(r: AnalysisResult, cue: HotCue, slot: number) {
+  edit(r, () => {
+    const occupant = r.cues.find((c) => c.slot === slot);
+    if (occupant) occupant.slot = -1;
+    cue.slot = slot;
+    cue.origin = 'user';
+    if (occupant) occupant.origin = 'user';
+    r.cues.sort((a, b) => a.slot - b.slot || a.timeSec - b.timeSec);
   });
 }
 
@@ -346,9 +431,11 @@ function moveCue(r: AnalysisResult, cue: HotCue, beats: number) {
   if (cue.locked) return toast('Ce cue est verrouillé');
   edit(r, () => {
     if (cue.origin === 'auto') api.learningEvent({ type: 'moved', kind: cue.kind, beats });
+    const oldBar = cue.bar;
     cue.timeSec = Math.max(0, Math.min(r.durationSec - 0.05, cue.timeSec + beats * beatOf(r)));
     cue.bar = barOf(r, cue.timeSec);
     cue.origin = 'user';
+    syncSectionWithCue(r, cue, oldBar);
   });
 }
 
@@ -396,7 +483,51 @@ function renderCues(r: AnalysisResult) {
       ),
     ));
   }
-  $('tab-cues').replaceChildren(h('div', { class: 'pads' }, ...pads));
+  // add-a-cue toolbar: always available (a vocal highlight, a fill, a riser…)
+  const kindSel = h('select', { 'aria-label': 'Type du nouveau cue' }, ...kinds.map((k) => h('option', { value: k, selected: k === 'vocal' }, CUE_KIND_LABEL[k])));
+  const tools = h('div', { class: 'hrow' },
+    h('button', { type: 'button', class: 'btn small', title: 'Raccourci : C', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind) }, '+ Cue ici'),
+    kindSel,
+    h('button', { type: 'button', class: 'btn small ghost', title: 'Raccourci : M', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind, true) }, '+ Memory cue ici'),
+    h('span', { class: 'muted' }, 'Posé sur le temps le plus proche de la lecture. Pads pleins : le cue devient une memory cue (exportée sans pad).'),
+  );
+  const memo = r.cues.filter((c) => c.slot < 0).sort((a, b) => a.timeSec - b.timeSec);
+  const memoBlock = memo.length
+    ? h('section', { class: 'memo' },
+        h('h3', {}, `Memory cues (${memo.length})`),
+        h('table', { class: 'caps' },
+          h('thead', {}, h('tr', {}, ...['Nom', 'Type', 'Position', '', 'Pad'].map((t) => h('th', { scope: 'col' }, t)))),
+          h('tbody', {}, ...memo.map((cue) => {
+            const padSel = h('select', { 'aria-label': `Placer « ${cue.name} » sur un pad` },
+              h('option', { value: '' }, '→ pad…'),
+              ...[0, 1, 2, 3, 4, 5, 6, 7].map((sl) => {
+                const occ = r.cues.find((c) => c.slot === sl);
+                return h('option', { value: String(sl) }, `${LETTERS[sl]}${occ ? ` (remplace ${occ.name})` : ' (libre)'}`);
+              }));
+            padSel.addEventListener('change', () => { if (padSel.value !== '') promoteCue(r, cue, Number(padSel.value)); });
+            const btn = (label: string, title: string, fn: () => void) => h('button', { type: 'button', class: 'btn small ghost', title, 'aria-label': title, onclick: fn }, label);
+            return h('tr', { class: wave.selectedCueId === cue.id ? 'selected' : '' },
+              h('td', {}, h('input', { type: 'text', value: cue.name, 'aria-label': 'Nom de la memory cue',
+                onchange: (e: Event) => edit(r, () => { cue.name = (e.target as HTMLInputElement).value || cue.name; cue.origin = 'user'; }) })),
+              h('td', {}, h('select', { 'aria-label': 'Type de la memory cue', onchange: (e: Event) => edit(r, () => {
+                const k = (e.target as HTMLSelectElement).value as CueKind;
+                if (cue.name === CUE_KIND_LABEL[cue.kind]) cue.name = CUE_KIND_LABEL[k];
+                cue.kind = k; cue.color = profileColors()[k] ?? DEFAULT_COLORS[k]; cue.origin = 'user';
+              }) }, ...kinds.map((k) => h('option', { value: k, selected: k === cue.kind }, CUE_KIND_LABEL[k])))),
+              h('td', {}, `${fmtTime(cue.timeSec)} · mes. ${cue.bar + 1}`),
+              h('td', {},
+                btn('▶', 'Aller à la memory cue', () => { jump(cue.timeSec); void audio.play(); }),
+                btn('−1', '1 temps plus tôt', () => moveCue(r, cue, -1)),
+                btn('+1', '1 temps plus tard', () => moveCue(r, cue, 1)),
+                btn('✕', 'Supprimer la memory cue', () => deleteCue(r, cue)),
+              ),
+              h('td', {}, padSel),
+            );
+          })),
+        ),
+      )
+    : '';
+  $('tab-cues').replaceChildren(tools, h('div', { class: 'pads' }, ...pads), memoBlock);
 }
 
 // ---------------------------------------------------------------- tab: loops
@@ -446,21 +577,155 @@ function addLoop(r: AnalysisResult, beats: number) {
 // ---------------------------------------------------------------- tab: sections
 const SECTION_TYPES = Object.keys(SECTION_LABEL) as SectionType[];
 
+/** Keeps the timeline consistent: sorted, contiguous, recomputed times, owned by the user from now on. */
+function normalizeSections(r: AnalysisResult) {
+  const s = r.sections ?? [];
+  s.sort((a, b) => a.startBar - b.startBar);
+  const bar = 4 * beatOf(r);
+  s.forEach((sec, i) => {
+    sec.endBar = i + 1 < s.length ? s[i + 1].startBar : sec.endBar;
+    sec.startSec = Math.max(0, r.grid.firstDownbeatSec + sec.startBar * bar);
+    sec.endSec = i + 1 < s.length ? r.grid.firstDownbeatSec + sec.endBar * bar : r.durationSec;
+    sec.origin = 'user';
+  });
+  r.sections = s.filter((x) => x.endBar > x.startBar);
+}
+
 function sectionEdit(r: AnalysisResult, fn: (s: Section[]) => void) {
   edit(r, () => {
-    const s = r.sections ?? [];
-    fn(s);
-    // keep the timeline consistent: contiguous, recomputed times, owned by the user from now on
-    s.sort((a, b) => a.startBar - b.startBar);
-    const bar = 4 * beatOf(r);
-    s.forEach((sec, i) => {
-      sec.endBar = i + 1 < s.length ? s[i + 1].startBar : sec.endBar;
-      sec.startSec = Math.max(0, r.grid.firstDownbeatSec + sec.startBar * bar);
-      sec.endSec = i + 1 < s.length ? r.grid.firstDownbeatSec + sec.endBar * bar : r.durationSec;
-      sec.origin = 'user';
-    });
-    r.sections = s.filter((x) => x.endBar > x.startBar);
+    fn(r.sections ?? []);
+    normalizeSections(r);
   });
+}
+
+/** Structure cues and the section they name move together (the timeline follows the DJ's cues). */
+const CUE_SECTION: Partial<Record<CueKind, SectionType>> = {
+  intro: 'intro',
+  build: 'build',
+  drop: 'drop',
+  break: 'breakdown',
+  outro: 'outro',
+};
+function syncSectionWithCue(r: AnalysisResult, cue: HotCue, oldBar: number) {
+  const type = CUE_SECTION[cue.kind];
+  const s = r.sections;
+  const nb = cue.bar;
+  if (!type || !s?.length || nb === oldBar || nb < 0) return;
+  s.sort((a, b) => a.startBar - b.startBar);
+  const linked = s.find((x) => x.startBar === oldBar && (x.type === type || x.label === cue.name));
+  if (linked) {
+    const i = s.indexOf(linked);
+    const prev = s[i - 1];
+    const next = s[i + 1];
+    if (i > 0 && nb > prev.startBar && (!next || nb < next.startBar)) {
+      linked.startBar = nb; // simple case: the boundary moves
+      normalizeSections(r);
+      return;
+    }
+    // the cue jumped elsewhere: the old section is no longer that drop / break…
+    linked.type = 'section';
+    linked.label = SECTION_LABEL.section;
+  }
+  const host = s.find((x) => x.startBar <= nb && nb < x.endBar) ?? s[s.length - 1];
+  if (host.startBar === nb) {
+    host.type = type;
+    host.label = cue.name;
+  } else {
+    s.push({ ...host, id: newId('s'), startBar: nb, type, label: cue.name, confidence: 'high', origin: 'user' });
+  }
+  normalizeSections(r);
+}
+
+// ---------------------------------------------------------------- vocal parts (editable)
+function vocalEdit(r: AnalysisResult, fn: (segs: VocalSegment[]) => void) {
+  edit(r, () => {
+    const v = (r.vocals ??= {
+      method: 'manuel', validated: false, curve: [], present: [], segments: [], coverage: 0, tonalShare: 0, level: 'low',
+    });
+    fn(v.segments);
+    const bar = 4 * beatOf(r);
+    const d0 = r.grid.firstDownbeatSec;
+    v.segments.sort((a, b) => a.startBar - b.startBar);
+    // merge overlaps, recompute times and coverage
+    const out: VocalSegment[] = [];
+    for (const seg of v.segments) {
+      seg.endBar = Math.max(seg.startBar + 1, seg.endBar);
+      const last = out[out.length - 1];
+      if (last && seg.startBar <= last.endBar) {
+        last.endBar = Math.max(last.endBar, seg.endBar);
+        if (seg.strength === 'strong') last.strength = 'strong';
+        last.origin = 'user';
+      } else out.push(seg);
+    }
+    for (const seg of out) {
+      seg.startSec = Math.max(0, d0 + seg.startBar * bar);
+      seg.endSec = Math.min(r.durationSec, d0 + seg.endBar * bar);
+    }
+    v.segments = out.filter((x) => x.endSec > x.startSec);
+    const total = Math.max(1, Math.round((r.durationSec - Math.max(0, d0)) / bar));
+    v.coverage = Math.min(1, v.segments.reduce((a, x) => a + (x.endBar - x.startBar), 0) / total);
+    v.edited = true;
+  });
+}
+
+function renderVocals(r: AnalysisResult): HTMLElement {
+  const segs = r.vocals?.segments ?? [];
+  const lenSel = h('select', { 'aria-label': 'Longueur du nouveau passage vocal' }, ...[2, 4, 8, 16].map((v) => h('option', { value: String(v), selected: v === 8 }, `${v} mes.`)));
+  const btn = (label: string, title: string, fn: () => void, disabled = false) =>
+    h('button', { type: 'button', class: 'btn small ghost', title, 'aria-label': title, disabled, onclick: fn }, label);
+  return h('section', { class: 'vocals-edit' },
+    h('h3', {}, 'Voix'),
+    h('p', { class: 'muted' },
+      r.vocals?.edited
+        ? 'Passages vocaux corrigés par vous : conservés lors des ré-analyses.'
+        : 'Détection automatique non validée : corrige les passages (début / fin à la mesure près), ils seront conservés.'),
+    h('div', { class: 'hrow' },
+      h('button', { type: 'button', class: 'btn small', onclick: () => vocalEdit(r, (list) => {
+        const b = Math.max(0, barOf(r, audio.currentTime));
+        list.push({ startBar: b, endBar: b + Number(lenSel.value), startSec: 0, endSec: 0, score: 1, strength: 'strong', confidence: 'high', origin: 'user' });
+      }) }, '+ Passage vocal à la lecture'),
+      lenSel,
+      h('button', { type: 'button', class: 'btn small ghost', title: 'Le passage vocal en cours s’arrête à la mesure de lecture', onclick: () => vocalEdit(r, (list) => {
+        const b = barOf(r, audio.currentTime);
+        const seg = list.find((x) => x.startBar < b && b <= x.endBar + 8) ?? [...list].reverse().find((x) => x.startBar < b);
+        if (!seg) return toast('Aucun passage vocal avant la position de lecture');
+        seg.endBar = b;
+        seg.origin = 'user';
+      }) }, 'Fin de voix ici'),
+      h('button', { type: 'button', class: 'btn small ghost', title: 'Coupe le passage vocal à la mesure de lecture (pause dans le chant)', onclick: () => vocalEdit(r, (list) => {
+        const b = barOf(r, audio.currentTime);
+        const seg = list.find((x) => x.startBar < b && b < x.endBar);
+        if (!seg) return toast('Place la lecture à l’intérieur d’un passage vocal');
+        list.push({ ...seg, startBar: b + 1, origin: 'user' });
+        seg.endBar = b;
+        seg.origin = 'user';
+      }) }, 'Pause dans la voix ici'),
+    ),
+    segs.length
+      ? h('table', { class: 'caps' },
+          h('thead', {}, h('tr', {}, ...['Début', 'Fin', 'Durée', 'Voix', ''].map((t) => h('th', { scope: 'col' }, t)))),
+          h('tbody', {}, ...segs.map((seg, i) =>
+            h('tr', {},
+              h('td', {}, `${fmtTime(seg.startSec)} · mes. ${seg.startBar + 1} `,
+                btn('−', 'Début une mesure plus tôt', () => vocalEdit(r, (l) => { l[i].startBar = Math.max(0, l[i].startBar - 1); l[i].origin = 'user'; })),
+                btn('+', 'Début une mesure plus tard', () => vocalEdit(r, (l) => { l[i].startBar += 1; l[i].origin = 'user'; }), seg.endBar - seg.startBar <= 1)),
+              h('td', {}, `${fmtTime(seg.endSec)} · mes. ${seg.endBar + 1} `,
+                btn('−', 'Fin une mesure plus tôt', () => vocalEdit(r, (l) => { l[i].endBar -= 1; l[i].origin = 'user'; }), seg.endBar - seg.startBar <= 1),
+                btn('+', 'Fin une mesure plus tard', () => vocalEdit(r, (l) => { l[i].endBar += 1; l[i].origin = 'user'; }))),
+              h('td', { class: 'muted' }, `${seg.endBar - seg.startBar} mes.`),
+              h('td', {}, h('select', { 'aria-label': 'Présence de la voix', onchange: (e: Event) => vocalEdit(r, (l) => { l[i].strength = (e.target as HTMLSelectElement).value as VocalSegment['strength']; l[i].origin = 'user'; }) },
+                h('option', { value: 'strong', selected: seg.strength === 'strong' }, 'nette'),
+                h('option', { value: 'light', selected: seg.strength === 'light' }, 'faible / chœurs'))),
+              h('td', {},
+                btn('▶', 'Écouter le passage', () => { jump(seg.startSec); void audio.play(); }),
+                btn('Cue', 'Créer un cue Vocal au début du passage', () => addCue(r, seg.startSec, 'vocal')),
+                btn('✕', 'Supprimer le passage vocal', () => vocalEdit(r, (l) => { l.splice(i, 1); })),
+                seg.origin === 'user' ? h('span', { class: 'pill', title: 'Modifié par vous' }, 'perso') : '',
+              ),
+            ))),
+        )
+      : h('p', { class: 'muted' }, 'Aucun passage vocal.'),
+  );
 }
 
 function renderSections(r: AnalysisResult) {
@@ -471,7 +736,7 @@ function renderSections(r: AnalysisResult) {
       ph?.lengthBars
         ? `Phrases de ${ph.lengthBars} mesures (régularité ${Math.round(ph.regularity * 100)} %) — affichées en traits pleins sur la waveform.`
         : 'Pas de phrasé régulier détecté : aucune limite de phrase n’est affichée (pas d’hypothèse forcée).',
-      ' Couplet / refrain ne sont pas proposés automatiquement : il faudrait une détection vocale.'),
+      ' Couplet / refrain ne sont pas proposés automatiquement. Les passages vocaux se corrigent plus bas.'),
     h('div', { class: 'hrow' },
       h('button', { type: 'button', class: 'btn small', onclick: () => sectionEdit(r, (list) => {
         const b = barOf(r, audio.currentTime);
@@ -499,7 +764,78 @@ function renderSections(r: AnalysisResult) {
           h('td', {}, i > 0 ? h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Supprimer (fusionner avec la section précédente)', onclick: () => sectionEdit(r, (list) => { list.splice(list.indexOf(sec), 1); }) }, '✕') : ''),
         ))),
     ),
+    renderVocals(r),
   );
+}
+
+// ---------------------------------------------------------------- transition preview (A → B)
+let tx: { stop: (msg?: string) => void; b: string } | null = null;
+
+/** Plays the end of the current track into `b`: B tempo-matched (pitch kept), beats aligned, equal-power fade. */
+async function previewTransition(a: AnalysisResult, b: AnalysisResult) {
+  tx?.stop();
+  const plan = planTransition(a, b);
+  if ('error' in plan) return toast(plan.error, 6000);
+  const el = new Audio(toFileUrl(b.path));
+  el.preservesPitch = true;
+  el.volume = 0;
+  el.preload = 'auto';
+  try {
+    await new Promise<void>((res, rej) => {
+      el.addEventListener('canplay', () => res(), { once: true });
+      el.addEventListener('error', () => rej(new Error(String(el.error?.code ?? ''))), { once: true });
+      el.currentTime = plan.inSec;
+    });
+  } catch (e) {
+    return toast(`Lecture de « ${b.title} » impossible : ${playbackHelp(Number((e as Error).message) || 0)}`, 8000);
+  }
+  let started = false;
+  let frame = 0;
+  const stop = (msg?: string) => {
+    cancelAnimationFrame(frame);
+    el.pause();
+    el.removeAttribute('src');
+    audio.volume = 1;
+    if (tx?.b === b.path) tx = null;
+    if (msg) toast(msg);
+    renderDetail();
+  };
+  tx = { stop, b: b.path };
+  const tick = () => {
+    const ta = audio.currentTime;
+    if (audio.paused || ta >= plan.endASec || ta < plan.startASec - 1) {
+      if (!audio.paused && ta >= plan.endASec) audio.pause();
+      return stop();
+    }
+    if (ta >= plan.outSec) {
+      const want = bTimeAt(plan, ta);
+      if (!started) {
+        el.currentTime = want;
+        el.playbackRate = plan.rate;
+        void el.play();
+        started = true;
+      } else {
+        // keep B on A's beats: hard re-sync on a big jump, gentle tempo nudge otherwise
+        const drift = el.currentTime - want;
+        if (Math.abs(drift) > 0.12) el.currentTime = want;
+        else el.playbackRate = plan.rate * (1 - Math.max(-0.02, Math.min(0.02, drift * 0.5)));
+      }
+      const g = fadeGains(plan, ta);
+      audio.volume = g.a;
+      el.volume = g.b;
+    }
+    frame = requestAnimationFrame(tick);
+  };
+  audio.volume = 1;
+  jump(plan.startASec);
+  try {
+    await audio.play();
+  } catch {
+    return stop('Lecture impossible pour le moment');
+  }
+  frame = requestAnimationFrame(tick);
+  toast(`Transition → ${b.title} · ${plan.notes.join(' · ')} · fondu ${plan.fadeBars} mesures · Espace : arrêter`, 9000);
+  renderDetail();
 }
 
 // ---------------------------------------------------------------- tab: mix & compatibles
@@ -513,11 +849,7 @@ function renderMix(r: AnalysisResult) {
               h('button', { type: 'button', class: 'btn small ghost', onclick: () => { jump(m.timeSec); void audio.play(); } }, `▶ ${fmtTime(m.timeSec)}`),
               confBadge(m.confidence),
               h('span', {}, m.reason),
-              h('button', { type: 'button', class: 'btn small', onclick: () => {
-                const free = [0, 1, 2, 3, 4, 5, 6, 7].find((s) => !r.cues.some((c) => c.slot === s));
-                if (free === undefined) return toast('Les 8 pads sont occupés');
-                setCueAt(r, free, m.timeSec, kind);
-              } }, 'Créer un cue'),
+              h('button', { type: 'button', class: 'btn small', onclick: () => addCue(r, m.timeSec, kind) }, 'Créer un cue'),
             )))
         : h('p', { class: 'muted' }, 'Aucune suggestion.'),
     );
@@ -534,6 +866,12 @@ function renderMix(r: AnalysisResult) {
               h('li', {},
                 h('button', { type: 'button', class: 'btn small ghost', onclick: () => select(m.path) }, `${m.title}${m.artist ? ` — ${m.artist}` : ''}`),
                 h('span', { class: 'score' }, `${m.score}`),
+                h('button', { type: 'button', class: 'btn small', title: 'Écouter la transition : fin de ce morceau → début de l’autre, tempo calé, temps alignés, fondu de 16 mesures',
+                  onclick: () => {
+                    if (tx?.b === m.path) { audio.pause(); return; }
+                    const other = doneResults().find((x) => x.path === m.path);
+                    if (other) void previewTransition(r, other);
+                  } }, tx?.b === m.path ? '■ Arrêter' : '🎧 Transition'),
                 h('span', { class: 'muted' }, m.reasons.join(' · ') + (m.cautions.length ? ` (⚠ ${m.cautions.join(', ')})` : '')),
               )))
           : h('p', { class: 'muted' }, 'Pas encore de morceau compatible dans la bibliothèque.'),
@@ -784,6 +1122,10 @@ document.addEventListener('keydown', (e) => {
     deleteCue(r, selCue);
   } else if ((e.key === ',' || e.key === '.' || e.key === '<' || e.key === '>' || e.key === ';' || e.key === ':') && r && selCue) {
     moveCue(r, selCue, (e.key === ',' || e.key === '<' || e.key === ';' ? -1 : 1) * (e.shiftKey ? 4 : 1));
+  } else if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'm') && r) {
+    const sel = $('tab-cues').querySelector<HTMLSelectElement>('select[aria-label="Type du nouveau cue"]');
+    addCue(r, audio.currentTime, (sel?.value as CueKind) || 'custom', e.key.toLowerCase() === 'm');
+    setTab('cues');
   } else if (e.key.toLowerCase() === 'l' && r) {
     addLoop(r, 16);
     setTab('loops');
@@ -883,9 +1225,13 @@ async function boot() {
     if (isNew) renderLibrary();
     else renderRow(merged);
     updateGlobalButtons();
+    onQueue(); // the header names the track being analysed and its stage
     if (record.result && path === state.selected) {
-      wave.set(merged.result!, true);
-      renderDetail();
+      if (audioPath !== path) select(path); // first result of a track selected while pending
+      else {
+        wave.set(merged.result!, true);
+        renderDetail();
+      }
     } else if (path === state.selected) renderDetail();
     if (record.result && !state.selected) select(path);
   });

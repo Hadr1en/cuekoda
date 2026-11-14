@@ -352,14 +352,21 @@ export function pickDownbeatOffset(
   const lg = (v: number) => Math.log10(v + 1e-6);
   // Section-change strength at every beat: how different is the next beat from the previous one?
   const D = new Float64Array(Math.max(0, nBeats));
+  // Only frames lying fully inside each one-beat window: a frame straddling the beat line leaks the
+  // next beat's attack into the previous window (a drop's first kick) and can shift the vote by a beat.
+  const firstIn = (t: number) => Math.ceil((t * bands.sr) / bands.hop);
+  const endIn = (t: number) => Math.floor((t * bands.sr - bands.frameSize) / bands.hop) + 1;
   for (let i = win; i < nBeats - win; i++) {
     const t = firstBeatSec + i * P;
-    const fa = timeToFrame(bands, t - win * P);
-    const fb = timeToFrame(bands, t);
-    const fc = timeToFrame(bands, t + win * P);
+    // the start of the music is not a section change (silence → sound would dominate the vote and
+    // push the real drops under the threshold); it is used as the fallback below instead
+    if (t < firstAudibleSec + 4.5 * P) continue; // first bar of music excluded
+    const a0 = firstIn(t - win * P), a1 = endIn(t);
+    const b0 = firstIn(t), b1 = endIn(t + win * P);
+    if (a1 <= a0 || b1 <= b0) continue;
     let delta = 0;
     for (const pre of [pL, pM, pH]) {
-      delta += Math.abs(lg(rangeMean(pre, fb, fc)) - lg(rangeMean(pre, fa, fb)));
+      delta += Math.abs(lg(rangeMean(pre, b0, b1)) - lg(rangeMean(pre, a0, a1)));
     }
     D[i] = delta;
   }
@@ -372,15 +379,55 @@ export function pickDownbeatOffset(
     if (D[i] < thr) continue;
     let isMax = true;
     for (let j = i - 2; j <= i + 2 && isMax; j++) if (j !== i && D[j] > D[i]) isMax = false;
-    if (isMax) score[i % 4] += D[i];
+    if (isMax) {
+      score[i % 4] += D[i];
+      if (process.env.CUEKODA_DEBUG) {
+        const t = firstBeatSec + i * P;
+        const parts = [pL, pM, pH].map((pre) => (lg(rangeMean(pre, firstIn(t), endIn(t + P))) - lg(rangeMean(pre, firstIn(t - P), endIn(t)))).toFixed(2));
+        console.error(`#  vote t=${t.toFixed(2)} offset=${i % 4} D=${D[i].toFixed(2)} (low ${parts[0]} mid ${parts[1]} high ${parts[2]})`);
+      }
+    }
   }
+  // Kick / bass entries (the low band jumps ≥ 6 dB from one beat to the next and stays up for 3 beats)
+  // land on beat 1 in dance music: they vote too, and weigh more than generic energy changes.
+  // Validated on 13 real tracks + the DJ's corrections (docs/ALGORITHMES.md).
+  const lowDb = new Float64Array(Math.max(0, nBeats));
+  for (let i = 0; i < nBeats; i++) {
+    const t = firstBeatSec + i * P;
+    const a = firstIn(t), b = endIn(t + P);
+    lowDb[i] = b > a ? 10 * Math.log10(rangeMean(pL, a, b) + 1e-9) : -120;
+  }
+  // An entry is the beat where the low band REACHES its new level (within 2 dB of the median of the
+  // next 4 beats) after a rise of ≥ 6 dB — not the first beat of a swell / riser leading into it
+  // (on "Heroes" the sub swells over two beats before the drop's downbeat).
+  const entry = [0, 0, 0, 0];
+  for (let i = 3; i < nBeats - 4; i++) {
+    if (firstBeatSec + i * P < firstAudibleSec + 4.5 * P) continue;
+    const plateau = [lowDb[i], lowDb[i + 1], lowDb[i + 2], lowDb[i + 3]].sort((x, y) => x - y)[1] / 2 +
+      [lowDb[i], lowDb[i + 1], lowDb[i + 2], lowDb[i + 3]].sort((x, y) => x - y)[2] / 2;
+    const before = Math.min(lowDb[i - 1], lowDb[i - 2], lowDb[i - 3]);
+    const rise = plateau - before;
+    if (lowDb[i] >= plateau - 2 && lowDb[i - 1] <= plateau - 3 && rise >= 6) {
+      entry[i % 4] += Math.min(rise, 20);
+      i += 3; // one entry per event
+    }
+  }
+  const total = (a: number[]) => a.reduce((s, v) => s + v, 0);
+  const sChange = total(score), sEntry = total(entry);
+  // entries are the most reliable cue (confirmed by the DJ's corrections) once there is real evidence
+  const wEntry = sEntry >= 12 ? (sChange > 0 ? 0.75 : 1) : sEntry > 0 ? 0.4 : 0;
+  const combined = [0, 1, 2, 3].map(
+    (o) => (sChange > 0 ? (1 - wEntry) * (score[o] / sChange) : 0) + (sEntry > 0 ? wEntry * (entry[o] / sEntry) : 0),
+  );
   // Intros begin on a downbeat: the beat where the audio starts is the fallback answer.
   const first = Math.max(0, Math.ceil((firstAudibleSec - 0.15 * P - firstBeatSec) / P)) % 4;
   let best = 0;
-  for (let o = 1; o < 4; o++) if (score[o] > score[best]) best = o;
-  const second = Math.max(...score.filter((_, o) => o !== best));
-  const confident = score[best] >= 1.5 * second && score[best] > 0;
-  const chosen = confident ? best : first;
-  if (process.env.CUEKODA_DEBUG) console.error(`# downbeat scores ${score.map((s) => s.toFixed(1)).join(' ')} -> ${chosen}${confident ? '' : ' (fallback: first audible beat)'} (firstBeat=${firstBeatSec.toFixed(3)} firstAudible=${firstAudibleSec.toFixed(2)})`);
+  for (let o = 1; o < 4; o++) if (combined[o] > combined[best]) best = o;
+  const second = Math.max(...combined.filter((_, o) => o !== best));
+  const confident = combined[best] >= 1.5 * second && combined[best] > 0;
+  // a close vote still beats an arbitrary guess: keep the best candidate, flagged as uncertain;
+  // the start of the music is only used when there is no evidence at all
+  const chosen = combined[best] > 0 ? best : first;
+  if (process.env.CUEKODA_DEBUG) console.error(`# downbeat changes ${score.map((s) => s.toFixed(1)).join(' ')} entries ${entry.map((s) => s.toFixed(1)).join(' ')} -> ${chosen}${confident ? '' : combined[best] > 0 ? ' (incertain)' : ' (repli : début de la musique)'} (firstBeat=${firstBeatSec.toFixed(3)} firstAudible=${firstAudibleSec.toFixed(2)})`);
   return { offset: chosen, confident };
 }

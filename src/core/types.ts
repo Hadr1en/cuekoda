@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.3.2';
+export const ENGINE_VERSION = '0.3.3';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
@@ -50,7 +50,7 @@ export type CueRole =
 
 export interface HotCue {
   id: string;
-  /** Pad 0..7 = A..H */
+  /** Pad 0..7 = A..H; −1 = memory cue (no pad: rekordbox memory cue, Traktor stored cue) */
   slot: number;
   role: CueRole;
   kind: CueKind;
@@ -210,6 +210,8 @@ export interface VocalSegment {
   strength: 'strong' | 'light';
   /** Never 'high' while the detector is not validated on annotated material */
   confidence: Confidence;
+  /** 'user' = placed or corrected by the DJ */
+  origin?: Origin;
 }
 
 /** Vocal detection (spec §9) — local spectral heuristic, see core/vocals.ts. */
@@ -235,6 +237,8 @@ export interface VocalInfo {
   /** Overall reliability of the detection for this track */
   level: Confidence;
   note?: string;
+  /** true once the DJ edited the vocal parts: re-analysis keeps their segments */
+  edited?: boolean;
 }
 
 export interface TrackInfo {

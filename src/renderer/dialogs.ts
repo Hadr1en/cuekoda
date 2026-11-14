@@ -125,6 +125,8 @@ export function openHelp() {
     ['Maj + 1 … 8', 'Poser le hot cue A … H à la position de lecture (calé sur le temps)'],
     ['Suppr', 'Supprimer le cue sélectionné'],
     [', / .', 'Déplacer le cue sélectionné d’un temps (Maj : une mesure)'],
+    ['C', 'Ajouter un cue à la position de lecture (premier pad libre, sinon memory cue)'],
+    ['M', 'Ajouter une memory cue à la position de lecture'],
     ['L', 'Créer une boucle de 16 temps à la position de lecture'],
     ['+ / − / 0', 'Zoom avant / arrière / tout le morceau'],
     ['⌘Z / ⇧⌘Z', 'Annuler / rétablir'],

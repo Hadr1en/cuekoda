@@ -5,16 +5,16 @@
     "firstDownbeatSec": 1.479,
     "landmarks": {
       "intro": 1.48,
-      "drop1": 28.15,
       "vocal": 58.62,
-      "break1": 172.91,
+      "drop1": 104.34,
+      "break1": 150.05,
       "drop2": 180.53,
       "outro": 256.72
     },
     "sections": [
       "intro@0",
-      "drop@14",
-      "breakdown@90",
+      "drop@54",
+      "breakdown@78",
       "drop@94",
       "outro@134",
       "section@146"
@@ -27,13 +27,13 @@
     "firstDownbeatSec": 0.153,
     "landmarks": {
       "intro": 0.15,
-      "drop1": 18.44,
+      "drop1": 64.15,
       "mixout": 183.01,
       "outro": 201.3
     },
     "sections": [
       "intro@0",
-      "drop@8",
+      "drop@28",
       "outro@88",
       "section@96"
     ],
@@ -45,7 +45,7 @@
     "firstDownbeatSec": 0.121,
     "landmarks": {
       "intro": 2.03,
-      "drop1": 22.98,
+      "drop1": 57.26,
       "break1": 83.93,
       "drop2": 175.36,
       "mixout": 198.22,
@@ -53,7 +53,7 @@
     },
     "sections": [
       "intro@1",
-      "drop@12",
+      "drop@30",
       "breakdown@44",
       "drop@92",
       "outro@116"
@@ -66,17 +66,17 @@
     "firstDownbeatSec": 0.117,
     "landmarks": {
       "intro": 5.88,
-      "drop1": 23.16,
-      "break1": 99.96,
+      "drop1": 69.24,
+      "break1": 96.12,
       "drop2": 161.4,
       "mixout": 182.52,
       "outro": 192.12
     },
     "sections": [
       "intro@3",
-      "drop@12",
-      "section@35",
-      "breakdown@52",
+      "section@12",
+      "drop@36",
+      "breakdown@50",
       "section@60",
       "drop@84",
       "outro@100"
@@ -89,43 +89,44 @@
     "firstDownbeatSec": 0.635,
     "landmarks": {
       "intro": 0.63,
-      "drop1": 30.63,
-      "break1": 105.63,
-      "drop2": 165.63,
-      "outro": 188.13
+      "drop1": 71.88,
+      "break1": 107.51,
+      "drop2": 169.38,
+      "mixout": 186.26,
+      "outro": 199.38
     },
     "sections": [
       "intro@0",
-      "drop@16",
+      "section@16",
       "section@25",
-      "breakdown@56",
-      "drop@88",
-      "outro@100"
+      "drop@38",
+      "breakdown@57",
+      "drop@90",
+      "outro@106"
     ],
     "energy": 8.1
   },
   "Martin Garrix - This Dream of You.mp3": {
     "bpm": 128,
     "key": "8B",
-    "firstDownbeatSec": 1.143,
+    "firstDownbeatSec": 1.612,
     "landmarks": {
-      "intro": 1.14,
-      "drop1": 16.14,
-      "vocal": 46.14,
-      "break1": 136.14,
-      "drop2": 226.14,
-      "mixout": 256.14,
-      "outro": 263.64
+      "intro": 1.61,
+      "vocal": 50.36,
+      "mixin": 65.36,
+      "drop1": 106.61,
+      "break1": 200.36,
+      "drop2": 230.36,
+      "mixout": 245.36,
+      "outro": 260.36
     },
     "sections": [
       "intro@0",
-      "drop@8",
-      "section@16",
-      "section@56",
-      "breakdown@72",
-      "drop@120",
-      "outro@140",
-      "section@147"
+      "drop@56",
+      "breakdown@106",
+      "drop@122",
+      "outro@138",
+      "section@146"
     ],
     "energy": 7.6
   },
@@ -135,8 +136,8 @@
     "firstDownbeatSec": 0.06,
     "landmarks": {
       "intro": 0.06,
-      "build1": 30.06,
-      "drop1": 60.06,
+      "build1": 52.56,
+      "drop1": 82.56,
       "break1": 112.56,
       "build2": 135.06,
       "drop2": 165.06,
@@ -145,8 +146,9 @@
     },
     "sections": [
       "intro@0",
-      "build@16",
-      "drop@32",
+      "section@15",
+      "build@28",
+      "drop@44",
       "breakdown@60",
       "build@72",
       "drop@88",
@@ -162,18 +164,22 @@
     "firstDownbeatSec": 0.026,
     "landmarks": {
       "intro": 0.03,
-      "drop1": 15.03,
-      "break1": 30.03,
-      "drop2": 60.03,
-      "vocal": 97.53,
+      "build1": 30.03,
+      "drop1": 60.03,
+      "break1": 90.03,
+      "build2": 97.53,
+      "drop2": 127.53,
       "mixout": 165.03,
       "outro": 172.53
     },
     "sections": [
       "intro@0",
-      "drop@8",
-      "breakdown@16",
+      "section@8",
+      "build@16",
       "drop@32",
+      "breakdown@48",
+      "build@52",
+      "drop@68",
       "outro@92",
       "section@99"
     ],
@@ -207,64 +213,66 @@
     "landmarks": {
       "intro": 1.68,
       "drop1": 30.26,
-      "break1": 75.97,
+      "break1": 60.73,
       "drop2": 106.45,
-      "outro": 167.4
+      "outro": 152.16
     },
     "sections": [
       "intro@0",
       "section@11",
       "drop@15",
-      "breakdown@39",
+      "breakdown@31",
       "drop@55",
-      "outro@87"
+      "outro@79"
     ],
     "energy": 8.8
   },
   "Sebastian Ingrosso, Alesso - Calling (Lose My Mind) ft. Ryan Tedder.mp3": {
     "bpm": 125,
     "key": "12B",
-    "firstDownbeatSec": 1.877,
+    "firstDownbeatSec": 0.437,
     "landmarks": {
-      "intro": 1.88,
-      "drop1": 17.24,
-      "groove": 63.32,
-      "vocal": 86.36,
-      "break1": 94.04,
-      "drop2": 132.44,
-      "outro": 140.12
+      "intro": 0.44,
+      "drop1": 61.88,
+      "break1": 92.6,
+      "vocal": 100.28,
+      "drop2": 131,
+      "mixout": 146.36,
+      "outro": 161.72
     },
     "sections": [
       "intro@0",
-      "drop@8",
-      "intro@32",
+      "section@4",
+      "section@8",
+      "drop@32",
       "breakdown@48",
       "drop@68",
-      "outro@72"
+      "outro@84"
     ],
-    "energy": 7.6
+    "energy": 7.7
   },
   "Swedish House Mafia ft. John Martin - Don't You Worry Child (Official Video).mp3": {
     "bpm": 129,
     "key": "10B",
-    "firstDownbeatSec": 0.717,
+    "firstDownbeatSec": 1.182,
     "landmarks": {
-      "intro": 0.72,
-      "vocal": 10.02,
-      "drop1": 21.18,
-      "groove": 50.95,
-      "break1": 65.83,
-      "drop2": 95.6,
-      "outro": 266.76
+      "intro": 1.18,
+      "vocal": 16.07,
+      "groove": 53.27,
+      "drop1": 96.07,
+      "break1": 122.11,
+      "drop2": 140.72,
+      "outro": 269.09
     },
     "sections": [
       "intro@0",
-      "drop@11",
-      "intro@27",
-      "breakdown@35",
-      "section@43",
+      "intro@28",
+      "section@42",
       "drop@51",
-      "outro@143"
+      "breakdown@65",
+      "drop@75",
+      "section@117",
+      "outro@144"
     ],
     "energy": 7.7
   },
@@ -274,16 +282,15 @@
     "firstDownbeatSec": 1.676,
     "landmarks": {
       "intro": 1.68,
-      "drop1": 42.93,
-      "break1": 117.93,
+      "drop1": 57.93,
       "drop2": 125.43,
       "mixout": 198.55,
       "outro": 215.43
     },
     "sections": [
       "intro@0",
-      "drop@22",
-      "breakdown@62",
+      "section@22",
+      "drop@30",
       "drop@66",
       "section@81",
       "section@86",

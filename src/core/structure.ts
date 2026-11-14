@@ -132,7 +132,7 @@ export interface StructureAnalysis {
  * kick-out) from per-bar loudness / low end / brightness, snapped to phrase boundaries, each with
  * a qualitative confidence and a short justification.
  */
-export function analyzeStructure(f: BarFeatures): StructureAnalysis {
+export function analyzeStructure(f: BarFeatures, energyCurve?: number[]): StructureAnalysis {
   const n = f.nBars;
   const origin = firstAudibleBar(f);
   const out: StructureAnalysis = {
@@ -274,6 +274,8 @@ export function analyzeStructure(f: BarFeatures): StructureAnalysis {
   }
   interface Cand {
     bar: number;
+    /** position measured on the bass entry itself: kept as is, never snapped to the phrase grid */
+    exact?: boolean;
     run?: Run;
     confidence: Confidence;
     reason: string;
@@ -299,7 +301,85 @@ export function analyzeStructure(f: BarFeatures): StructureAnalysis {
   // The gentle kick-in at the start of the track is the "groove", not a drop.
   if (groove) cands = cands.filter((c) => Math.abs(c.bar - groove.bar) > 3);
 
-  let drop1: Cand | undefined = cands[0];
+  // Drops by energy tier: a drop is where the track reaches its top energy level (≥ 90 % of the 90th
+  // percentile of the per-bar energy curve, 3-bar median) and HOLDS it for ≥ 12 bars (gaps ≤ 2 bars
+  // closed). A short energetic hook, or the first entry of the bass under a sung verse, is not a drop.
+  // Position = strongest section change within ±3 bars of the run start.
+  let peakDrops: Cand[] | null = null;
+  const peakGaps: Run[] = [];
+  if (energyCurve && energyCurve.length >= n) {
+    const sm = medianFilterNum(energyCurve.slice(0, n));
+    const audibleE = sm.slice(origin).filter((v) => v > 0.02);
+    const thr = 0.9 * percentile(audibleE, 90);
+    const hi = sm.map((v, b) => b >= origin && v >= thr);
+    for (let b = origin + 1; b < n - 1; b++) {
+      if (hi[b] || !hi[b - 1]) continue;
+      if (hi[b + 1]) hi[b] = true;
+      else if (b + 2 < n && hi[b + 2]) hi[b] = hi[b + 1] = true;
+    }
+    // A drop enters with the full low end: a run whose first 8 bars carry clearly less bass than the
+    // strongest run's (a verse with drums before the real drop, a lighter second half) is not a drop.
+    // lower quartile: bass lines often alternate heavier / lighter bars, the plateau is the lighter level
+    const lowEntry = (r: Run) => {
+      const v = f.lowDb.slice(r.s, Math.min(r.e, r.s + 8)).sort((x, y) => x - y);
+      return v.length ? v[v.length >> 2] : -Infinity;
+    };
+    const long = runsOf(hi, true, origin).filter((r) => r.e - r.s >= 12 && r.s > origin + 2);
+    const bestLow = Math.max(...long.map(lowEntry));
+    const runs = long.filter((r) => lowEntry(r) >= bestLow - 2.5);
+    if (process.env.CUEKODA_DEBUG_BARS) for (let b = 0; b < n; b++) console.error(`#bar ${b} sm=${sm[b].toFixed(3)} e=${f.energyDb[b].toFixed(1)} low=${f.lowDb[b].toFixed(1)} br=${f.brightDb[b].toFixed(1)} kick=${(f.kick[b] ?? 0).toFixed(2)} ch=${(change[b] ?? 0).toFixed(2)}`);
+    if (process.env.CUEKODA_DEBUG) console.error(`# peak tier thr=${thr.toFixed(3)} runs=${runsOf(hi, true, origin).map((r) => `${r.s}-${r.e}`).join(' ')}`);
+    if (runs.length) {
+      peakDrops = runs.map((r) => {
+        // the energy tier is reached a little after the actual entry (smoothing, gradual layers): look
+        // back up to 6 bars (and 3 ahead) for the strongest RISING change — the kick / bass entry
+        // First choice: the bar where the low end REACHES the drop's plateau after a clear dip (a one-bar
+        // cut or a riser before the drop must not win just because its own jump is larger).
+        const plateau = lowEntry(r);
+        let bar = -1;
+        let exact = false;
+        for (let b = Math.max(origin + 1, r.s - 6); b <= Math.min(n - 4, r.s + 3); b++) {
+          if (f.lowDb[b] >= plateau - 2 && f.lowDb[b - 1] <= plateau - 3 && med(f.lowDb, b, b + 4) >= plateau - 2) {
+            bar = b;
+            exact = true;
+            break;
+          }
+        }
+        let best = 0;
+        if (bar < 0) {
+          bar = r.s;
+          for (let b = Math.max(origin + 1, r.s - 6); b <= Math.min(n - 1, r.s + 3); b++) {
+            const rising = lowStep(b) > 0 || energyStep(b) > 0;
+            if (rising && (change[b] ?? 0) > best) { best = change[b]; bar = b; }
+          }
+        }
+        const lift = mean(sm, r.s, r.s + 8) - mean(sm, r.s - 8, r.s);
+        return {
+          bar,
+          exact,
+          confidence: (lift >= 0.12 ? 'high' : lift >= 0.06 ? 'medium' : 'low') as Confidence,
+          reason: `Énergie au niveau maximal du morceau pendant ${r.e - r.s} mesures (+${Math.round(lift * 100)} pts d’énergie)`,
+        };
+      });
+      for (let i = 0; i + 1 < runs.length; i++) {
+        if (runs[i + 1].s - runs[i].e >= 4) peakGaps.push({ s: runs[i].e, e: runs[i + 1].s });
+      }
+    }
+  }
+
+  // A sharp change (≥ half of the strongest one) is located precisely: its measured position wins over the
+  // assumed phrase grid (whose phase can be uncertain); weaker evidence is still snapped to the phrases.
+  // Rising changes are compared with the strongest RISING change (the end of the track falling into
+  // silence must not be the yardstick for a drop), falling ones with the strongest change overall.
+  const isRising = (b: number) => lowStep(b) > 0 || energyStep(b) > 0;
+  let cMaxRise = 0;
+  for (let b = origin + 3; b < n - 3; b++) if (isRising(b)) cMaxRise = Math.max(cMaxRise, change[b] ?? 0);
+  const place = (b: number) => {
+    const ref = isRising(b) ? cMaxRise : cMax;
+    return ref > 0 && (change[b] ?? 0) >= 0.5 * ref ? b : snap(b);
+  };
+
+  let drop1: Cand | undefined = peakDrops?.[0] ?? cands[0];
   // Last resort: the largest loudness step.
   if (!drop1) {
     let best = -1, bestJ = 3;
@@ -335,9 +415,10 @@ export function analyzeStructure(f: BarFeatures): StructureAnalysis {
 
   const grooveEv = { confidence: 'medium' as Confidence, reason: 'Entrée progressive du kick après une intro sans percussion' };
   if (drop1) {
-    bars.drop1 = snap(drop1.bar);
+    bars.drop1 = drop1.exact ? drop1.bar : peakDrops ? place(drop1.bar) : snap(drop1.bar);
     ev.drop1 = { confidence: drop1.confidence, reason: drop1.reason };
-    if (groove) {
+    // a "groove entry" on the drop itself is the drop (one landmark, labelled Drop)
+    if (groove && Math.abs(snap(groove.bar) - bars.drop1) > 3) {
       bars.groove = snap(groove.bar);
       ev.groove = grooveEv;
     } else {
@@ -360,7 +441,8 @@ export function analyzeStructure(f: BarFeatures): StructureAnalysis {
   }
   let outro = lastFull + 1;
   ev.outro = { confidence: 'medium', reason: 'Fin de la dernière section à pleine énergie' };
-  if (n - outro < 4) {
+  const noDecline = n - outro < 4;
+  if (noDecline) {
     outro = n - 16;
     ev.outro = { confidence: 'low', reason: 'Pas de baisse d’énergie en fin de morceau : 16 dernières mesures' };
   }
@@ -368,7 +450,30 @@ export function analyzeStructure(f: BarFeatures): StructureAnalysis {
   const minOutro = (bars.drop2 ?? bars.drop1 ?? origin) + 8;
   if (outro < minOutro) outro = Math.min(n - 8, snap(minOutro));
 
-  if (drop1) {
+  if (drop1 && peakDrops) {
+    // energy-tier structure: breakdown = the stretch below the drop level between two drops
+    const d1 = bars.drop1!;
+    const d2 = peakDrops.find((d) => d.bar > d1 + 8);
+    // the breakdown lies BETWEEN the two drops (a dip after the second drop is not "Break 1")
+    const gap = peakGaps.find((g) => g.s >= d1 + 4 && (!d2 || g.s < d2.bar));
+    if (gap) {
+      bars.break1 = place(gap.s);
+      ev.break1 = {
+        confidence: gap.e - gap.s >= 8 ? 'high' : 'medium',
+        reason: `Énergie sous le niveau des drops pendant ${gap.e - gap.s} mesures`,
+      };
+    }
+    if (d2) {
+      bars.drop2 = d2.exact ? d2.bar : place(d2.bar);
+      ev.drop2 = { confidence: d2.confidence, reason: d2.reason };
+      const floor = gap ? gap.s : d1 + 8;
+      const r = riseStart(d2.bar, floor);
+      if (r && snap(r.bar) - (bars.break1 ?? floor) >= 4) {
+        bars.build2 = snap(r.bar);
+        ev.build2 = { confidence: r.confidence, reason: r.reason };
+      }
+    }
+  } else if (drop1) {
     const d1 = bars.drop1!;
     const breaks = offRuns.filter((r) => r.s >= d1 + 4 && r.s < outro - 2);
     const br = breaks[0];
@@ -397,6 +502,20 @@ export function analyzeStructure(f: BarFeatures): StructureAnalysis {
         bars.drop2 = snap(d2.bar);
         ev.drop2 = { confidence: d2.confidence === 'high' ? 'medium' : 'low', reason: d2.reason };
       }
+    }
+  }
+  if (noDecline && (bars.drop2 ?? bars.drop1) !== undefined) {
+    // No energy decline at the end (the DJ outro keeps the full kick): the outro starts on the
+    // strongest section change at a phrase boundary 16, 24, 32… bars after the last drop.
+    const ref = (bars.drop2 ?? bars.drop1)!;
+    let best = -1;
+    let bestC = 0;
+    for (let b = ref + 16; b <= n - 4; b += 8) {
+      if ((change[b] ?? 0) > bestC) { bestC = change[b]; best = b; }
+    }
+    if (best > 0) {
+      outro = best;
+      ev.outro = { confidence: 'low', reason: `Pas de baisse d’énergie en fin de morceau : changement de section ${best - ref} mesures après le dernier drop` };
     }
   }
   if (outro > origin + 8) bars.outro = outro;

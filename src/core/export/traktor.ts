@@ -57,9 +57,10 @@ export function buildTraktorNml(
       `<CUE_V2 NAME="AutoGrid" DISPL_ORDER="0" TYPE="4" START="${ms(t.grid.firstDownbeatSec)}" LEN="0" REPEATS="-1" HOTCUE="0"></CUE_V2>`,
     );
     for (const c of t.cues) {
-      if (c.slot < 0 || c.slot > 7) continue;
+      if (c.slot > 7) continue;
+      // slot < 0 = memory cue: a stored cue point with no hotcue button (HOTCUE="-1")
       lines.push(
-        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${c.slot}"></CUE_V2>`,
+        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${c.slot < 0 ? -1 : c.slot}"></CUE_V2>`,
       );
     }
     for (const l of exportedLoops(t, opts.loops)) {

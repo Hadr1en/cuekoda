@@ -30,5 +30,10 @@ export function mergeWithPrevious(fresh: AnalysisResult, prev: AnalysisResult | 
   const userSections = (prev.sections ?? []).some((s: Section) => s.origin === 'user');
   const sections = userSections ? prev.sections : fresh.sections;
 
-  return { ...fresh, cues, loops, sections, overrides: fresh.overrides ?? prev.overrides };
+  // --- vocals: once edited, the DJ's vocal parts replace the detector's (curves stay fresh)
+  const vocals = prev.vocals?.edited && fresh.vocals
+    ? { ...fresh.vocals, segments: prev.vocals.segments, coverage: prev.vocals.coverage, edited: true }
+    : prev.vocals?.edited ? prev.vocals : fresh.vocals;
+
+  return { ...fresh, cues, loops, sections, vocals, overrides: fresh.overrides ?? prev.overrides };
 }

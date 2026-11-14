@@ -34,9 +34,15 @@ doivent pas être lus comme des probabilités.
 
 ## Grille et premier temps
 - Phase par alignement sur l'enveloppe d'attaques, précision mesurée ~2 ms sur signaux de test.
-- Downbeat : vote des frontières de section fortes (fenêtres d'un temps) sur la position dans la mesure ;
-  si le vote n'est pas décisif (< 1,5× le second), repli sur « le morceau commence sur un temps 1 » et
-  avertissement « downbeat incertain ».
+- Downbeat : deux votes sur la position dans la mesure, fenêtres d'un temps (trames entièrement dans le
+  temps), en ignorant la première mesure audible (artefact de début de fichier) :
+  1. frontières de section fortes ;
+  2. **entrées de kick / basse** : le temps où les graves *atteignent* leur plateau (à 2 dB près) après une
+     montée d'au moins 6 dB. Une nappe qui gonfle progressivement ne compte pas, seul le temps du plateau compte.
+     Ce vote pèse 75 % quand il est fourni (≥ 12 dB d'entrées cumulées).
+  Si le vote n'est pas décisif (< 1,5× le second), le meilleur candidat est gardé avec l'avertissement
+  « downbeat incertain ». Le repli « le morceau commence sur un temps 1 » ne sert qu'en l'absence totale
+  d'indice. Ce réglage a été validé sur 3 morceaux corrigés à l'oreille (Garrix, Alesso, Ingrosso).
 - Correction manuelle : BPM imposé, premier temps imposé, décalage ±10 ms ou ±1 temps → ré-analyse.
 
 ## Tonalité — `analyzer.ts`, `key.ts`
@@ -51,7 +57,20 @@ doivent pas être lus comme des probabilités.
 - « Groove présent » jugé **relativement au niveau des drops du morceau** (p90), avec hystérésis.
 - Repères : retour du groove après ≥ 4 mesures calmes, entrée de basse (+3 dB, validée par médiane pour
   ignorer les impacts isolés), riser (pente de brillance), fin de pleine énergie (outro), arrêt du kick.
-- Positions calées sur la grille de phrases dont la phase est votée par les changements forts.
+- **Drops par palier d'énergie** (prioritaires) : un drop est une zone où la courbe d'énergie (médiane sur
+  3 mesures) reste ≥ 90 % de son 90ᵉ centile pendant **au moins 12 mesures** (trous ≤ 2 mesures fermés).
+  - Une zone dont les graves sont nettement plus faibles que ceux du drop le plus lourd est écartée :
+    quartile bas des 8 premières mesures plus de 2,5 dB en dessous. Cela exclut un couplet avec batterie
+    joué avant le vrai drop.
+  - Position : la mesure où les graves atteignent le plateau du drop après un creux (la coupure d'une
+    mesure avant le drop ne gagne pas). Ce point mesuré n'est pas recalé sur les phrases. À défaut, c'est
+    le plus fort changement montant.
+  - Le breakdown est la zone sous le palier *entre* les deux drops.
+  - S'il n'y a aucune baisse d'énergie en fin de morceau, l'outro est le plus fort changement de section
+    16, 24… mesures après le dernier drop.
+  - Repli si aucun palier n'est trouvé : ancienne logique (entrée de basse, retour du groove).
+- Positions calées sur la grille de phrases dont la phase est votée par les changements forts, sauf
+  quand un changement net (≥ moitié du plus fort changement montant) donne la position exacte.
 - **Phrases** : 32, 16 ou 8 mesures seulement si ≥ 60 % de la force des changements tombe sur la grille ;
   sinon « pas de phrasé régulier » (aucune ligne affichée).
 - **Sections** : repères + changements forts → timeline. Vocabulaire EDM (build / drop / breakdown) ou
@@ -186,6 +205,10 @@ Une ré-analyse conserve : cues `user` ou verrouillés (et leurs pads), boucles 
 verrouillées, timeline de sections dès qu'elle a été éditée. Les suggestions automatiques ne remplissent que
 les trous.
 
+- Les **memory cues** (cues sans pad, ajoutées par « + Memory cue » ou quand les 8 pads sont pleins) sont
+  conservées comme les autres cues du DJ.
+- Les **passages vocaux** corrigés (Structure → Voix) remplacent ceux du détecteur à chaque ré-analyse ;
+  les courbes du détecteur restent celles de la nouvelle analyse.
 ## Matching — `matching.ts`
 Score sur 100 : relation Camelot (même, ±1, relative, +2, diagonale), écart de tempo (y compris
 demi/double), écart d'énergie, longueur des fenêtres outro / intro. Chaque critère est justifié.

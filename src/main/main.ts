@@ -58,15 +58,17 @@ function enqueue(p: string, force = false) {
   const rec = records()[p];
   if (!rec) return;
   const learn = settingsStore.data.learningEnabled ? suppressedKinds(learningStore.data) : [];
+  // mark it queued BEFORE handing it to the queue: a free worker starts it synchronously, and the
+  // "analyzing" state set by the start hook must not be overwritten (the UI looked idle until done)
+  rec.status = 'queued';
+  rec.progress = 0;
+  rec.error = undefined;
+  pushRecord(rec);
   queue.enqueue({
     path: p,
     force,
     options: { profile: currentProfile(), overrides: rec.result?.overrides, suppressKinds: learn },
   });
-  rec.status = 'queued';
-  rec.progress = 0;
-  rec.error = undefined;
-  pushRecord(rec);
   library.save();
 }
 
@@ -99,6 +101,7 @@ function createQueue() {
       progress: (p, stage, fraction) => {
         const r = records()[p];
         if (!r) return;
+        r.status = 'analyzing';
         r.progress = fraction;
         r.stage = stage;
         pushRecord(r);
@@ -397,6 +400,20 @@ const SMOKE_UI_SCRIPT = `(async () => {
   out.exportDialogOpen = $('dlg-export').open;
   out.exportRows = $('dlg-export').querySelectorAll('.caps tbody tr').length;
   $('dlg-export').close();
+  // add cues: memory cue via the toolbar, vocal part in the Structure tab
+  const before2 = document.querySelectorAll('.memo tbody tr').length;
+  btn($('tab-cues'), '+ Memory cue ici').click();
+  await wait(50);
+  out.memoryCueAdded = document.querySelectorAll('.memo tbody tr').length === before2 + 1;
+  $('t-sections').click();
+  await wait(30);
+  const vRows = () => document.querySelectorAll('.vocals-edit tbody tr').length;
+  const v0 = vRows();
+  btn($('tab-sections'), '+ Passage vocal à la lecture').click();
+  await wait(50);
+  out.vocalPartAdded = vRows() >= Math.max(1, v0);
+  out.vocalEdited = document.querySelector('.vocals-edit p').textContent.includes('corrigés');
+  $('t-cues').click();
   $('zoom-in').click();
   out.errorsShown = [...document.querySelectorAll('.err')].length;
   // audio playback of the selected track (what the DJ needs to check cues by ear)
@@ -404,7 +421,8 @@ const SMOKE_UI_SCRIPT = `(async () => {
   audio.muted = true;
   out.audioSrc = audio.src.slice(0, 40);
   try {
-    await audio.play();
+    // never hang the smoke test on a play() promise that does not settle
+    await Promise.race([audio.play(), wait(8000).then(() => { throw new Error('play() did not settle in 8 s'); })]);
     await wait(1500);
     out.audioPlaying = !audio.paused && audio.currentTime > 0.5;
     out.audioTime = audio.currentTime;
@@ -412,6 +430,22 @@ const SMOKE_UI_SCRIPT = `(async () => {
     await wait(500);
     out.audioSeek = audio.currentTime >= 29.5;
     audio.pause();
+    // transition preview A → B from the Mix tab
+    $('t-mix').click();
+    await wait(50);
+    const mixBtns = () => [...$('tab-mix').querySelectorAll('button')].map((b) => b.textContent);
+    const tb = [...$('tab-mix').querySelectorAll('button')].find((b) => b.textContent === '🎧 Transition');
+    out.transitionButton = !!tb;
+    if (tb) {
+      tb.click();
+      await wait(2500);
+      out.transitionPlaying = !audio.paused && mixBtns().includes('■ Arrêter');
+      out.transitionStart = audio.currentTime;
+      audio.pause();
+      await wait(200);
+      out.transitionStopped = !mixBtns().includes('■ Arrêter') && audio.volume === 1;
+    }
+    $('t-cues').click();
   } catch (e) {
     out.audioPlaying = false;
     out.audioError = String(e) + ' code=' + (audio.error ? audio.error.code + ' ' + audio.error.message : 'none');
@@ -441,6 +475,27 @@ function runSmoke() {
   win!.webContents.once('did-finish-load', () => {
     report.rendererLoaded = true;
     addFiles(collectAudioFiles([SMOKE_DIR!]));
+    // while the batch runs, the UI must show it: busy rows, header label, progress on the selected track
+    setTimeout(async () => {
+      try {
+        report.busyUi = await win!.webContents.executeJavaScript(`(async () => {
+          const busy = [...document.querySelectorAll('tr.busy')];
+          const out = { busyRows: busy.length, header: document.getElementById('queue-label').textContent,
+            queueVisible: !document.getElementById('queue').hidden };
+          const running = busy.find((tr) => tr.querySelector('.busy-line.analyzing')) ?? busy[0];
+          if (running) { running.click(); await new Promise((r) => setTimeout(r, 200)); }
+          out.pendingVisible = !document.getElementById('pending').hidden || !document.getElementById('d-busy').hidden;
+          out.pendingText = (document.getElementById('pending').hidden ? document.getElementById('d-busy') : document.getElementById('pending')).textContent;
+          return out;
+        })()`);
+        if (process.env.CUEKODA_SMOKE_SHOT) {
+          const img = await win!.webContents.capturePage();
+          fs.writeFileSync(process.env.CUEKODA_SMOKE_SHOT, img.toPNG());
+        }
+      } catch (e) {
+        report.busyUiError = String(e);
+      }
+    }, 2500);
   });
   // Drives the real UI: open a track, move / undo / rename / delete cues, tabs, export dialog, zoom.
   const runUi = async () => {
@@ -465,6 +520,7 @@ function runSmoke() {
     prev(s);
     (report.batches as unknown[]).push(s);
     round++;
+    console.log(`[smoke] round ${round} drained`);
     if (round === 1) {
       // second pass: same files, forced through the queue → must be served by the cache
       for (const p of Object.keys(records())) enqueue(p);

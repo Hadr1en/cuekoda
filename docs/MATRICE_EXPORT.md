@@ -13,7 +13,7 @@ par les tests, mais un essai sur quelques morceaux est indispensable avant un us
 | Hot cues (8) | ✓ Num 0–7 | ✓ HOTCUE 0–7 | ✗ |
 | Noms des cues | ✓ | ✓ | ✗ |
 | Couleurs des cues | ≈ RGB (rekordbox peut les ramener à sa palette) | ✗ (couleur imposée par le type) | ✗ |
-| Memory cues | ✓ (option) | ✗ (inutile) | ✗ |
+| Memory cues | ✓ (option pour toutes les cues ; toujours pour les cues sans pad) | ✓ cues sans pad : `CUE_V2 HOTCUE="-1"` | ✗ |
 | Boucles | ✓ memory loops (Type 4) | ✓ boucles mémorisées (TYPE 5) | ✗ |
 | Sections / énergie / phrases / Mix In-Out | ✗ | ✗ | ✗ |
 

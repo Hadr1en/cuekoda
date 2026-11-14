@@ -18,6 +18,7 @@ import { FUSED_THRESHOLDS, fuseScores, modelBarProbs, segmentVocals, vocalBarFea
 import { musicnnMel, predictVoice, resample44kTo16k, vocalModelAvailable } from '../core/vocalModel';
 import { cueCandidates, vocalCandidates } from '../core/cues';
 import { withVocals } from '../core/mix';
+import { bTimeAt, fadeGains, planTransition } from '../core/transition';
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
@@ -187,6 +188,56 @@ test('re-analysis keeps user / locked cues and accepted loops', () => {
   assert.ok(m.cues.some((c) => c.kind === 'outro' && c.timeSec === 140), 'fresh auto outro replaces the old auto one');
   assert.equal(new Set(m.cues.map((c) => c.slot)).size, m.cues.length, 'no pad used twice');
   assert.equal(m.loops!.length, 2);
+});
+
+test('memory cues (slot −1) survive re-analysis and are exported without a pad', () => {
+  const memo = cue({ slot: -1, kind: 'vocal', role: 'custom', timeSec: 75, origin: 'user', name: 'Voix reprend' });
+  const prev = track({ path: 'm', cues: [memo, cue({ slot: 0, timeSec: 30 })] });
+  const fresh = track({ path: 'm', cues: [0, 1, 2, 3, 4, 5, 6, 7].map((s) => cue({ slot: s, kind: 'custom', role: 'custom', timeSec: 10 + s * 20 })) });
+  const m = mergeWithPrevious(fresh, prev);
+  assert.ok(m.cues.some((c) => c.slot === -1 && c.name === 'Voix reprend'), 'memory cue kept');
+  assert.equal(m.cues.filter((c) => c.slot >= 0).length, 8, 'the 8 pads still filled by fresh cues');
+  const xml = buildRekordboxXml([m], { memoryCues: false, loops: 'none' });
+  assert.match(xml, /Name="Voix reprend" Type="0" Start="75\.000" Num="-1"/);
+  assert.equal((xml.match(/Voix reprend/g) ?? []).length, 1, 'no hot cue for a memory cue');
+  const nml = buildTraktorNml([m], { memoryCues: false, loops: 'none' }, 'Macintosh HD');
+  assert.match(nml, /NAME="Voix reprend"[^>]*HOTCUE="-1"/);
+});
+
+test('vocal parts edited by the DJ survive re-analysis', () => {
+  const vi = (segs: VocalInfo['segments'], edited?: boolean): VocalInfo => ({
+    method: 'x', validated: false, curve: [0.1, 0.9], present: [false, true], segments: segs, coverage: 0.2, tonalShare: 1, level: 'low', edited,
+  });
+  const seg = { startBar: 8, endBar: 16, startSec: 15, endSec: 30, score: 1, strength: 'strong' as const, confidence: 'high' as const, origin: 'user' as const };
+  const prev = track({ path: 'v', vocals: vi([seg], true) });
+  const fresh = track({ path: 'v', vocals: vi([{ ...seg, startBar: 20, endBar: 24, origin: undefined }]) });
+  const m = mergeWithPrevious(fresh, prev);
+  assert.deepEqual(m.vocals!.segments, [seg]);
+  assert.equal(m.vocals!.edited, true);
+  assert.deepEqual(m.vocals!.curve, fresh.vocals!.curve, 'detector curves stay fresh');
+  const untouched = mergeWithPrevious(fresh, track({ path: 'v', vocals: vi([seg]) }));
+  assert.equal(untouched.vocals!.segments[0].startBar, 20, 'not edited: the new detection wins');
+});
+
+test('transition plan: tempo match, bar-aligned points, fades, guards', () => {
+  const a = track({ path: 'a', bpm: 128, grid: { bpm: 128, firstDownbeatSec: 0.5, confidence: 0.9 }, durationSec: 240,
+    cues: [cue({ slot: 6, kind: 'mixout', role: 'custom', timeSec: 200.3, name: 'Mix Out' })] });
+  const b = track({ path: 'b', bpm: 126, grid: { bpm: 126, firstDownbeatSec: 0.2, confidence: 0.9 }, durationSec: 240,
+    cues: [cue({ slot: 0, kind: 'intro', role: 'intro', timeSec: 0.2, name: 'Intro' })] });
+  const p = planTransition(a, b);
+  assert.ok(!('error' in p));
+  if ('error' in p) return;
+  assert.ok(Math.abs(p.rate - 128 / 126) < 1e-9);
+  const barA = 240 / 128;
+  assert.ok(Math.abs(((p.outSec - 0.5) / barA) - Math.round((p.outSec - 0.5) / barA)) < 1e-6, 'out point on A’s bar grid');
+  assert.equal(p.inSec, 0.2);
+  assert.ok(Math.abs(bTimeAt(p, p.outSec + barA) - (0.2 + barA * p.rate)) < 1e-9, 'one A bar = one B bar once matched');
+  assert.ok(Math.abs((barA * p.rate) - 240 / 126) < 1e-9);
+  const g0 = fadeGains(p, p.outSec), g1 = fadeGains(p, p.outSec + p.fadeSec);
+  assert.ok(g0.a === 1 && g0.b === 0 && g1.a < 1e-9 && Math.abs(g1.b - 1) < 1e-9);
+  const half = planTransition(a, { ...b, bpm: 64, grid: { ...b.grid, bpm: 64 } });
+  assert.ok(!('error' in half) && Math.abs(half.rate - 1) < 1e-9, 'half-time notation');
+  assert.ok('error' in planTransition(a, { ...b, bpm: 100 }), 'too far apart: refused, not stretched');
 });
 
 // ---------------------------------------------------------------- phrases

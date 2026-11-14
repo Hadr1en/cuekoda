@@ -14,6 +14,11 @@ L'analyse démarre seule, en parallèle. En-tête : progression globale, **Pause
 **Relancer les échecs**. Un fichier défectueux n'arrête jamais la file. Un fichier déjà analysé et inchangé
 est repris du cache instantanément. La bibliothèque est conservée entre les sessions.
 
+Pendant l'analyse, chaque ligne affiche une barre de progression et l'étape en cours (décodage, tempo, grille,
+structure, voix, tonalité). L'en-tête nomme le morceau en cours. Un morceau en attente indique sa place dans
+la file. Si vous sélectionnez un morceau en cours d'analyse, un bandeau le signale ; lors d'une ré-analyse,
+l'analyse précédente reste affichée.
+
 ## 3. Vérifier et corriger
 La colonne **Fiabilité** signale ce qu'il faut vérifier (forte / moyenne / faible). Cliquez un morceau :
 
@@ -25,10 +30,17 @@ La colonne **Fiabilité** signale ce qu'il faut vérifier (forte / moyenne / fai
   conservant vos cues.
 - **Hot cues** : renommer, changer la couleur, ±1 temps / ±1 mesure, 🔒 verrouiller, ✕ supprimer, poser
   un pad libre à la position de lecture. Chaque cue indique sa confiance et pourquoi il a été placé.
+  **« + Cue ici »** ajoute un cue du type choisi (Vocal par défaut, par exemple quand la voix reprend) sur
+  le premier pad libre. Quand les 8 pads sont pris, il devient une **memory cue** (cue sans pad, exportée
+  dans rekordbox et Traktor). « + Memory cue ici » en crée une directement. La liste des memory cues permet
+  de les renommer, déplacer, supprimer ou placer sur un pad.
 - **Boucles** : écouter, changer la longueur, **valider** (seules les validées s'exportent par défaut),
   ajouter à la position de lecture.
 - **Structure** : changer le type ou le nom d'une section, déplacer son début, la supprimer (fusion),
-  scinder à la position de lecture.
+  scinder à la position de lecture. Déplacer un cue Intro / Build / Drop / Break / Outro déplace aussi la
+  section correspondante. **Voix** : corrigez les passages vocaux (ajouter à la lecture, début / fin à la
+  mesure près, « Fin de voix ici », « Pause dans la voix ici », nette / faible, créer un cue Vocal). Vos
+  passages remplacent la détection automatique lors des ré-analyses.
 - **Mix & compatibles** : points Mix In / Mix Out justifiés (bouton « Créer un cue ») et morceaux
   compatibles (tonalité, BPM, énergie, fenêtres de transition).
 - **Infos** : métadonnées du fichier, LUFS, true peak, détails de l'analyse.
@@ -50,5 +62,6 @@ qui sera transféré, puis enregistrez le fichier et suivez les étapes d'import
 
 ## Raccourcis
 Espace lecture · ←/→ une mesure (Maj : un temps) · ↑/↓ morceau · 1–8 aller au cue · Maj+1–8 poser le cue ·
-Suppr supprimer le cue sélectionné · , / . déplacer le cue d'un temps (Maj : une mesure) · L boucle de 16 temps ·
+Suppr supprimer le cue sélectionné · , / . déplacer le cue d'un temps (Maj : une mesure) · C ajouter un cue ·
+M ajouter une memory cue · L boucle de 16 temps ·
 + / − / 0 zoom · ⌘E exporter · ? aide.

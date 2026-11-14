@@ -60,7 +60,8 @@ export function buildRekordboxXml(
     }
     for (const c of [...t.cues].sort((a, b) => a.timeSec - b.timeSec)) {
       const [r, g, b] = c.color;
-      if (opts.memoryCues) {
+      // memory cue: for every cue when asked, and always for cues that have no pad (slot < 0)
+      if (opts.memoryCues || c.slot < 0) {
         lines.push(`      <POSITION_MARK Name="${esc(c.name)}" Type="0" Start="${f3(c.timeSec)}" Num="-1"/>`);
       }
       if (c.slot >= 0 && c.slot <= 7) {

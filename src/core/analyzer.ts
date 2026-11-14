@@ -293,9 +293,10 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   // --- structure, phrases, energy, sections ---------------------------------------
   progress('structure', 0.65);
   const feats = computeBarFeatures(bands, firstDownbeatSec, barLen, durSec);
-  const structure = analyzeStructure(feats);
+  // energy first: drops are defined by reaching (and holding) the track's top energy tier
+  const energy = computeEnergy(x, SR_DSP, bands, firstDownbeatSec, barLen, feats.nBars, firstAudibleBar(feats));
+  const structure = analyzeStructure(feats, energy.curve);
   const phrases = detectPhrases(structure);
-  const energy = computeEnergy(x, SR_DSP, bands, firstDownbeatSec, barLen, feats.nBars, structure.origin);
   const fingerprint = computeFingerprint(x, SR_DSP, firstDownbeatSec, barLen, feats.nBars, bpm);
   // Tempo changes: beat-by-beat tracking → constant-tempo segments → markers (only for "variable" tracks)
   let tempoMap: TempoMarker[] | undefined;

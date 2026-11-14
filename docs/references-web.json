@@ -1,0 +1,98 @@
+{
+  "collectedAt": "2026-11-14",
+  "method": "WebSearch (standard) + WebFetch on public pages, no sign-in, no audio download. 'verified' = value read on the fetched page; 'snippet' = value only seen in a search-result summary because the page refused the fetch (403/429). Camelot converted by hand from the stated key. No structure (drop/breakdown/build) timestamps were found for any track.",
+  "tracks": [
+    {
+      "file": "Alesso - Heroes (we could be) ft. Tove Lo.mp3",
+      "sources": [
+        { "url": "https://www.mixgraph.io/tracks/alesso-heroes-we-could-be-extended-mix", "site": "mixgraph.io", "version": "Extended Mix", "lengthSec": 339, "bpm": 126, "key": "F major", "camelot": "7B", "structure": [] },
+        { "url": "https://songbpm.com/@alesso/heroes-we-could-be", "site": "songbpm.com", "version": "unspecified (radio edit length)", "lengthSec": 210, "bpm": 126, "key": "F major", "camelot": "7B", "structure": [] },
+        { "url": "https://www.karaoke-version.com/mp3-backingtrack/alesso/heroes-we-could-be.html", "site": "karaoke-version.com", "version": "backing track, 'same key/tempo as original'", "lengthSec": 225, "bpm": 126, "key": "F major", "camelot": "7B", "structure": [] },
+        { "url": "https://cs.uwaterloo.ca/~dtompkin/music/track/RHYTMR14_010/RHYTMR14_010-01.html", "site": "Promo Only Rhythm Radio DB (Mixmeister analysis)", "version": "radio edit (Promo Only 2014-10)", "lengthSec": 209, "bpm": 126, "key": "G minor", "camelot": "6A", "structure": [] }
+      ],
+      "notes": "BPM 126 unanimous. Key consensus F major (7B) from 3 sources; Mixmeister says G minor (6A, outlier). AcousticBrainz (search snippet only, fetch got 429) reportedly gave D minor (7A, relative of F) with chords key F major. Our file is 294.2 s which matches neither the ~3:30 radio edit nor the 5:39 extended mix (probably the official video audio). Ours 126 / 7B agrees with consensus."
+    },
+    {
+      "file": "Diamond Ace - Too Soon (feat. Nymbius).mp3",
+      "sources": [
+        { "url": "https://songbpm.com/@diamond-ace/too-soon", "site": "songbpm.com", "version": "unspecified", "lengthSec": 230, "bpm": 105, "key": "F# minor", "camelot": "11A", "structure": [] }
+      ],
+      "notes": "Single source; length 3:50 matches ours (230.4 s). BPM 105 agrees with ours. Key disagrees: source F# minor (11A) vs ours 1B (B major) -- not the relative pair (11A's relative is 11B = A major); 1B is adjacent on the wheel to 12B but two steps from 11A. Single automated source, treat key as low-confidence."
+    },
+    {
+      "file": "Edwin Ajtún - Live The Life.mp3",
+      "sources": [
+        { "url": "https://hooktheory.com/theorytab/view/edwin-ajtun/live-the-life", "site": "hooktheory.com (TheoryTab transcription)", "version": "unspecified (YouTube ulG2gaoRAzM referenced)", "lengthSec": null, "bpm": 128, "key": "E minor", "camelot": "9A", "structure": [] }
+      ],
+      "notes": "Only a user transcription found (sections Intro/Chorus, no timestamps). Key E minor = 9A agrees with ours. Transcription tempo 128 vs ours 126 -- TheoryTab tempos are user-entered and often approximate; not a strong reference for BPM. No tunebat/songbpm/musicstax page found."
+    },
+    {
+      "file": "Ennex - Fantasy.mp3",
+      "sources": [],
+      "notes": "Nothing found for this artist/title on songbpm, tunebat, musicstax, mixgraph, beatport or general search (3 searches + direct songbpm URL 404). Do not use as a web reference."
+    },
+    {
+      "file": "Kisma - We Are.mp3",
+      "sources": [
+        { "url": "https://songbpm.com/@kisma/we-are", "site": "songbpm.com", "version": "unspecified", "lengthSec": 218, "bpm": 128, "key": "E major", "camelot": "12B", "structure": [] }
+      ],
+      "notes": "Single source; length 3:38 matches ours (217.8 s). 128 BPM and E major (12B) both agree with ours."
+    },
+    {
+      "file": "Martin Garrix - This Dream of You.mp3",
+      "sources": [
+        { "url": "https://www.mixgraph.io/tracks/martin-garrix-this-dream-of-you", "site": "mixgraph.io", "version": "unspecified (original, Darkroom 2026-10-02)", "lengthSec": 286, "bpm": 72, "key": "C major", "camelot": "8B", "structure": [] },
+        { "url": "https://www.beatport.com/artist/martin-garrix/185928/tracks", "site": "beatport.com (search snippet; page returned 403 to fetch)", "version": "Original Mix", "lengthSec": null, "bpm": 72, "key": "C major", "camelot": "8B", "structure": [] }
+      ],
+      "notes": "Length 4:46 matches ours (286.7 s). Key C major (8B) agrees with ours. BPM DISAGREES: both sources say 72 vs ours 128. 72 is not a simple octave of 128 (half-time of 144 would be 72), so either the track is a slow/half-time 72 (=144) song and our tempo is wrong, or the sources are wrong -- worth a listen. Beatport value is only from a search summary that says the page layout made the attribution ambiguous. Release page: https://www.beatport.com/release/this-dream-of-you/7474284 (no BPM/key in snippet)."
+    },
+    {
+      "file": "Mike Chino - Dream Chaser.mp3",
+      "sources": [],
+      "notes": "Nothing found (searches only returned other 'Dream Chaser' tracks by kZm/BIM, Michail A, Satyr; songbpm direct URL 404)."
+    },
+    {
+      "file": "Mike Chino - Replicant World.mp3",
+      "sources": [],
+      "notes": "Nothing found (only unrelated 'Replicant' tracks; songbpm direct URL 404)."
+    },
+    {
+      "file": "Peyruis - Dolce Vita.mp3",
+      "sources": [],
+      "notes": "Nothing found. Peyruis (French producer, Angers) has a Beatport artist page (https://www.beatport.com/artist/peyruis/840872/tracks) but it returned 403; searches only surfaced other 'Dolce Vita' tracks (Ryan Paris etc.). songbpm direct URL 404."
+    },
+    {
+      "file": "Peyruis - Hustle.mp3",
+      "sources": [],
+      "notes": "Nothing found (Beatport artist page 403; no songbpm/tunebat page located)."
+    },
+    {
+      "file": "Sebastian Ingrosso, Alesso - Calling (Lose My Mind) ft. Ryan Tedder.mp3",
+      "sources": [
+        { "url": "https://songbpm.com/@sebastian-ingrosso/calling-lose-my-mind", "site": "songbpm.com", "version": "unspecified (6:14 = club/extended length)", "lengthSec": 374, "bpm": 125, "key": "E major", "camelot": "12B", "structure": [] },
+        { "url": "https://www.karaoke-version.com/drums-backing-track/sebastian-ingrosso/calling-lose-my-mind.html", "site": "karaoke-version.com", "version": "backing track, 'same key/tempo as original'", "lengthSec": 179, "bpm": 125, "key": "C# minor", "camelot": "12A", "structure": [] },
+        { "url": "https://hooktheory.com/theorytab/view/sebastian-ingrosso-and-alesso/calling---lose-my-mind", "site": "hooktheory.com (TheoryTab transcription)", "version": "unspecified", "lengthSec": null, "bpm": 128, "key": "C# minor", "camelot": "12A", "structure": [] },
+        { "url": "https://www.audiokeychain.com/track/Yfl/sebastian-ingrosso-alesso-calling-lose-my-mind-feat-ryan-tedder", "site": "audiokeychain.com", "version": "unspecified", "lengthSec": null, "bpm": 125, "key": "F# minor (Gbm)", "camelot": "11A", "structure": [] },
+        { "url": "https://cs.uwaterloo.ca/~dtompkin/music/track/RHYTMR12_006/RHYTMR12_006-18.html", "site": "Promo Only Rhythm Radio DB (Mixmeister analysis)", "version": "radio edit (Promo Only 2012), intro :15 / cold ending", "lengthSec": 195, "bpm": 125, "key": "B minor", "camelot": "10A", "structure": [] }
+      ],
+      "notes": "BPM 125 consensus (TheoryTab 124-128 by section, user-entered). Key: E major / C# minor pair (12B/12A) from 3 sources -- the classic relative ambiguity; audiokeychain 11A and Mixmeister 10A are outliers. AcousticBrainz (search snippet only, 429 on fetch) reportedly E major 84%. Ours 125 / 12B agrees. Our file 176.5 s is shortest; closest is the 2:59 karaoke reference; no source matches exactly."
+    },
+    {
+      "file": "Swedish House Mafia ft. John Martin - Don't You Worry Child (Official Video).mp3",
+      "sources": [
+        { "url": "https://www.mixgraph.io/tracks/swedish-house-mafia-dont-you-worry-child", "site": "mixgraph.io", "version": "unspecified (6:43 = extended mix length)", "lengthSec": 403, "bpm": 129, "key": "D major", "camelot": "10B", "structure": [] },
+        { "url": "https://www.karaoke-version.com/mp3-backingtrack/swedish-house-mafia/don-t-you-worry-child.html", "site": "karaoke-version.com", "version": "backing track, 'same key/tempo as original' (radio edit length)", "lengthSec": 209, "bpm": 129, "key": "B minor", "camelot": "10A", "structure": [] },
+        { "url": "https://cs.uwaterloo.ca/~dtompkin/music/track/RHYTMR12_010/RHYTMR12_010-03.html", "site": "Promo Only Rhythm Radio DB (Mixmeister analysis)", "version": "labelled 'extended' but 3:28 (radio edit length)", "lengthSec": 208, "bpm": 129, "key": "G# minor", "camelot": "1A", "structure": [] }
+      ],
+      "notes": "BPM 129 unanimous. Key: D major / B minor (10B/10A relative pair) from 2 sources; Mixmeister G# minor is an outlier. Ours 129 / 10B agrees. Our file is the official-video audio (335 s), which matches neither the radio edit (~3:28) nor the extended mix (6:43), so no timestamps from these sources would transfer anyway."
+    },
+    {
+      "file": "Vexento - We Are One.mp3",
+      "sources": [
+        { "url": "https://songbpm.com/@vexento/we-are-one", "site": "songbpm.com", "version": "unspecified", "lengthSec": 229, "bpm": 128, "key": null, "camelot": null, "structure": [] },
+        { "url": "https://tunebat.com/Info/We-Are-One-Vexento/2xEUcPmSQczYFA2QBzZCVT", "site": "tunebat.com (search snippet; page returned 403 to fetch)", "version": "unspecified", "lengthSec": 229, "bpm": 128, "key": "A major", "camelot": "11B", "structure": [] }
+      ],
+      "notes": "Length 3:49 matches ours (228.9 s). 128 BPM agrees. Key A major (11B) agrees with ours but only from a Tunebat search snippet (songbpm leaves the key blank); a musicstax playlist snippet reportedly also said A major / 128."
+    }
+  ]
+}
