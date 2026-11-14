@@ -14,7 +14,12 @@ export function h<K extends keyof HTMLElementTagNameMap>(
     if (v === undefined || v === null || v === false) continue;
     if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v as EventListener);
     else if (k === 'class') el.className = String(v);
-    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k === 'style' && typeof v === 'object') {
+      for (const [property, value] of Object.entries(v)) {
+        if (property.startsWith('--')) el.style.setProperty(property, String(value));
+        else Object.assign(el.style, { [property]: value });
+      }
+    }
     else if ((k === 'title' || k === 'aria-label' || k === 'placeholder') && typeof v === 'string') el.setAttribute(k, tr(v));
     else if (k in el && typeof v !== 'string') (el as unknown as Record<string, unknown>)[k] = v;
     else el.setAttribute(k, v === true ? '' : String(v));

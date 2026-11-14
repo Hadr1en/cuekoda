@@ -249,6 +249,7 @@ Feature-by-feature status: [feature status](docs/AUDIT_ET_PLAN.md); how the algo
 | + / − / 0 | Zoom in / out / whole track |
 | ⌘Z / ⇧⌘Z | Undo / redo |
 | ⌘E | Export |
+| ⌘ / Ctrl + F | Filter the library |
 | ? | Help |
 
 ## Privacy and safety

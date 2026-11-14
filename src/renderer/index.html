@@ -14,7 +14,7 @@
   </head>
   <body>
     <header class="bar">
-      <div class="brand"><svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="96 96 320 320" width="24" height="24" aria-hidden="true" focusable="false"><defs><linearGradient id="ck-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A6DFF"/><stop offset="1" stop-color="#00D2DC"/></linearGradient></defs><circle cx="256" cy="256" r="150" fill="none" stroke="url(#ck-logo)" stroke-width="30"/><rect x="145.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/><rect x="166.3" y="228.1" width="13" height="55.9" rx="6.5" fill="url(#ck-logo)"/><rect x="187.1" y="218.9" width="13" height="74.1" rx="6.5" fill="url(#ck-logo)"/><rect x="207.9" y="194.8" width="13" height="122.5" rx="6.5" fill="url(#ck-logo)"/><rect x="228.7" y="178.3" width="13" height="155.3" rx="6.5" fill="url(#ck-logo)"/><rect x="249.5" y="192.6" width="13" height="126.7" rx="6.5" fill="#FFFFFF"/><rect x="270.3" y="198.1" width="13" height="115.8" rx="6.5" fill="url(#ck-logo)"/><rect x="291.1" y="190.5" width="13" height="130.9" rx="6.5" fill="url(#ck-logo)"/><rect x="311.9" y="207.8" width="13" height="96.4" rx="6.5" fill="url(#ck-logo)"/><rect x="332.7" y="231.3" width="13" height="49.5" rx="6.5" fill="url(#ck-logo)"/><rect x="353.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/></svg> CueKoda <span class="tag">Analyze. Cue. Mix</span></div>
+      <div class="brand"><svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="96 96 320 320" width="24" height="24" aria-hidden="true" focusable="false"><defs><linearGradient id="ck-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A6DFF"/><stop offset="1" stop-color="#00D2DC"/></linearGradient></defs><circle cx="256" cy="256" r="150" fill="none" stroke="url(#ck-logo)" stroke-width="30"/><rect x="145.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/><rect x="166.3" y="228.1" width="13" height="55.9" rx="6.5" fill="url(#ck-logo)"/><rect x="187.1" y="218.9" width="13" height="74.1" rx="6.5" fill="url(#ck-logo)"/><rect x="207.9" y="194.8" width="13" height="122.5" rx="6.5" fill="url(#ck-logo)"/><rect x="228.7" y="178.3" width="13" height="155.3" rx="6.5" fill="url(#ck-logo)"/><rect x="249.5" y="192.6" width="13" height="126.7" rx="6.5" fill="#FFFFFF"/><rect x="270.3" y="198.1" width="13" height="115.8" rx="6.5" fill="url(#ck-logo)"/><rect x="291.1" y="190.5" width="13" height="130.9" rx="6.5" fill="url(#ck-logo)"/><rect x="311.9" y="207.8" width="13" height="96.4" rx="6.5" fill="url(#ck-logo)"/><rect x="332.7" y="231.3" width="13" height="49.5" rx="6.5" fill="url(#ck-logo)"/><rect x="353.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/></svg> CueKoda</div>
       <nav class="actions" aria-label="Actions principales">
         <button type="button" id="btn-files" class="btn">+ Fichiers</button>
         <button type="button" id="btn-folder" class="btn">+ Dossier</button>
@@ -47,7 +47,7 @@
             <option value="review">À vérifier</option>
             <option value="missing">Fichiers introuvables</option>
           </select>
-          <span id="lib-count" class="muted"></span>
+          <span id="lib-count" class="lib-count"></span>
           <span class="spacer"></span>
           <button type="button" id="btn-order" class="btn small ghost" title="Suggestion d’ordre de mix pour les morceaux affichés (à toi de décider)">Ordre de mix…</button>
           <button type="button" id="btn-reanalyze" class="btn small ghost" title="Ré-analyser les morceaux affichés (vos corrections sont conservées)">↻ Ré-analyser</button>
@@ -57,6 +57,10 @@
           <div id="empty" class="empty">
             <div class="big">Glisse des fichiers ou un dossier ici</div>
             <div class="sub">Import → Analyse → Revue → Export. Les fichiers audio ne sont jamais modifiés ni envoyés en ligne.</div>
+          </div>
+          <div id="no-matches" class="empty" hidden>
+            <div class="big">Aucun morceau ne correspond</div>
+            <button type="button" id="clear-filters" class="btn">Effacer les filtres</button>
           </div>
           <table id="tracks" hidden>
             <caption class="sr-only">Morceaux de la bibliothèque</caption>
@@ -114,20 +118,28 @@
         <div id="d-busy" class="d-busy" role="status" aria-live="polite" hidden></div>
 
         <div class="wave-toolbar">
-          <button type="button" id="btn-play" class="btn">▶︎ Lecture</button>
-          <span id="time" class="time">0:00.0</span>
+          <div class="transport" role="group" aria-label="Transport">
+            <button type="button" id="btn-prev-track" class="btn ghost" aria-label="Morceau précédent" title="Morceau précédent" disabled>⏮</button>
+            <button type="button" id="btn-play" class="btn primary">▶︎ Lecture</button>
+            <button type="button" id="btn-next-track" class="btn ghost" aria-label="Morceau suivant" title="Morceau suivant" disabled>⏭</button>
+          </div>
+          <span class="time"><span id="time">0:00.0</span><span id="time-total"></span></span>
           <button type="button" class="btn small ghost" id="zoom-out" aria-label="Dézoomer">−</button>
           <button type="button" class="btn small ghost" id="zoom-in" aria-label="Zoomer">+</button>
           <button type="button" class="btn small ghost" id="zoom-fit">Tout</button>
-          <span class="hint">Molette : zoom · Maj+molette : défiler · glisser un cue (Alt = sans aimantation) · ? : raccourcis</span>
           <span class="spacer"></span>
+          <button type="button" id="btn-help" class="btn small ghost" aria-label="Raccourcis clavier" title="Raccourcis clavier">?</button>
           <button type="button" class="btn small ghost" id="btn-undo" title="Annuler (⌘Z)" disabled>↶ Annuler</button>
           <button type="button" class="btn small ghost" id="btn-redo" title="Rétablir (⇧⌘Z)" disabled>↷ Rétablir</button>
         </div>
         <div id="wave-wrap">
           <canvas id="wave" tabindex="0" role="slider" aria-label="Waveform — flèches : une mesure, Maj+flèches : un temps" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></canvas>
+          <div id="wave-playhead" class="playhead" aria-hidden="true" hidden></div>
         </div>
-        <canvas id="overview" aria-hidden="true"></canvas>
+        <div class="overview-wrap">
+          <canvas id="overview" aria-hidden="true"></canvas>
+          <div id="overview-playhead" class="playhead" aria-hidden="true" hidden></div>
+        </div>
 
         <div class="tabs" role="tablist" aria-label="Préparation">
           <button type="button" role="tab" aria-selected="true" aria-controls="tab-cues" id="t-cues">Hot cues</button>

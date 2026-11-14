@@ -181,7 +181,7 @@ function createWindow() {
     minWidth: 980,
     minHeight: 660,
     // Matches the --color-bg token (dark by default, see styles.css)
-    backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#0e0f13',
+    backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
     title: 'CueKoda',
     show: !SMOKE_DIR,
     webPreferences: {
@@ -490,10 +490,29 @@ const SMOKE_UI_SCRIPT = `(async () => {
   const out = {};
   const rows = [...document.querySelectorAll('tr.row')];
   out.rows = rows.length;
+  const bpms = rows.map((row) => parseFloat(row.cells[3]?.textContent));
+  out.liveTempoSort = document.querySelector('#tracks th[data-sort="bpm"]').getAttribute('aria-sort') === 'descending' &&
+    bpms.every((bpm, index) => index === 0 || bpms[index - 1] >= bpm);
   rows[0].click();
+  if (rows.length > 1) {
+    $('btn-next-track').click();
+    out.nextTrack = rows[1].getAttribute('aria-current') === 'true';
+    $('btn-prev-track').click();
+    out.previousTrack = rows[0].getAttribute('aria-current') === 'true';
+  }
+  const search = $('search');
+  document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true }));
+  out.searchShortcut = document.activeElement === search;
+  search.value = '__no_cuekoda_track__';
+  search.dispatchEvent(new Event('input'));
+  out.emptySearch = !$('no-matches').hidden && $('tracks').hidden;
+  $('clear-filters').click();
+  out.filtersCleared = !search.value && document.querySelectorAll('tr.row').length === rows.length;
+  search.blur();
   await wait(400);
   out.detailVisible = !$('detail').hidden;
   out.pads = pads().length;
+  out.padColorApplied = !!pads()[0]?.style.getPropertyValue('--pad-color');
   const t0 = pads()[0].querySelector('.tm').textContent;
   btn(pads()[0], '+1').click();
   await wait(50);
@@ -537,10 +556,21 @@ const SMOKE_UI_SCRIPT = `(async () => {
   const audio = $('audio');
   audio.muted = true;
   out.audioSrc = audio.src.slice(0, 40);
+  let waveformRedraws = 0;
+  const clear = CanvasRenderingContext2D.prototype.clearRect;
+  CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+    if (this.canvas.id === 'wave' || this.canvas.id === 'overview') waveformRedraws++;
+    return clear.apply(this, args);
+  };
   try {
+    $('zoom-fit').click();
     // never hang the smoke test on a play() promise that does not settle
     await Promise.race([audio.play(), wait(8000).then(() => { throw new Error('play() did not settle in 8 s'); })]);
+    const beforePlayback = waveformRedraws;
+    const playhead = $('wave-playhead').style.transform;
     await wait(1500);
+    out.playbackWaveformRedraws = waveformRedraws - beforePlayback;
+    out.playheadMoves = $('wave-playhead').style.transform !== playhead;
     out.audioPlaying = !audio.paused && audio.currentTime > 0.5;
     out.audioTime = audio.currentTime;
     audio.currentTime = 30;
@@ -567,6 +597,7 @@ const SMOKE_UI_SCRIPT = `(async () => {
     out.audioPlaying = false;
     out.audioError = String(e) + ' code=' + (audio.error ? audio.error.code + ' ' + audio.error.message : 'none');
   }
+  CanvasRenderingContext2D.prototype.clearRect = clear;
   return out;
 })()`;
 
@@ -602,6 +633,11 @@ function runSmoke() {
           const busy = [...document.querySelectorAll('tr.busy')];
           const out = { busyRows: busy.length, header: document.getElementById('queue-label').textContent,
             queueVisible: !document.getElementById('queue').hidden };
+          if (${!smokeLang}) {
+            const bpm = document.querySelector('#tracks th[data-sort="bpm"]');
+            bpm.click();
+            bpm.click(); // descending before the first track results arrive
+          }
           const running = busy.find((tr) => tr.querySelector('.busy-line.analyzing')) ?? busy[0];
           if (running) { running.click(); await new Promise((r) => setTimeout(r, 200)); }
           out.pendingVisible = !document.getElementById('pending').hidden || !document.getElementById('d-busy').hidden;
