@@ -1,7 +1,7 @@
 # Matrice de compatibilité des exports
 
-Légende : ✓ transféré · ≈ partiel · ✗ non transféré. **Imports rekordbox et Traktor vérifiés par un DJ
-le 2026-11-14** (morceaux analysés et corrigés dans CueKoda, puis importés). Engine DJ, VirtualDJ et djay Pro
+Légende : ✓ transféré · ≈ partiel · ✗ non transféré. **Les exports rekordbox et Traktor ont été importés par
+un DJ le 14 novembre 2026**. Le nouveau mapping Traktor reste à vérifier dans Traktor Pro. Engine DJ, VirtualDJ et djay Pro
 lisent le même fichier rekordbox XML : chemin plausible mais **pas encore vérifié** dans ces logiciels.
 Un essai sur quelques morceaux reste conseillé avant une prestation.
 
@@ -14,14 +14,28 @@ qu'il sait lire et affiche les étapes d'import.
 | BPM | ✓ | ✓ | ✗ |
 | Beatgrid | ✓ un marqueur, ou un par plage de tempo si le tempo change | ≈ marqueur AutoGrid (un seul tempo) | ✗ |
 | Tonalité | ✓ (notation musicale) | ✓ (index Traktor + Open Key) | ✗ |
-| Hot cues (8) | ✓ Num 0–7 | ✓ HOTCUE 0–7 | ✗ |
+| Hot cues | ✓ pads A–H → `Num=0–7` | ≈ pads A–G → boutons 2–8 (`HOTCUE=1–7`). Bouton 1 (`HOTCUE=0`) réservé à AutoGrid | ✗ |
 | Noms des cues | ✓ | ✓ | ✗ |
 | Couleurs des cues | ≈ RGB (rekordbox peut les ramener à sa palette) | ✗ (couleur imposée par le type) | ✗ |
-| Memory cues | ✓ (option pour toutes les cues ; toujours pour les cues sans pad) | ✓ cues sans pad : `CUE_V2 HOTCUE="-1"` | ✗ |
+| Memory cues | ✓ (option pour toutes les cues, et toujours pour les cues sans pad) | ✓ pad H et cues sans pad (`CUE_V2 HOTCUE="-1"`) | ✗ |
 | Boucles | ✓ memory loops (Type 4) | ✓ boucles mémorisées (TYPE 5) | ✗ |
 | Commentaire « E8 · 8B · Vocal » (option) | ✓ attribut Comments | ✓ INFO COMMENT | ✗ |
 | Playlist (set dans l'ordre, nommée) | ✓ NODE Type 1 | ✓ NODE PLAYLIST | ✗ |
 | Sections / énergie / phrases / Mix In-Out | ✗ (énergie seulement via le commentaire) | ✗ (idem) | ✗ |
+
+Dans Traktor, un fichier sous `/Volumes/X/…` est exporté avec `VOLUME="X"` et un chemin relatif à ce volume.
+L'aperçu d'export signale aussi les cues superposés.
+
+## Importer une collection dans CueKoda
+
+« Importer collection… » lit un XML rekordbox ou un NML Traktor. Les morceaux sont rapprochés par leur
+chemin. Tu peux limiter l'import aux morceaux de ta bibliothèque ou ajouter les fichiers audio accessibles.
+Les cues importés sont verrouillés, les boucles reprises sont validées et les suggestions occupent les pads libres.
+L'option BPM et grille relance l'analyse avec le BPM importé et le premier repère de grille disponible.
+
+Dans le sens Traktor → CueKoda, les boutons 2–8 correspondent aux pads A–G. Si le bouton 1 porte un cue
+plutôt qu'AutoGrid, il est repris sur le pad H s'il est libre, ou comme cue mémorisé. AutoGrid sert de repère
+de grille. La collection source est lue sans être modifiée.
 
 ## Engine DJ, VirtualDJ, djay Pro (via rekordbox XML, non vérifiés)
 | Logiciel | Ce que CueKoda écrit | Import (libellés variables selon la version) |
@@ -51,5 +65,8 @@ Serato si votre version la propose — non vérifié par CueKoda.
 1. Exporter 3 morceaux (dont un avec boucles validées).
 2. rekordbox : importer via la vue « rekordbox xml », vérifier BPM, grille (temps 1), clé, 8 pads, noms,
    couleurs, memory cues et boucles.
-3. Traktor : sauvegarder `collection.nml`, « Import Another Collection », vérifier les mêmes points.
-4. Reporter le résultat ici et passer `validated: true` dans `src/core/export/index.ts`.
+3. Traktor : sauvegarder `collection.nml`, puis « Import Another Collection ». Vérifier AutoGrid sur le
+   bouton 1, A–G sur les boutons 2–8, H dans les cues mémorisés, et tester un fichier sur un volume externe.
+4. Lancer `npm run offset-test` et importer le XML et le NML générés. Mesurer le décalage entre les clics
+   et les repères sur WAV, MP3 avec et sans en-tête gapless, et AAC dans les deux logiciels.
+5. Faire un retour XML/NML vers CueKoda et vérifier les pads verrouillés, les boucles et l'option BPM/grille.

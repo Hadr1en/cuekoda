@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.3.3';
+export const ENGINE_VERSION = '0.4.0';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
@@ -174,6 +174,19 @@ export interface KeyResult {
   /** Several keys are plausible: shown as such instead of a falsely precise answer */
   ambiguous?: boolean;
   alternatives?: KeyAlternative[];
+  /**
+   * Probable key changes (e.g. a key lift for the last chorus): a stretch of ≥ 60 s whose own key differs
+   * clearly from the main key. Unvalidated: shown as a hint, never exported as the track key.
+   */
+  changes?: KeyChange[];
+}
+
+export interface KeyChange {
+  startSec: number;
+  endSec: number;
+  camelot: string;
+  musical: string;
+  openKey: string;
 }
 
 export interface LoudnessInfo {
@@ -283,6 +296,8 @@ export interface Overrides {
 
 export interface AnalysisResult extends TrackInfo {
   engineVersion?: string;
+  /** Cues / loops taken from the DJ's existing collection (rekordbox XML, Traktor NML) */
+  importedFrom?: { source: 'rekordbox' | 'traktor'; cues: number; loops: number };
   /** SHA-256 of the file content (cache key + exact duplicate detection) */
   fileHash?: string;
   profileId?: string;
@@ -307,6 +322,9 @@ export interface AnalysisResult extends TrackInfo {
   /** Overview waveform, 0..1 values */
   wave: number[];
   waveLow: number[];
+  /** 3-band waveform (mids 150 Hz–2.5 kHz, highs above), same scale as `wave`; absent in older analyses */
+  waveMid?: number[];
+  waveHigh?: number[];
   /** Human readable warnings (low confidence, variable tempo, ...) */
   warnings: string[];
   analysisMs: number;

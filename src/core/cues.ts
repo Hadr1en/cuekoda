@@ -84,6 +84,71 @@ export function cueCandidates(
 
 const CONF_RANK: Record<Confidence, number> = { high: 0, medium: 1, low: 2 };
 
+/** Two cues closer than this (s) are the same position: one of them wastes a pad. */
+export const SAME_POSITION_SEC = 0.03;
+
+/**
+ * Ids of the cues that sit at the same position as an earlier one (pads first, then memory cues), e.g.
+ * "Mix Out" moved onto "Outro". The first cue of each group is kept out of the list.
+ */
+export function duplicateCueIds(cues: HotCue[]): Set<string> {
+  const ordered = [...cues].sort((a, b) => (a.slot < 0 ? 99 : a.slot) - (b.slot < 0 ? 99 : b.slot));
+  const dup = new Set<string>();
+  ordered.forEach((c, i) => {
+    if (ordered.slice(0, i).some((o) => !dup.has(o.id) && Math.abs(o.timeSec - c.timeSec) < SAME_POSITION_SEC)) dup.add(c.id);
+  });
+  return dup;
+}
+
+/** The cue already at time t (within SAME_POSITION_SEC), if any. */
+export const cueAt = (cues: HotCue[], t: number, except?: HotCue): HotCue | undefined =>
+  cues.find((c) => c !== except && Math.abs(c.timeSec - t) < SAME_POSITION_SEC);
+
+function toCue(c: CueCandidate, slot: number, name: string, profile: Profile, grid: { d0: number; barLen: number }): HotCue {
+  return {
+    id: newId('c'),
+    slot,
+    role: c.role,
+    kind: c.kind,
+    name,
+    bar: c.bar,
+    timeSec: Math.max(0, grid.d0 + c.bar * grid.barLen),
+    color: profile.colors[c.kind],
+    confidence: c.confidence,
+    reason: c.reason,
+    origin: 'auto',
+  };
+}
+
+const ROLE_NAME: Partial<Record<CueRole, string>> = { drop1: 'Drop 1', drop2: 'Drop 2', build1: 'Build 1', build2: 'Build 2', break1: 'Break' };
+
+/**
+ * Fixed pad layout: every pad gets the best candidate whose role it accepts (same function on the same pad
+ * on every track); a pad without such a candidate stays free. Other candidates become memory cues (no pad),
+ * so nothing found is lost, still kept apart from the pads by the minimum spacing.
+ */
+function templateCues(ranked: CueCandidate[], profile: Profile, grid: { d0: number; barLen: number }): HotCue[] {
+  const used = new Set<CueCandidate>();
+  const out: HotCue[] = [];
+  profile.padTemplate!.slice(0, 8).forEach((roles, slot) => {
+    for (const role of roles) {
+      const c = ranked.find((x) => !used.has(x) && x.role === role && !out.some((o) => Math.abs(o.bar - x.bar) < 1));
+      if (c) {
+        used.add(c);
+        out.push(toCue(c, slot, ROLE_NAME[c.role] ?? CUE_KIND_LABEL[c.kind], profile, grid));
+        return;
+      }
+    }
+  });
+  for (const c of ranked) {
+    if (used.has(c) || out.length >= 16) continue;
+    if (out.some((o) => Math.abs(o.bar - c.bar) < profile.minCueSpacingBars)) continue;
+    used.add(c);
+    out.push(toCue(c, -1, ROLE_NAME[c.role] ?? CUE_KIND_LABEL[c.kind], profile, grid));
+  }
+  return out.sort((a, b) => (a.slot < 0 ? 99 : a.slot) - (b.slot < 0 ? 99 : b.slot) || a.timeSec - b.timeSec);
+}
+
 export function selectCues(
   candidates: CueCandidate[],
   profile: Profile,
@@ -98,6 +163,8 @@ export function selectCues(
   const ranked = candidates
     .filter((c) => !excluded.has(c.kind))
     .sort((a, b) => prio(a.kind) - prio(b.kind) || CONF_RANK[a.confidence] - CONF_RANK[b.confidence] || a.bar - b.bar);
+
+  if (profile.slotOrder === 'template' && profile.padTemplate) return templateCues(ranked, profile, grid);
 
   const kept: CueCandidate[] = [];
   for (const c of ranked) {

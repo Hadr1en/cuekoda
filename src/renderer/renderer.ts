@@ -1,6 +1,7 @@
 import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
 import { allKeys } from '../core/key';
 import { CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
+import { cueAt, duplicateCueIds } from '../core/cues';
 import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
 import { resolveLang, setLang, tr } from '../shared/i18n';
@@ -59,7 +60,30 @@ function overallConfidence(r: AnalysisResult) {
   return worst(r.tempo?.confidence, r.key.level, r.grid.downbeatConfidence);
 }
 
+let libView: 'all' | 'review' | 'missing' = 'all';
+
+/**
+ * Why a track should be checked by ear before a gig (empty = nothing to check): low confidence on tempo,
+ * downbeat or key, analysis warnings, duplicated pads, failed analysis. "✓ Vérifié" clears it.
+ */
+function reviewReasons(rec: TrackRecord): string[] {
+  if (rec.reviewedAt) return [];
+  if (rec.status === 'error') return ['analyse en échec'];
+  const r = rec.result;
+  if (!r) return [];
+  const out: string[] = [];
+  if (r.tempo?.confidence === 'low') out.push('tempo incertain');
+  if (r.grid.downbeatConfidence === 'low') out.push('premier temps incertain');
+  if (r.key.level === 'low' || r.key.ambiguous) out.push('tonalité incertaine');
+  if (r.key.changes?.length) out.push('changement de tonalité');
+  if (duplicateCueIds(r.cues).size) out.push('pads en double');
+  if (r.warnings.some((w) => /tronqué|endommagé|LAME/.test(w))) out.push('fichier à vérifier');
+  return out;
+}
+
 function matchesFilter(rec: TrackRecord) {
+  if (libView === 'review' && !reviewReasons(rec).length) return false;
+  if (libView === 'missing' && !rec.missing) return false;
   if (!filter) return true;
   const r = rec.result;
   const hay = [rec.fileName, r?.title, r?.artist, r?.key.camelot, r?.key.musical, r ? fmtBpm(r.bpm) : ''].join(' ').toLowerCase();
@@ -144,13 +168,15 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
   else tr.removeAttribute('aria-current');
   tr.classList.toggle('busy', isBusy(rec));
   const r = rec.result;
-  const warn = rec.status === 'done' && (r?.warnings.length ?? 0) > 0;
+  const reasons = rec.status === 'done' ? reviewReasons(rec) : [];
+  const warn = rec.missing || reasons.length > 0;
   const stateText =
-    rec.status === 'analyzing' ? `Analyse ${Math.round((rec.progress ?? 0) * 100)} % (${rec.stage ?? ''})`
+    rec.missing ? 'Fichier introuvable à cet emplacement'
+    : rec.status === 'analyzing' ? `Analyse ${Math.round((rec.progress ?? 0) * 100)} % (${rec.stage ?? ''})`
       : rec.status === 'queued' ? 'En attente'
         : rec.status === 'error' ? `Erreur : ${rec.error ?? ''}`
           : rec.status === 'cancelled' ? 'Annulé'
-            : warn ? `À vérifier : ${r!.warnings.join(' ; ')}` : rec.cached ? 'Analysé (cache)' : 'Analysé';
+            : warn ? `À vérifier : ${[...reasons, ...r!.warnings].join(' ; ')}` : rec.reviewedAt ? 'Vérifié par vous' : rec.cached ? 'Analysé (cache)' : 'Analysé';
   tr.append(td(h('span', {}, h('span', { class: `dot ${warn ? 'warn' : rec.status}`, title: stateText }), h('span', { class: 'sr-only' }, stateText)), 'c-state'));
 
   if (r && rec.status !== 'error') {
@@ -324,7 +350,11 @@ function renderDetail() {
   $('d-sub').textContent =
     `${fmtBpm(r.bpm)} BPM · ${r.key.camelot} (${r.key.musical}) · ${fmtDur(r.durationSec)} · ${tr('énergie')} ${r.energy?.score ?? '—'}/10 · ` +
     `${tr('profil')} ${tr(allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—')}${busy}`;
-  $('d-warn').textContent = r.warnings.map(tr).join(' · ');
+  $('d-warn').textContent = [...(rec?.missing ? ['Fichier introuvable à cet emplacement (déplacé, renommé ou disque débranché)'] : []), ...r.warnings].map(tr).join(' · ');
+  const reviewed = !!rec?.reviewedAt;
+  const reasons = rec ? reviewReasons({ ...rec, reviewedAt: undefined }) : [];
+  setText($('btn-reviewed'), reviewed ? '✓ Vérifié' : reasons.length ? `À vérifier : ${reasons.join(', ')} — marquer vérifié` : 'Marquer vérifié');
+  $('btn-reviewed').classList.toggle('done', reviewed);
   // corrections
   const bpmInput = $<HTMLInputElement>('bpm-input');
   if (document.activeElement !== bpmInput) bpmInput.value = r.bpm.toFixed(2);
@@ -368,7 +398,16 @@ function profileColors() {
   return (allProfiles().find((p) => p.id === state.settings.profileId) ?? allProfiles()[0]).colors;
 }
 
+/** A cue already sits at that position: say which one instead of wasting a second pad on it. */
+function refuseSamePosition(r: AnalysisResult, t: number, except?: HotCue): boolean {
+  const other = cueAt(r.cues, snapBeat(r, t), except);
+  if (!other) return false;
+  toast(`Déjà un cue à ${fmtTime(other.timeSec)} : ${other.name}${other.slot >= 0 ? ` (pad ${LETTERS[other.slot]})` : ' (memory cue)'}`);
+  return true;
+}
+
 function setCueAt(r: AnalysisResult, slot: number, t: number, kind?: CueKind) {
+  if (refuseSamePosition(r, t, r.cues.find((c) => c.slot === slot))) return;
   edit(r, () => {
     const existing = r.cues.find((c) => c.slot === slot);
     const time = snapBeat(r, t);
@@ -394,6 +433,7 @@ function setCueAt(r: AnalysisResult, slot: number, t: number, kind?: CueKind) {
  * taken or when asked. Memory cues are exported as rekordbox memory cues / Traktor stored cues.
  */
 function addCue(r: AnalysisResult, t: number, kind: CueKind, memory = false) {
+  if (refuseSamePosition(r, t)) return;
   const free = [0, 1, 2, 3, 4, 5, 6, 7].find((s) => !r.cues.some((c) => c.slot === s));
   const slot = memory || free === undefined ? -1 : free;
   edit(r, () => {
@@ -438,11 +478,15 @@ function moveCue(r: AnalysisResult, cue: HotCue, beats: number) {
     cue.origin = 'user';
     syncSectionWithCue(r, cue, oldBar);
   });
+  // moving through another cue is allowed (several steps), but landing on it is flagged
+  const other = cueAt(r.cues, cue.timeSec, cue);
+  if (other) toast(`${cue.name} est maintenant au même endroit que ${other.name} : un des deux pads est inutile`);
 }
 
 function renderCues(r: AnalysisResult) {
   const kinds = Object.keys(CUE_KIND_LABEL) as CueKind[];
   const pads = [];
+  const dups = duplicateCueIds(r.cues);
   for (let slot = 0; slot < 8; slot++) {
     const cue = r.cues.find((c) => c.slot === slot);
     if (!cue) {
@@ -459,7 +503,8 @@ function renderCues(r: AnalysisResult) {
       h('button', { type: 'button', title, 'aria-label': `${title} — pad ${LETTERS[slot]}`, disabled, onclick: (e: Event) => { e.stopPropagation(); fn(); } }, label);
     const selected = wave.selectedCueId === cue.id;
     pads.push(h('div', {
-      class: `pad${selected ? ' selected' : ''}`, style: { '--pad-color': rgb(cue.color) } as never,
+      class: `pad${selected ? ' selected' : ''}${dups.has(cue.id) ? ' dup' : ''}`, style: { '--pad-color': rgb(cue.color) } as never,
+      title: dups.has(cue.id) ? 'Même position qu’un autre cue : ce pad est en double' : undefined,
       onclick: () => { wave.selectedCueId = cue.id; renderDetail(); },
     },
       h('div', { class: 'pad-head' },
@@ -468,6 +513,7 @@ function renderCues(r: AnalysisResult) {
           onchange: (e: Event) => edit(r, () => { cue.color = rgbOf((e.target as HTMLInputElement).value); cue.origin = 'user'; }) }),
         confBadge(cue.confidence, true),
         cue.origin === 'user' ? h('span', { class: 'pill', title: 'Modifié par vous : conservé lors des ré-analyses' }, 'perso') : '',
+        dups.has(cue.id) ? h('span', { class: 'pill warn' }, 'doublon') : '',
       ),
       h('input', { class: 'nm', type: 'text', value: cue.name, 'aria-label': `Nom du pad ${LETTERS[slot]}`, disabled: cue.locked,
         onchange: (e: Event) => edit(r, () => { cue.name = (e.target as HTMLInputElement).value || cue.name; cue.origin = 'user'; }) }),
@@ -914,6 +960,7 @@ function renderInfo(r: AnalysisResult) {
           row('Premier temps', `${r.grid.firstDownbeatSec.toFixed(3)} s`),
           row('Tonalité', `${r.key.musical} · ${r.key.camelot} · ${r.key.openKey}${r.key.ambiguous ? ' (ambiguë)' : ''}`),
           row('Alternatives tonalité', (r.key.alternatives ?? []).map((a) => `${a.camelot} (${Math.round(a.weight * 100)} %)`).join(' · ')),
+          row('Changement de tonalité', (r.key.changes ?? []).map((c) => `${c.camelot} (${fmtTime(c.startSec)} → ${fmtTime(c.endSec)})`).join(' · ') || undefined),
           row('Loudness intégrée', L?.integratedLufs != null ? `${L.integratedLufs.toFixed(1)} LUFS` : undefined),
           row('Plage de loudness', L?.loudnessRangeLu != null ? `${L.loudnessRangeLu.toFixed(1)} LU` : undefined),
           row('True peak', L?.truePeakDbtp != null ? `${L.truePeakDbtp.toFixed(1)} dBTP` : undefined),
@@ -1138,6 +1185,18 @@ document.addEventListener('keydown', (e) => {
 
 // library tools
 $('search').addEventListener('input', (e) => { filter = (e.target as HTMLInputElement).value.trim().toLowerCase(); renderLibrary(); });
+$('lib-view').addEventListener('change', (e) => { libView = (e.target as HTMLSelectElement).value as typeof libView; renderLibrary(); });
+$('btn-reviewed').addEventListener('click', async () => {
+  const rec = state.selected ? state.tracks.get(state.selected) : undefined;
+  if (!rec) return;
+  await api.setReviewed([rec.path], !rec.reviewedAt);
+});
+$('btn-import').addEventListener('click', async () => {
+  const s = await api.importCollection();
+  if (s.canceled) return;
+  if (!s.ok) return toast(`Import impossible : ${s.error ?? ''}`);
+  toast(`Collection ${s.source} : ${s.matched} morceau(x), ${s.cues} cue(s) importé(s) et verrouillé(s)${s.added ? `, ${s.added} ajouté(s) à l’analyse` : ''}${s.notFound ? ` · ${s.notFound} introuvable(s) sur cet ordinateur` : ''}`, 7000);
+});
 document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
   th.tabIndex = 0;
   const go = () => { const k = th.dataset.sort!; sortDir = sortKey === k ? -sortDir : 1; sortKey = k; renderLibrary(); };
@@ -1271,6 +1330,14 @@ async function boot() {
     if (sum.cancelled) parts.push(`${sum.cancelled} annulé(s)`);
     toast(`Analyse terminée : ${parts.join(', ')} en ${(sum.durationMs / 1000).toFixed(0)} s`, 7000);
     updateGlobalButtons();
+  });
+  api.onRemoved(({ path: p, movedTo }) => {
+    state.tracks.delete(p);
+    rowEls.delete(p);
+    if (state.selected === p) state.selected = movedTo ?? null;
+    if (movedTo) toast(`Fichier retrouvé : ${movedTo.split(/[\\/]/).pop()} — vos corrections le suivent`);
+    renderLibrary();
+    renderDetail();
   });
   api.onWatch((w) => toast(`${w.level === 'error' ? '⚠ ' : ''}${w.message} (${w.folder})`, w.level === 'error' ? 8000 : 3000));
 }

@@ -4,7 +4,7 @@ import type { AnalysisResult, HotCue, Loop, Section } from './types';
  * Re-analysis must never erase the DJ's work. Anything the user created, edited (origin 'user') or
  * locked is carried over; fresh automatic suggestions only fill the gaps.
  */
-export function mergeWithPrevious(fresh: AnalysisResult, prev: AnalysisResult | undefined): AnalysisResult {
+export function mergeWithPrevious(fresh: AnalysisResult, prev: AnalysisResult | undefined, opts: { strictSlots?: boolean } = {}): AnalysisResult {
   if (!prev) return fresh;
   const keepCue = (c: HotCue) => c.origin === 'user' || c.locked;
   const keepLoop = (l: Loop) => l.origin === 'user' || l.locked || l.accepted;
@@ -15,8 +15,14 @@ export function mergeWithPrevious(fresh: AnalysisResult, prev: AnalysisResult | 
   const autoCues = fresh.cues
     .filter((c) => !userCues.some((u) => Math.abs(u.timeSec - c.timeSec) < 0.5 || u.kind === c.kind && u.role === c.role))
     .sort((a, b) => a.timeSec - b.timeSec);
-  const freeSlots = [0, 1, 2, 3, 4, 5, 6, 7].filter((s) => !usedSlots.has(s));
-  const placed = autoCues.slice(0, freeSlots.length).map((c, i) => ({ ...c, slot: freeSlots[i] }));
+  let placed: HotCue[];
+  if (opts.strictSlots) {
+    // fixed pad layout: an auto cue keeps its own pad, or becomes a memory cue when the DJ uses that pad
+    placed = autoCues.map((c) => (c.slot >= 0 && usedSlots.has(c.slot) ? { ...c, slot: -1 } : c));
+  } else {
+    const freeSlots = [0, 1, 2, 3, 4, 5, 6, 7].filter((s) => !usedSlots.has(s));
+    placed = autoCues.filter((c) => c.slot >= 0).slice(0, freeSlots.length).map((c, i) => ({ ...c, slot: freeSlots[i] }));
+  }
   const cues = [...userCues, ...placed].sort((a, b) => a.slot - b.slot);
 
   // --- loops: keep accepted / user loops, add new suggestions that do not overlap them

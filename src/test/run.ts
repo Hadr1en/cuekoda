@@ -312,8 +312,12 @@ async function main() {
     check('Voix : début / fin à ±1 mesure', !!seg && Math.abs(seg.startBar - 16) <= 1 && Math.abs(seg.endBar - 32) <= 1, seg ? `${seg.startBar}-${seg.endBar} vs 16-32` : 'absent');
     check('Voix : rien dans le drop instrumental', !!v && v.present.slice(33).every((p) => !p), '');
     check('Voix : confiance jamais « forte », non validée', !!v && v.validated === false && v.segments.every((g) => g.confidence !== 'high'), `${v?.level}`);
-    const vc = r.cues.find((c) => c.kind === 'vocal');
-    check('Cue vocal à l’entrée de la voix', !!vc && vc.bar === 16 && vc.confidence === 'medium' && vc.reason.includes('non validée'), vc ? `bar ${vc.bar} ${vc.confidence}` : 'absent');
+    check('Pas de cue vocal par défaut (0/2 sur les corrections du DJ)', !r.cues.some((c) => c.kind === 'vocal'), '');
+    // with a profile that re-enables vocal cues, the cue lands on the vocal entry
+    const { findProfile } = await import('../core/profiles');
+    const rv = await analyzeFile(file, { profile: { ...findProfile('edm'), id: 'edm-vocal', excludeKinds: [] } });
+    const vc = rv.cues.find((c) => c.kind === 'vocal');
+    check('Cue vocal à l’entrée de la voix (profil qui les active)', !!vc && vc.bar === 16 && vc.confidence === 'medium' && vc.reason.includes('non validée'), vc ? `bar ${vc.bar} ${vc.confidence}` : 'absent');
     const out = r.mix?.mixOut[0];
     check('Mix Out instrumental signalé', out?.vocals === 'none' && out.reason.includes('aucune voix'), out ? `${out.bar}: ${out.reason}` : 'absent');
     const sec = r.sections?.find((x) => x.startBar <= 26 && 26 < x.endBar);
@@ -375,11 +379,11 @@ async function main() {
     };
     const e = evaluateTrack(results[0], truth);
     const sum = summarize([e]);
-    check('Évaluation : BPM', Math.abs(e.bpm.errorPct) < 0.05, `${e.bpm.errorPct.toFixed(3)} %`);
-    check('Évaluation : phase et temps 1', Math.abs(e.grid.phaseErrorMs) < 15 && e.grid.downbeatOk, `${e.grid.phaseErrorMs.toFixed(1)} ms`);
-    check('Évaluation : clé', e.key.score === 1, `${e.key.detected}`);
-    check('Évaluation : cues (rappel)', e.cues.recall === 1, `${e.cues.matched}/${e.cues.reference}, F1 ${sum.cueF1.toFixed(2)}`);
-    check('Évaluation : sections (rappel)', e.sections.recall === 1, `${e.sections.matched}/${e.sections.reference}, F1 ${sum.sectionF1.toFixed(2)}`);
+    check('Évaluation : BPM', Math.abs(e.bpm!.errorPct) < 0.05, `${e.bpm!.errorPct.toFixed(3)} %`);
+    check('Évaluation : phase et temps 1', Math.abs(e.grid!.phaseErrorMs) < 15 && e.grid!.downbeatOk, `${e.grid!.phaseErrorMs.toFixed(1)} ms`);
+    check('Évaluation : clé', e.key!.score === 1, `${e.key!.detected}`);
+    check('Évaluation : cues (rappel)', e.cues!.recall === 1, `${e.cues!.matched}/${e.cues!.reference}, F1 ${sum.cueF1.toFixed(2)}`);
+    check('Évaluation : sections (rappel)', e.sections!.recall === 1, `${e.sections!.matched}/${e.sections!.reference}, F1 ${sum.sectionF1.toFixed(2)}`);
   }
 
   // ---- manual corrections drive the re-analysis --------------------------------------------

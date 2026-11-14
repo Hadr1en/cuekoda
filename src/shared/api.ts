@@ -3,6 +3,7 @@ import type { Profile } from '../core/profiles';
 import type { ExportOptions, ExportTargetId } from '../core/export/index';
 import type { Peaks } from '../core/peaks';
 import type { UpdateStatus } from './update';
+import type { ImportedTrack } from '../core/import/collection';
 import type { LangSetting } from './i18n';
 
 export type TrackStatus = 'queued' | 'analyzing' | 'done' | 'error' | 'cancelled';
@@ -20,6 +21,26 @@ export interface TrackRecord {
   cached?: boolean;
   result?: AnalysisResult;
   addedAt: number;
+  /** Cues from the DJ's collection waiting for the analysis to finish (applied then removed) */
+  imported?: ImportedTrack;
+  /** The DJ checked this track (removes it from the "to review" list until it is re-analysed) */
+  reviewedAt?: number;
+  /** The file is no longer at this path (moved / renamed / disk not connected) */
+  missing?: boolean;
+}
+
+export interface ImportSummary {
+  ok: boolean;
+  canceled?: boolean;
+  error?: string;
+  source?: 'rekordbox' | 'traktor';
+  /** tracks of the collection found in CueKoda (or added) */
+  matched: number;
+  added: number;
+  /** collection entries whose file was not found on this computer */
+  notFound: number;
+  cues: number;
+  gridTaken: boolean;
 }
 
 export interface TrackEvent {
@@ -135,6 +156,9 @@ export interface CueKodaApi {
   resetLearning(): Promise<string[]>;
   exportPreview(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<string[]>;
   exportCollection(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse>;
+  /** Reads a rekordbox XML / Traktor NML collection: the DJ's cues become locked cues (read-only on the file) */
+  importCollection(): Promise<ImportSummary>;
+  setReviewed(paths: string[], reviewed: boolean): Promise<void>;
   addWatchFolder(): Promise<Settings>;
   /** Store the current (checked) state of a track as a reference for engine evaluation (spec §21) */
   saveReference(path: string, energyRating?: number): Promise<Record<string, string>>;
@@ -146,6 +170,8 @@ export interface CueKodaApi {
   onQueue(cb: (q: QueueState) => void): void;
   onSummary(cb: (s: BatchSummary) => void): void;
   onWatch(cb: (e: WatchEvent) => void): void;
+  /** A library entry disappeared on the main side (its file was found again under another path) */
+  onRemoved(cb: (e: { path: string; movedTo?: string }) => void): void;
   checkUpdate(): Promise<UpdateStatus>;
   installUpdate(): Promise<void>;
   openExternal(url: string): void;

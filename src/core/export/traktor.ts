@@ -4,14 +4,19 @@ import { traktorKeyIndex } from '../key';
 import { esc, exportedLoops } from './rekordbox';
 import { commentTag, type ExportOptions } from './index';
 
-/** Traktor paths look like DIR="/:Users/:me/:Music/:" with FILE and VOLUME separate. */
+/**
+ * Traktor paths look like DIR="/:Users/:me/:Music/:" with FILE and VOLUME separate.
+ * macOS: a file on another disk (/Volumes/USB/Music/a.mp3) belongs to that volume (VOLUME="USB",
+ * DIR="/:Music/:"), as Traktor writes it — otherwise its entries do not match the collection's.
+ */
 export function traktorLocation(p: string, macVolume: string): { dir: string; file: string; volume: string } {
-  const abs = path.resolve(p);
-  const file = path.basename(abs);
-  const win = /^[A-Za-z]:[\\/]/.test(abs);
+  const win = /^[A-Za-z]:[\\/]/.test(p);
+  const abs = win ? p : path.posix.resolve(p);
+  const file = abs.replace(/\\/g, '/').split('/').pop() ?? '';
   const normalized = abs.replace(/\\/g, '/');
-  const volume = win ? normalized.slice(0, 2) : macVolume;
-  const rest = win ? normalized.slice(2) : normalized;
+  const onVolume = !win ? /^\/Volumes\/([^/]+)(\/.*)$/.exec(normalized) : null;
+  const volume = win ? normalized.slice(0, 2) : onVolume ? onVolume[1] : macVolume;
+  const rest = win ? normalized.slice(2) : onVolume ? onVolume[2] : normalized;
   const parts = rest.split('/').filter(Boolean);
   parts.pop(); // file name
   const dir = '/:' + parts.map((s) => `${s}/:`).join('');
@@ -19,8 +24,15 @@ export function traktorLocation(p: string, macVolume: string): { dir: string; fi
 }
 
 /**
+ * Traktor hotcue index for a CueKoda pad. Traktor keeps its beatgrid marker on hotcue 1 (HOTCUE="0", as its
+ * own AutoGrid does): pads A–G go to hotcues 2–8 and pad H becomes a stored cue (HOTCUE="-1"), so no cue
+ * shares the grid marker's button.
+ */
+export const traktorHotcue = (slot: number): number => (slot < 0 || slot >= 7 ? -1 : slot + 1);
+
+/**
  * Traktor collection (NML 19).
- *  - hot cues → CUE_V2 TYPE=0 HOTCUE=0..7 (Traktor colours cues by type: CueKoda colours are not transferable)
+ *  - hot cues → CUE_V2 TYPE=0 HOTCUE=1..7 (hotcue 0 = grid marker; Traktor colours cues by type: CueKoda colours are not transferable)
  *  - grid     → CUE_V2 TYPE=4 "AutoGrid" on the first downbeat
  *  - loops    → CUE_V2 TYPE=5 LEN=<ms> HOTCUE=-1 (stored loops)
  * Import with "Import Another Collection" — back up your own collection.nml first.
@@ -60,7 +72,7 @@ export function buildTraktorNml(
       if (c.slot > 7) continue;
       // slot < 0 = memory cue: a stored cue point with no hotcue button (HOTCUE="-1")
       lines.push(
-        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${c.slot < 0 ? -1 : c.slot}"></CUE_V2>`,
+        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${traktorHotcue(c.slot)}"></CUE_V2>`,
       );
     }
     for (const l of exportedLoops(t, opts.loops)) {

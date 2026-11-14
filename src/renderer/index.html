@@ -18,6 +18,7 @@
       <nav class="actions" aria-label="Actions principales">
         <button type="button" id="btn-files" class="btn">+ Fichiers</button>
         <button type="button" id="btn-folder" class="btn">+ Dossier</button>
+        <button type="button" id="btn-import" class="btn ghost" title="Lire une collection rekordbox (XML) ou Traktor (NML) : vos cues deviennent des cues verrouillés, CueKoda ne remplit que les pads libres">Importer collection…</button>
         <label class="field" title="Profil DJ : règles de cues, couleurs, boucles et plage BPM">
           Profil
           <select id="profile"></select>
@@ -41,6 +42,11 @@
       <section id="library" aria-label="Bibliothèque">
         <div class="lib-tools">
           <input id="search" type="search" placeholder="Filtrer (titre, artiste, clé, BPM)…" aria-label="Filtrer la bibliothèque" />
+          <select id="lib-view" aria-label="Morceaux affichés">
+            <option value="all">Tous</option>
+            <option value="review">À vérifier</option>
+            <option value="missing">Fichiers introuvables</option>
+          </select>
           <span id="lib-count" class="muted"></span>
           <span class="spacer"></span>
           <button type="button" id="btn-order" class="btn small ghost" title="Suggestion d’ordre de mix pour les morceaux affichés (à toi de décider)">Ordre de mix…</button>
@@ -79,6 +85,7 @@
           <div class="d-titles">
             <h2 id="d-title" class="d-title"></h2>
             <div id="d-sub" class="d-sub"></div>
+            <button type="button" id="btn-reviewed" class="btn small ghost" title="Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)">✓ Vérifié</button>
           </div>
           <div class="d-corrections">
             <div class="corr" role="group" aria-labelledby="lbl-bpm">

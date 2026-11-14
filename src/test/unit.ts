@@ -3,15 +3,18 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { camelotRelation, matchTracks, tempoGapPct } from '../core/matching';
 import { baseTitle, findDuplicates } from '../core/duplicates';
 import { emptyStats, recordDeleted, recordSuggested, suppressedKinds } from '../core/learning';
 import { mergeWithPrevious } from '../core/merge';
-import { selectCues, type CueCandidate } from '../core/cues';
+import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/cues';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { allKeys, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
-import { buildTraktorNml } from '../core/export/traktor';
+import { buildTraktorNml, traktorLocation } from '../core/export/traktor';
 import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
 import { detectPhrases, labelVocalSections, type StructureAnalysis } from '../core/structure';
 import { FUSED_THRESHOLDS, fuseScores, modelBarProbs, segmentVocals, vocalBarFeatures, vocalFrames, vocalPresence, VOCAL_ON } from '../core/vocals';
@@ -163,7 +166,7 @@ test('selectCues: priority, max count, spacing, exclusions, chronological pads',
 });
 
 test('profiles are data and are sanitised', () => {
-  assert.equal(BUILTIN_PROFILES.length, 7);
+  assert.equal(BUILTIN_PROFILES.length, 8);
   const p = sanitizeProfile({ ...edm, minBpm: 100, maxBpm: 260, maxCues: 20, loopBeats: [3, 16] });
   assert.equal(p.maxBpm, 200);
   assert.equal(p.maxCues, 8);
@@ -248,8 +251,8 @@ test('update check: build numbers, platform asset, digest, dev builds never upda
     tag_name: 'build-42', name: 'CueKoda 0.3.4 — build 42', html_url: 'https://github.com/Hadr1en/cuekoda/releases/tag/build-42',
     assets: [
       { name: 'CueKoda-0.3.4-mac-arm64.dmg', browser_download_url: 'u-arm', size: 10, digest: `sha256:${sha}` },
-      { name: 'CueKoda-0.3.4-mac-x64.dmg', browser_download_url: 'u-x64', size: 11 },
-      { name: 'CueKoda-0.3.4-windows-setup.exe', browser_download_url: 'u-win', size: 12, digest: null },
+      { name: 'CueKoda-0.3.4-mac-x64.dmg', browser_download_url: 'u-x64', size: 11, digest: `sha256:${sha}` },
+      { name: 'CueKoda-0.3.4-windows-setup.exe', browser_download_url: 'u-win', size: 12, digest: `SHA256:${sha.toUpperCase()}` },
       { name: 'CueKoda-0.3.4-windows-setup.exe.blockmap', browser_download_url: 'u-bm', size: 1 },
     ],
   };
@@ -262,7 +265,11 @@ test('update check: build numbers, platform asset, digest, dev builds never upda
   assert.equal(evaluateRelease(rel, { build: 41 }, 'darwin', 'x64')?.asset.url, 'u-x64');
   const win = evaluateRelease(rel, { build: 3 }, 'win32', 'x64');
   assert.equal(win?.asset.url, 'u-win');
-  assert.equal(win?.asset.sha256, null);
+  assert.equal(win?.asset.sha256, sha);
+  for (const digest of [undefined, null, '', `sha1:${sha}`, 'sha256:abcd', `sha256:${sha}\n`]) {
+    const invalid = { ...rel, assets: [{ ...rel.assets[2], digest }] };
+    assert.throws(() => evaluateRelease(invalid, { build: 41 }, 'win32', 'x64'), /SHA-256 absente ou invalide/);
+  }
   assert.equal(evaluateRelease(rel, { build: 42 }, 'win32', 'x64'), null, 'same build: nothing to do');
   assert.equal(evaluateRelease(rel, { build: null }, 'win32', 'x64'), null, 'dev build: never offered');
   assert.equal(evaluateRelease({ ...rel, draft: true }, { build: 1 }, 'win32', 'x64'), null);
@@ -364,10 +371,43 @@ test('traktor export: hot cue index, loop LEN, no colours', () => {
     loops: [{ id: 'l', kind: 'intro', name: 'Intro loop', startSec: 1, beats: 16, bar: 0, confidence: 'high', reason: '', origin: 'auto', accepted: true }],
   });
   const nml = buildTraktorNml([t], { memoryCues: false, loops: 'accepted' }, 'Macintosh HD');
-  assert.ok(nml.includes('TYPE="0" START="10000.000" LEN="0" REPEATS="-1" HOTCUE="3"'));
+  // pad D (slot 3) → hotcue 5 (index 4): hotcue index 0 belongs to the AutoGrid marker
+  assert.ok(nml.includes('TYPE="0" START="10000.000" LEN="0" REPEATS="-1" HOTCUE="4"'));
   assert.ok(nml.includes('TYPE="5" START="1000.000" LEN="7500.000"'));
   assert.ok(nml.includes('DIR="/:m/:" FILE="a.mp3" VOLUME="Macintosh HD"'));
   assert.ok(!/RED|COLOR/i.test(nml));
+});
+
+test('traktor export: no cue shares the grid marker hotcue, external volumes', () => {
+  const t = track({
+    path: '/Volumes/DJ USB/Music/Set 1/a.mp3',
+    cues: [0, 1, 6, 7].map((slot) => cue({ slot, timeSec: 10 + slot, name: `P${slot}` })),
+  });
+  const nml = buildTraktorNml([t], { memoryCues: false, loops: 'none' }, 'Macintosh HD');
+  const hot = [...nml.matchAll(/HOTCUE="(-?\d+)"/g)].map((m) => Number(m[1]));
+  assert.equal(hot.filter((h) => h === 0).length, 1, 'only the AutoGrid marker on hotcue index 0');
+  assert.match(nml, /NAME="P0"[^>]*HOTCUE="1"/);
+  assert.match(nml, /NAME="P6"[^>]*HOTCUE="7"/);
+  assert.match(nml, /NAME="P7"[^>]*HOTCUE="-1"/, 'pad H becomes a stored cue');
+  assert.ok(nml.includes('DIR="/:Music/:Set 1/:" FILE="a.mp3" VOLUME="DJ USB"'), nml);
+  assert.ok(nml.includes('KEY="DJ USB/:Music/:Set 1/:a.mp3"'));
+  assert.deepEqual(traktorLocation('C:\\Music\\b.mp3', 'Macintosh HD'), { dir: '/:Music/:', file: 'b.mp3', volume: 'C:' });
+  assert.equal(traktorLocation('/Users/me/c.mp3', 'Macintosh HD').volume, 'Macintosh HD');
+});
+
+test('duplicate cues: same position flagged once, export summary warns', () => {
+  const cues = [
+    cue({ id: 'out', slot: 6, timeSec: 260.362, name: 'Outro' }),
+    cue({ id: 'mix', slot: 5, timeSec: 260.37, name: 'Mix Out' }),
+    cue({ id: 'mem', slot: -1, timeSec: 260.36, name: 'Mémo' }),
+    cue({ id: 'drop', slot: 1, timeSec: 106.6, name: 'Drop' }),
+  ];
+  // the lower pad keeps the position; the higher pad and the memory cue are the duplicates
+  assert.deepEqual([...duplicateCueIds(cues)].sort(), ['mem', 'out']);
+  assert.equal(cueAt(cues, 106.61)?.id, 'drop');
+  assert.equal(cueAt(cues, 107), undefined);
+  const sum = exportSummary(ADAPTERS[0], [track({ path: '/a.mp3', title: 'Garrix', cues })], { memoryCues: false, loops: 'none' });
+  assert.ok(sum.some((l) => l.startsWith('⚠ 2 cue(s) au même endroit') && l.includes('Garrix')), sum.join('\n'));
 });
 
 test('export adapters are honest about their status', () => {
@@ -524,9 +564,12 @@ test('vocal cue candidates: snapped to 4 bars, sparse, capped confidence', () =>
   assert.deepEqual(c.map((x) => x.confidence), ['medium', 'low']);
   assert.ok(c.every((x) => x.kind === 'vocal' && x.reason.includes('non validée')));
   assert.equal(cueCandidates([], undefined, v).filter((x) => x.kind === 'vocal').length, 2);
-  // lowest priority in the EDM profile: never displaces a structural cue nearby
-  const cues = selectCues([{ role: 'drop1', kind: 'drop', bar: 16, confidence: 'high', reason: '' }, ...c], edm, { d0: 0, barLen: 2 });
-  assert.deepEqual(cues.map((x) => x.kind), ['drop', 'vocal']);
+  // off by default (0/2 on the DJ's corrections)…
+  const cand = [{ role: 'drop1' as const, kind: 'drop' as const, bar: 16, confidence: 'high' as const, reason: '' }, ...c];
+  assert.deepEqual(selectCues(cand, edm, { d0: 0, barLen: 2 }).map((x) => x.kind), ['drop']);
+  // …and, once re-enabled in a custom profile, lowest priority: never displaces a structural cue nearby
+  const withVocal = { ...edm, excludeKinds: [] };
+  assert.deepEqual(selectCues(cand, withVocal, { d0: 0, barLen: 2 }).map((x) => x.kind), ['drop', 'vocal']);
 });
 
 test('mix windows: vocal presence flagged, clear voice downgraded, unknown says nothing', () => {
@@ -629,6 +672,7 @@ test('local vocal model runs offline (skipped when the model files are absent)',
 
 // ---------------------------------------------------------------- evaluation against references (§21)
 import { evaluateTrack, keyScore, matchTimes, spearman, summarize, referenceFrom } from '../core/evaluate';
+import { loadDataset, parseKeyLabel } from '../core/datasets';
 
 test('MIREX key score', () => {
   assert.equal(keyScore('8A', '8A'), 1); // Am / Am
@@ -664,18 +708,61 @@ test('evaluateTrack: perfect, octave error, shifted cues', () => {
   });
   const ref = referenceFrom(base, 8);
   const perfect = evaluateTrack(base, ref);
-  assert.equal(perfect.key.score, 1);
-  assert.equal(perfect.cues.recall, 1);
-  assert.equal(perfect.sections.recall, 1);
-  assert.ok(Math.abs(perfect.grid.phaseErrorMs) < 1e-6 && perfect.grid.downbeatOk);
+  assert.equal(perfect.key!.score, 1);
+  assert.equal(perfect.cues!.recall, 1);
+  assert.equal(perfect.cues!.exact, 2);
+  assert.equal(perfect.sections!.recall, 1);
+  assert.ok(Math.abs(perfect.grid!.phaseErrorMs) < 1e-6 && perfect.grid!.downbeatOk);
 
-  const off = evaluateTrack({ ...base, bpm: 64, cues: [cue({ timeSec: 0.1 }), cue({ timeSec: 32 })], grid: { ...base.grid, firstDownbeatSec: 0.1 + 60 / 128 } }, ref);
-  assert.ok(off.bpm.octaveError);
-  assert.equal(off.grid.downbeatOk, false, 'one beat late = wrong bar start');
-  assert.equal(off.cues.matched, 1, '32 s is 4 beats away from 30.1 s: not matched');
+  const beat = 60 / 128;
+  const off = evaluateTrack({
+    ...base, bpm: 64,
+    cues: [cue({ kind: 'intro', timeSec: 0.1 }), cue({ kind: 'drop', timeSec: 30.1 - beat })],
+    grid: { ...base.grid, firstDownbeatSec: 0.1 + beat },
+  }, ref);
+  assert.ok(off.bpm!.octaveError);
+  assert.equal(off.grid!.downbeatOk, false, 'one beat late = wrong bar start');
+  assert.equal(off.cues!.exact, 1, 'a drop one beat early is NOT on the right beat');
+  assert.equal(off.cues!.matched, 2, '…but it is within ±1 beat');
+  assert.equal(off.cues!.misses.length, 1);
+  assert.ok(Math.abs(off.cues!.misses[0].errorBeats! + 1) < 1e-6, 'reported as −1 beat');
+  const wrongKind = evaluateTrack({ ...base, cues: [cue({ kind: 'outro', timeSec: 30.1 })] }, ref);
+  assert.equal(wrongKind.cues!.exact, 0, 'an Outro cue on the drop position does not count as the Drop');
+  const partial = evaluateTrack(base, { ...ref, cues: undefined, sections: undefined, keyCamelot: undefined, firstDownbeatSec: undefined });
+  assert.ok(partial.bpm && !partial.cues && !partial.key && !partial.grid, 'dataset references evaluate only what they annotate');
   const s = summarize([perfect, off]);
   assert.equal(s.tracks, 2);
   assert.equal(s.downbeatAccuracy, 0.5);
+  assert.equal(s.cueExactRecall, 0.75);
+});
+
+test('datasets: key labels and GiantSteps / Harmonix loaders', () => {
+  assert.deepEqual(parseKeyLabel('Eb minor'), { tonic: 'Eb', scale: 'minor' });
+  assert.deepEqual(parseKeyLabel('c# major'), { tonic: 'C#', scale: 'major' });
+  assert.deepEqual(parseKeyLabel('a:min'), { tonic: 'A', scale: 'minor' });
+  assert.equal(parseKeyLabel('-'), null);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-ds-'));
+  const ann = path.join(root, 'ann'), audio = path.join(root, 'audio');
+  fs.mkdirSync(path.join(ann, 'beats_and_downbeats'), { recursive: true });
+  fs.mkdirSync(path.join(ann, 'segments'), { recursive: true });
+  fs.mkdirSync(audio);
+  fs.writeFileSync(path.join(ann, '1001.LOFI.bpm'), '128\n');
+  fs.writeFileSync(path.join(ann, '1001.LOFI.key'), 'F minor\n');
+  fs.writeFileSync(path.join(ann, '9999.LOFI.bpm'), '120');
+  fs.writeFileSync(path.join(audio, '1001.LOFI.mp3'), '');
+  const tempo = loadDataset('giantsteps-tempo', ann, audio);
+  assert.equal(tempo.refs.length, 1);
+  assert.equal(tempo.refs[0].bpm, 128);
+  assert.equal(tempo.withoutAudio, 1);
+  assert.equal(loadDataset('giantsteps-key', ann, audio).refs[0].keyCamelot, '4A');
+  const beats = Array.from({ length: 16 }, (_, i) => `${(0.5 + i * 0.5).toFixed(3)} ${(i % 4) + 1} ${Math.floor(i / 4) + 1}`).join('\n');
+  fs.writeFileSync(path.join(ann, 'beats_and_downbeats', '0042_song.txt'), beats);
+  fs.writeFileSync(path.join(ann, 'segments', '0042_song.txt'), '0.0 intro\n4.5 verse\n');
+  fs.writeFileSync(path.join(audio, '0042_song.wav'), '');
+  const hx = loadDataset('harmonix', ann, audio).refs[0];
+  assert.equal(Math.round(hx.bpm!), 120);
+  assert.deepEqual(hx.downbeats, [0.5, 2.5, 4.5, 6.5]);
+  assert.equal(hx.sections!.length, 2);
 });
 
 // ---------------------------------------------------------------- acoustic fingerprint (§15)
@@ -764,4 +851,113 @@ test('English UI: dictionary and patterns', () => {
   }
   // data is never translated: user cue names, titles, paths
   for (const s of ['My cue', 'Strobe (Extended Mix)', '/Music/In/a.mp3']) assert.equal(translate(s, 'en'), s);
+});
+
+// ---------------------------------------------------------------- key changes (P2)
+import { findKeyChanges } from '../core/analyzer';
+
+test('key changes: ≥ 60 s of a clearly different key, relative major/minor ignored', () => {
+  const w = (t: number, camelot: string, strength = 0.7) => ({ startSec: t, endSec: t + 30, camelot, strength });
+  const lift = [w(0, '8A'), w(15, '8A'), w(30, '8A'), w(45, '10A'), w(60, '10A'), w(75, '10A'), w(90, '10A')];
+  assert.deepEqual(findKeyChanges(lift, '8A'), [{ startSec: 45, endSec: 120, camelot: '10A' }]);
+  const short = [w(0, '8A'), w(15, '10A'), w(30, '10A'), w(45, '8A')];
+  assert.deepEqual(findKeyChanges(short, '8A'), [], 'two windows (45 s) are not enough');
+  const relative = [w(0, '8B'), w(15, '8B'), w(30, '8B'), w(45, '8B')];
+  assert.deepEqual(findKeyChanges(relative, '8A'), [], 'relative major is not a key change');
+  const weak = [w(0, '3A', 0.4), w(15, '3A', 0.4), w(30, '3A', 0.4)];
+  assert.deepEqual(findKeyChanges(weak, '8A'), [], 'weak windows say nothing');
+});
+
+// ---------------------------------------------------------------- fixed pad layout (P3)
+test('fixed pads: same function on the same pad, missing roles leave the pad free, merge keeps it', () => {
+  const fixed = findProfile('edm-fixed');
+  const cand = (role: CueCandidate['role'], kind: CueCandidate['kind'], bar: number): CueCandidate => ({ role, kind, bar, confidence: 'high', reason: '' });
+  const g = { d0: 0, barLen: 2 };
+  const a = selectCues([cand('intro', 'intro', 0), cand('drop1', 'drop', 32), cand('break1', 'break', 64), cand('drop2', 'drop', 96), cand('outro', 'outro', 128)], fixed, g);
+  const b = selectCues([cand('intro', 'intro', 0), cand('build1', 'build', 24), cand('drop1', 'drop', 32), cand('drop2', 'drop', 80), cand('mixout', 'mixout', 120), cand('outro', 'outro', 112)], fixed, g);
+  const pad = (cues: HotCue[], role: string) => cues.find((c) => c.role === role)?.slot;
+  for (const cues of [a, b]) {
+    assert.equal(pad(cues, 'intro'), 0);
+    assert.equal(pad(cues, 'drop1'), 2, 'Drop 1 always on pad C');
+    assert.equal(pad(cues, 'drop2'), 5, 'Drop 2 always on pad F');
+    assert.equal(pad(cues, 'outro'), 6);
+  }
+  assert.equal(a.find((c) => c.slot === 1), undefined, 'no build: pad B stays free');
+  assert.equal(a.find((c) => c.slot === 2)!.name, 'Drop 1');
+  // re-analysis: the DJ took pad C for something else → the auto Drop 1 becomes a memory cue, nothing moves
+  const user = { ...cue({ slot: 2, timeSec: 10, kind: 'custom', role: 'custom', name: 'Mon cue' }), origin: 'user' as const };
+  const prev = track({ path: 'p', cues: [user] });
+  const fresh = track({ path: 'p', cues: b });
+  const merged = mergeWithPrevious(fresh, prev, { strictSlots: true });
+  assert.equal(merged.cues.find((c) => c.slot === 2)!.name, 'Mon cue');
+  assert.equal(merged.cues.find((c) => c.role === 'drop1')!.slot, -1);
+  assert.equal(merged.cues.find((c) => c.role === 'drop2')!.slot, 5, 'other pads keep their function');
+});
+
+// ---------------------------------------------------------------- library storage (P3)
+import { LibraryStore } from '../main/store';
+
+test('library store: v1 file migrated, only changed results rewritten', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ck-lib-'));
+  const file = path.join(dir, 'library.json');
+  const t = (p: string) => ({ path: p, fileName: p, status: 'done', addedAt: 1, result: track({ path: p }) });
+  fs.writeFileSync(file, JSON.stringify({ version: 1, tracks: { '/a.mp3': t('/a.mp3'), '/b.mp3': t('/b.mp3') } }));
+  const lib = new LibraryStore<AnalysisResult, { path: string; result?: AnalysisResult }>(file);
+  assert.equal(Object.keys(lib.data.tracks).length, 2);
+  lib.flush();
+  assert.equal(lib.lastWritten, 2, 'v1 inline results moved to their own files');
+  const index = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(index.version, 2);
+  assert.equal(index.tracks['/a.mp3'].result, undefined, 'the index carries no analysis data');
+  lib.flush();
+  assert.equal(lib.lastWritten, 0, 'nothing changed, nothing rewritten');
+  lib.data.tracks['/a.mp3'].result = { ...lib.data.tracks['/a.mp3'].result!, bpm: 127 };
+  lib.flush();
+  assert.equal(lib.lastWritten, 1, 'one replaced result = one file');
+  lib.data.tracks['/b.mp3'].result!.bpm = 126;
+  lib.touch('/b.mp3');
+  lib.flush();
+  assert.equal(lib.lastWritten, 1, 'in-place change declared with touch()');
+  const again = new LibraryStore<AnalysisResult, { path: string; result?: AnalysisResult }>(file);
+  assert.equal(again.data.tracks['/a.mp3'].result!.bpm, 127);
+  assert.equal(again.data.tracks['/b.mp3'].result!.bpm, 126);
+});
+
+// ---------------------------------------------------------------- collection import (P3)
+import { applyImport, parseRekordboxXml, parseTraktorNml, pathFromTraktorLocation } from '../core/import/collection';
+
+test('collection import: rekordbox XML and Traktor NML round-trip, DJ cues locked, free pads filled', () => {
+  const ours = track({
+    path: '/Volumes/DJ USB/Music/a & b.mp3', bpm: 128, grid: { bpm: 128, firstDownbeatSec: 0.5, confidence: 1 },
+    cues: [cue({ id: 'u1', slot: 0, timeSec: 10, name: 'Intro', kind: 'intro', role: 'intro' }), cue({ id: 'u2', slot: 2, timeSec: 60, name: 'Drop 1' })],
+  });
+  const xml = buildRekordboxXml([ours], { memoryCues: true, loops: 'none' });
+  const rb = parseRekordboxXml(xml);
+  assert.equal(rb.length, 1);
+  assert.equal(rb[0].path, '/Volumes/DJ USB/Music/a & b.mp3');
+  assert.equal(rb[0].bpm, 128);
+  assert.ok(Math.abs(rb[0].gridSec! - 0.5) < 1e-6);
+  assert.deepEqual(rb[0].cues.filter((c) => c.slot >= 0).map((c) => [c.slot, c.name, c.timeSec]), [[0, 'Intro', 10], [2, 'Drop 1', 60]]);
+  const nml = buildTraktorNml([ours], { memoryCues: false, loops: 'none' }, 'Macintosh HD');
+  const tk = parseTraktorNml(nml, 'Macintosh HD');
+  assert.equal(tk[0].path, '/Volumes/DJ USB/Music/a & b.mp3');
+  assert.deepEqual(tk[0].cues.map((c) => [c.slot, c.timeSec]), [[0, 10], [2, 60]], 'Traktor hotcues 2–8 back to pads A–G');
+  assert.equal(pathFromTraktorLocation('Macintosh HD', '/:Users/:me/:', 'x.mp3', 'Macintosh HD'), '/Users/me/x.mp3');
+  assert.equal(pathFromTraktorLocation('C:', '/:Music/:', 'x.mp3', 'Macintosh HD'), 'C:\\Music\\x.mp3');
+
+  // the DJ's collection has its own Drop on pad C at 61 s and a cue on pad E; CueKoda's analysis has
+  // auto cues on pads A, C, F
+  const analysed = track({
+    path: '/m.mp3', bpm: 128, grid: { bpm: 128, firstDownbeatSec: 0, confidence: 1 },
+    cues: [cue({ id: 'a', slot: 0, timeSec: 0, kind: 'intro', role: 'intro' }), cue({ id: 'b', slot: 2, timeSec: 30 }), cue({ id: 'c', slot: 5, timeSec: 90, kind: 'outro', role: 'outro' })],
+  });
+  const merged = applyImport(analysed, { path: '/m.mp3', source: 'rekordbox', cues: [{ slot: 2, name: 'Drop 2', timeSec: 61 }, { slot: 4, name: 'Vox', timeSec: 45 }, { slot: -1, name: 'Vox', timeSec: 45 }], loops: [] });
+  const onPad = (s: number) => merged.cues.find((c) => c.slot === s);
+  assert.equal(onPad(2)!.name, 'Drop 2');
+  assert.equal(onPad(2)!.locked, true);
+  assert.equal(onPad(2)!.kind, 'drop', 'kind recognised from the name');
+  assert.equal(onPad(4)!.name, 'Vox');
+  assert.equal(merged.cues.filter((c) => c.timeSec === 45).length, 1, 'pad + memory copy of the same cue imported once');
+  assert.ok(merged.cues.some((c) => c.timeSec === 30 && c.origin === 'auto' && ![2, 4].includes(c.slot)), 'the auto drop moved to a free pad');
+  assert.equal(merged.importedFrom!.cues, 2);
 });

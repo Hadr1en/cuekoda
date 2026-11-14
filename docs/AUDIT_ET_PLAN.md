@@ -83,34 +83,56 @@ stems (non disponibles).
 Validation à chaque étape : `npm run typecheck`, `npm test` (synthétique, tolérance zéro mesure),
 `npm run test:unit`, ré-analyse des échantillons réels et comparaison à la référence de non-régression.
 
-## 5. État après les chantiers v0.2, v0.3.x (détection vocale) et v0.3.2 (2026-11-14)
+## 5. État après l'audit P0 à P4 — moteur v0.4.0 (14 novembre 2026)
 
 Légende — **T** : implémentée et testée automatiquement · **V** : implémentée, nécessite une validation
 (manuelle ou sur données annotées) · **P** : partiellement disponible · **N** : non disponible.
+
+| Priorité | Changements vérifiés et points ouverts |
+|---|---|
+| P0 — Fiabilité des exports | AutoGrid réservé au bouton 1 dans Traktor, pads A–G sur 2–8, H mémorisé. Chemins des volumes externes corrigés. Avertissements pour fichier tronqué ou endommagé, MP3 sans en-tête gapless et cues superposés. Le test d'offset génère un XML et un NML à importer dans les logiciels DJ. |
+| P1 — Mesure de la justesse | Trois morceaux avec corrections DJ, comparaison des cues du même type à ±40 ms, bilan séparé à ±1 temps, chargeurs GiantSteps et Harmonix. Le moteur 0.4.0 retrouve 8 cues sur 12 à ±40 ms, comme le moteur 0.3.3. Voir [l'évaluation](EVALUATION.md). |
+| P2 — Analyse | Cues Vocal désactivés par défaut (0 sur 2 au bon temps dans les références), terme de volume normalisé par le LUFS, changements locaux de tonalité signalés. Le vote du temps 1 conserve son comportement en attendant une nouvelle écoute de *Heroes*. |
+| P3 — Préparation de la bibliothèque | Profil EDM à pads fixes, import XML/NML avec cues verrouillés et option BPM/grille, filtres de révision et de fichiers manquants, relocalisation par hash, waveform trois bandes, migration de l'index v1 vers un index v2 avec un résultat par morceau. |
+| P4 — Distribution | SHA-256 obligatoire pour les releases publiques. Signature d'artefacts, certificats, visibilité et licences sont détaillés dans [DISTRIBUTION.md](DISTRIBUTION.md). |
+
+### Vérifications DJ à faire
+
+1. Réécouter *Heroes* avec la grille visible. La référence actuelle place Drop 1 à 104,812 s, un temps
+   après le début de mesure, et Drop 2 à 180,527 s, sur le début de mesure. Vérifier les deux entrées de
+   basse avant d'ajuster le moteur ou les annotations.
+2. Lancer `npm run offset-test`, importer le XML dans rekordbox et le NML dans Traktor, puis mesurer le
+   décalage sur les clics WAV, MP3 avec et sans en-tête gapless, et AAC. Le MP3 sans en-tête a donné
+   environ +25 ms côté CueKoda. Le décalage relatif dans chaque logiciel DJ reste à mesurer.
+3. Vérifier dans Traktor AutoGrid sur le bouton 1, A–G sur les boutons 2–8 et H dans les cues mémorisés,
+   avec au moins un morceau sur un volume externe.
+4. Noter à l'oreille l'énergie de 15 à 20 morceaux sur 10 pour calibrer l'échelle.
+
+### État par fonctionnalité
 
 | § | Fonctionnalité | État | Preuve / remarque |
 |---|---|---|---|
 | 3.1 | BPM, demi/double tempo, confiance, alternatives, correction | **T** | e2e synthétique (128, 174 BPM), overrides testés |
 | 3.1 | Tempo variable | **T** / **V** | détecté sur enchaînement synthétique 124 → 128 BPM ; 0 faux positif sur 13 morceaux réels ; aucun morceau réel à tempo variable testé |
-| 3.2 | Beatgrid, downbeat, correction (temps 1, ±10 ms, ±1 temps) | **T** / **V** | phase 2 ms ; overrides testés ; v0.3.3 : vote des entrées kick / basse, temps 1 conforme aux corrections du DJ sur 3 morceaux réels (Garrix, Alesso, Ingrosso) |
+| 3.2 | Beatgrid, downbeat, correction (temps 1, ±10 ms, ±1 temps) | **T** / **V** | phase ~2 ms sur synthétique, corrections testées. Phase médiane 0,4 ms et temps 1 correct sur les deux références annotées. *Heroes* à réécouter. |
 | 3.2 | Changements de tempo (multi-marqueurs) | **T** / **P** | marqueurs exacts sur synthétique (bascule à 4 ms, temps 1), exportés vers rekordbox ; Traktor : un seul tempo ; cues calculés sur la grille moyenne |
 | 3.3 | Tonalité, Camelot, Open Key, confiance, correction | **T** | e2e + unitaires |
 | 3.3 | Ambiguïté + analyse complémentaire | **V** | logique présente, pas de morceau ambigu de référence |
 | 3.4 | Métadonnées, LUFS, LRA, true peak, RMS, crête | **T** | valeurs ffmpeg `ebur128`, séparées des tags |
 | 4 | Timeline de sections éditable, confiance par section | **T** / **V** | exacte sur synthétique ; édition testée dans l'UI simulée ; la section suit le cue Intro / Build / Drop / Break / Outro déplacé |
-| 4 | Drops par palier d'énergie | **V** | v0.3.3 : Drop 1 / Drop 2 / Outro à ≤ 0,5 s des corrections du DJ sur 3 morceaux réels ; sur les 10 autres, plausibles mais non vérifiés |
+| 4 | Drops par palier d'énergie | **V** | Drop 1 de Garrix à 106,612 s dans la référence et retrouvé à ±40 ms. Drop 1 de *Heroes* un temps avant la référence. |
 | 4 | Couplet / refrain | **V** | règle sur preuve vocale forte (unitaire) ; jamais déclenchée sur les 13 échantillons réels ; « instrumental » non proposé |
 | 5 | Phrases 8/16/32 sans hypothèse forcée | **T** | unitaires + e2e |
-| 6 | Énergie (courbe, score 1–10, événements, comparaison) | **V** | relations vérifiées ; échelle non calibrée |
+| 6 | Énergie (courbe, score 1–10, événements, comparaison) | **V** | RMS normalisé par le LUFS intégré. Échelle à calibrer à l'oreille. |
 | 7 | Smart Cue Engine, couleurs configurables, confiance, raisons | **T** | e2e + unitaires |
 | 7.5 | Ajout, déplacement (waveform), suppression, renommage, couleur, verrou, annulation | **T** | piloté dans le vrai Electron (`npm run smoke`) : déplacement, annulation, renommage, suppression, persistance, conservation après ré-analyse forcée |
 | 7.5 | Ré-analyse sans perte des ajustements | **T** | unitaire `merge` |
 | 7.5 | « + Cue ici » toujours disponible, memory cues (sans pad) exportées | **T** / **V** | unitaire (fusion + export rekordbox `Num=-1` / Traktor `HOTCUE=-1`) + fumée Electron ; import réel non vérifié |
 | 8 | Smart Loops (suggestion, validation, export) | **T** | e2e + export unitaire |
-| 9 | Détection vocale (passages par mesure, confiance qualitative, affichage waveform) | **V** | v0.3.1 : modèle local Essentia MusiCNN (CC BY-NC-SA, logiciel gratuit non commercial) + heuristique ; exacte sur voix synthétique, 0 faux passage sur synthétiques sans voix ; sur 4 morceaux chantés réels 25–62 % de mesures détectées, 0–10 % (faibles) sur 6 présumés instrumentaux ; aucune annotation horodatée → précision/rappel non mesurés ; +5–10 s d'analyse par morceau |
+| 9 | Détection vocale (passages par mesure, confiance qualitative, affichage waveform) | **V** | Modèle local Essentia MusiCNN et heuristique. Exacte sur voix synthétique, 0 faux passage sur synthétiques sans voix. Sur 4 morceaux chantés réels, 25–62 % de mesures détectées. Sur 6 présumés instrumentaux, 0–10 % de détections faibles. Précision et rappel à mesurer sur des annotations de passages vocaux. |
 | 9 | Repli heuristique seule (modèle absent) | **T** | e2e (`CUEKODA_VOCAL_MODEL=0`) |
 | 9 | Passages vocaux corrigeables (ajout, début / fin, pause, nette / faible), conservés à la ré-analyse | **T** | unitaire `merge` + fumée Electron |
-| 9 | Cues « Vocal » | **T** / **V** | mécanique testée (unitaire + e2e) ; pertinence dépend du détecteur |
+| 9 | Cues « Vocal » | **T** / **V** | Exclus par défaut des profils intégrés. Réactivation testée avec un profil personnalisé. |
 | 10 | Mix In / Mix Out justifiés, avec présence vocale | **T** / **V** | logique testée (unitaire + e2e) ; « aucune voix détectée » n'est pas une garantie (détecteur non validé) |
 | 14 | Avertissement « deux passages chantés superposés » | **T** / **V** | unitaire ; dépend du détecteur |
 | 11 | Profils DJ extensibles et personnalisables | **T** / **V** | logique testée ; écran de réglages testé en simulation |
@@ -123,7 +145,7 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 16 | Stems | **N** | non implémenté (coût, modèle local à choisir) |
 | 17 | Apprentissage simple à partir des corrections, réinitialisable | **T** / **V** | suppression enregistrée de bout en bout dans Electron ; effet sur les suggestions à valider en usage |
 | 18 | Export rekordbox XML (cues, couleurs, memory cues, boucles) | **T** | XML testé ; **import vérifié dans rekordbox par le DJ (2026-11-14)** |
-| 18 | Export Traktor NML (cues, boucles, grille) | **T** | **import vérifié dans Traktor par le DJ (2026-11-14)** |
+| 18 | Export Traktor NML (cues, boucles, grille) | **T** / **V** | Import antérieur vérifié le 14 novembre 2026. Le nouveau mapping est testé sur le NML et reste à vérifier dans Traktor. |
 | 18 | Un seul bouton Exporter, choix du logiciel ; Engine DJ, VirtualDJ, djay Pro via rekordbox XML | **T** / **V** | choix et étapes pilotés dans Electron ; imports dans ces trois logiciels non vérifiés |
 | 18 | Commentaire « E8 · 8B · Vocal » et export d'un set en playlist ordonnée et nommée | **T** / **V** | unitaire (tags, prudence sur la voix, ordre, nom échappé) + fenêtre pilotée dans Electron ; affichage dans rekordbox / Traktor à vérifier |
 | 18 | Serato | **N** | exigerait d'écrire dans les fichiers audio |
@@ -131,8 +153,8 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 19 | Interface sombre, bibliothèque triable/filtrable, vue d'analyse zoomable, raccourcis, lecture audio | **T** / **V** | pilotée dans Electron (onglets, export, zoom, lecture et saut dans le morceau) ; raccourcis clavier non automatisés |
 | 20 | Local, hors ligne, fichiers corrompus, sans tags, cache, persistance | **T** | e2e + fumée Electron |
 | 21 | Tests de non-régression, relance avec nouveau moteur | **T** | `npm run test:regression`, cache par version |
-| 21 | Évaluation sur annotations de référence vérifiées | **T** / **V** | « Valider comme référence » + `npm run eval` (BPM, phase, temps 1, MIREX, F1 cues / sections, Spearman énergie) ; chaîne vérifiée sur vérité terrain synthétique ; aucune référence réelle encore |
+| 21 | Évaluation sur annotations de référence vérifiées | **T** / **V** | Synthétique et trois morceaux DJ (`npm run eval:dj`). Mesures calculées selon les annotations disponibles. |
 | 20 | Installeurs macOS (arm64, x64) et Windows, reconstruits à chaque commit | **T** | GitHub Actions ; DMG téléchargé depuis la release vérifié (analyse + cache) ; non signés Apple / Microsoft |
-| 20 | Mise à jour automatique (vérification au démarrage, installation sur clic) | **T** / **V** | logique unitaire (build, plateforme, empreinte) ; **mise à jour réelle vérifiée sur macOS par le DJ (build 6 → build 8, 2026-11-14)** ; Windows à confirmer |
+| 20 | Mise à jour automatique (vérification au démarrage, installation sur clic) | **T** / **V** | Test historique macOS du build 6 vers le 8. Vérification d'empreinte obligatoire testée. Windows reste à vérifier. |
 | 19 | Interface en anglais (Réglages › Langue) | **V** | traduction à l'affichage (dictionnaire + modèles de phrases) ; données du DJ jamais traduites |
 | 14+ | Suggestion d'ordre de mix (arc d'énergie, enchaînements justifiés, difficiles signalés, écoute des transitions) | **T** / **V** | unitaire (chaîne harmonique, arc, ouverture imposée, déterminisme) + fenêtre pilotée dans Electron ; pertinence musicale à juger par le DJ |

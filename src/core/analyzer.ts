@@ -1,9 +1,10 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs';
-import { decodeAudio } from './decode';
+import { decodeAudio, mp3WithoutGaplessHeader } from './decode';
 import { analyseBands, decimate2 } from './dsp';
 import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset } from './rhythm';
-import { keyFromMusical, keyFromTonic } from './key';
+import { allKeys, keyFromMusical, keyFromTonic } from './key';
+import { camelotRelation } from './matching';
 import { analyzeStructure, buildSections, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
 import { computeEnergy } from './energy';
 import { computeFingerprint } from './fingerprint';
@@ -15,6 +16,7 @@ import { detectVocals } from './vocals';
 import { predictVoice, vocalModelError } from './vocalModel';
 import { findProfile, sanitizeProfile } from './profiles';
 import { hashFile } from './hash';
+import { bandPeaks } from './peaks';
 import {
   AnalysisResult,
   AnalyzeOptions,
@@ -22,6 +24,7 @@ import {
   DEFAULT_OPTIONS,
   ENGINE_VERSION,
   KeyAlternative,
+  KeyChange,
   KeyResult,
   TempoInfo,
   TrackInfo,
@@ -131,30 +134,57 @@ function detectKey(x: Float32Array, durSec: number): KeyResult {
   return res ? { ...res, level, ambiguous, alternatives } : unknown;
 }
 
-function waveform(x: Float32Array, points: number): { wave: number[]; waveLow: number[] } {
-  const wave: number[] = [];
-  const waveLow: number[] = [];
-  const step = x.length / points;
-  let lp = 0;
-  const alpha = Math.exp((-2 * Math.PI * 150) / SR_DSP);
-  for (let p = 0; p < points; p++) {
-    const a = Math.floor(p * step);
-    const b = Math.min(x.length, Math.floor((p + 1) * step));
-    let peak = 0;
-    let lowPeak = 0;
-    for (let i = a; i < b; i++) {
-      const v = Math.abs(x[i]);
-      if (v > peak) peak = v;
-      lp = alpha * lp + (1 - alpha) * x[i];
-      const lv = Math.abs(lp);
-      if (lv > lowPeak) lowPeak = lv;
-    }
-    wave.push(peak);
-    waveLow.push(lowPeak);
+/** Key of one excerpt (EDM profile) with its strength. */
+function keyOf(seg: Float32Array): { tonic: string; scale: 'major' | 'minor'; strength: number } {
+  const e = essentia();
+  const v = e.arrayToVector(seg);
+  try {
+    const r = e.KeyExtractor(v, true, 4096, 4096, 12, 3500, 60, 25, 0.2, 'edma', SR_FULL);
+    return { tonic: r.key as string, scale: r.scale === 'major' ? 'major' : 'minor', strength: r.strength as number };
+  } finally {
+    v.delete();
   }
-  const ref = Math.max(...wave, 1e-6);
-  const norm = (arr: number[]) => arr.map((v) => Math.round(Math.min(1, v / ref) * 1000) / 1000);
-  return { wave: norm(wave), waveLow: norm(waveLow) };
+}
+
+/**
+ * Key changes: the key of 30 s windows (hop 15 s); a run of ≥ 3 consecutive windows (≥ 60 s) that agree on
+ * a key other than the main one, each with strength ≥ 0.55, is reported. Relative major / minor (same notes,
+ * a classic detector confusion) does not count as a change.
+ */
+export function findKeyChanges(
+  windows: { startSec: number; endSec: number; camelot: string; strength: number }[],
+  mainCamelot: string,
+): { startSec: number; endSec: number; camelot: string }[] {
+  const out: { startSec: number; endSec: number; camelot: string }[] = [];
+  const differs = (c: string) => c !== mainCamelot && camelotRelation(mainCamelot, c) !== 'relative';
+  for (let i = 0; i < windows.length; ) {
+    const w = windows[i];
+    if (!differs(w.camelot) || w.strength < 0.55) { i++; continue; }
+    let j = i;
+    while (j + 1 < windows.length && windows[j + 1].camelot === w.camelot && windows[j + 1].strength >= 0.55) j++;
+    if (j - i + 1 >= 3) out.push({ startSec: w.startSec, endSec: windows[j].endSec, camelot: w.camelot });
+    i = j + 1;
+  }
+  return out;
+}
+
+function detectKeyChanges(x: Float32Array, durSec: number, main: KeyResult): KeyChange[] {
+  if (!main.camelot || durSec < 120) return [];
+  const windows: { startSec: number; endSec: number; camelot: string; strength: number }[] = [];
+  for (let t = 0; t + 30 <= durSec; t += 15) {
+    const k = keyOf(excerpt(x, SR_FULL, t, 30));
+    const res = keyFromTonic(k.tonic, k.scale, k.strength);
+    if (res) windows.push({ startSec: t, endSec: t + 30, camelot: res.camelot, strength: k.strength });
+  }
+  return findKeyChanges(windows, main.camelot).map((c) => {
+    const k = allKeys().find((a) => a.camelot === c.camelot)!;
+    return { startSec: c.startSec, endSec: Math.min(durSec, c.endSec), camelot: k.camelot, musical: k.musical, openKey: k.openKey };
+  });
+}
+
+function waveform(x: Float32Array, points: number): { wave: number[]; waveLow: number[]; waveMid: number[]; waveHigh: number[] } {
+  const b = bandPeaks(x, SR_DSP, points);
+  return { wave: b.peak, waveLow: b.low, waveMid: b.mid, waveHigh: b.high };
 }
 
 async function readInfo(file: string, durationFallback: number): Promise<TrackInfo> {
@@ -218,7 +248,18 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const durSec = full.length / SR_FULL;
   if (durSec > MAX_DURATION_SEC) throw new Error(`fichier de plus de ${MAX_DURATION_SEC / 60} min (mix DJ ?) — ignoré`);
   const info = await readInfo(file, durSec);
+  // A decoding error, or decoded audio clearly shorter than the duration the file announces, means the
+  // analysis only saw part of the track (truncated download, damaged tail): say so instead of hiding it.
+  const announced = info.durationSec;
+  const missing = announced - durSec;
+  if (decoded.decodeError) warnings.push(`Fichier endommagé : décodage interrompu (${decoded.decodeError}) — analyse partielle`);
+  else if (missing > 2 && missing / announced > 0.03) {
+    warnings.push(`Fichier probablement tronqué : ${Math.round(durSec)} s décodées sur ${Math.round(announced)} s annoncées — analyse partielle`);
+  }
   info.durationSec = durSec;
+  if (mp3WithoutGaplessHeader(file)) {
+    warnings.push('MP3 sans en-tête LAME : délai d’encodage inconnu, cues possiblement décalés d’environ 25 ms selon le logiciel DJ');
+  }
 
   // --- loudness / dynamics (algorithmic, separate from tag metadata) -------------
   let sq = 0;
@@ -294,7 +335,7 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   progress('structure', 0.65);
   const feats = computeBarFeatures(bands, firstDownbeatSec, barLen, durSec);
   // energy first: drops are defined by reaching (and holding) the track's top energy tier
-  const energy = computeEnergy(x, SR_DSP, bands, firstDownbeatSec, barLen, feats.nBars, firstAudibleBar(feats));
+  const energy = computeEnergy(x, SR_DSP, bands, firstDownbeatSec, barLen, feats.nBars, firstAudibleBar(feats), loudness.integratedLufs);
   const structure = analyzeStructure(feats, energy.curve);
   const phrases = detectPhrases(structure);
   const fingerprint = computeFingerprint(x, SR_DSP, firstDownbeatSec, barLen, feats.nBars, bpm);
@@ -338,9 +379,15 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
       const alts = (key.alternatives ?? []).map((a) => a.camelot).join(', ');
       warnings.push(`Tonalité ambiguë${alts ? ` (aussi plausible : ${alts})` : ''}`);
     }
+    const changes = detectKeyChanges(full, durSec, key);
+    if (changes.length) {
+      key.changes = changes;
+      const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+      warnings.push(`Changement de tonalité probable : ${changes.map((c) => `${c.camelot} de ${mmss(c.startSec)} à ${mmss(c.endSec)}`).join(', ')} (tonalité principale ${key.camelot})`);
+    }
   }
 
-  const { wave, waveLow } = waveform(x, opt.wavePoints);
+  const { wave, waveLow, waveMid, waveHigh } = waveform(x, opt.wavePoints);
   progress('terminé', 1);
 
   return {
@@ -365,6 +412,8 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     overrides: Object.keys(ov).length ? ov : undefined,
     wave,
     waveLow,
+    waveMid,
+    waveHigh,
     warnings,
     analysisMs: Date.now() - t0,
   };
