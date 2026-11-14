@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/Hadr1en/cuekoda/releases/latest"><img alt="Dernière version" src="https://img.shields.io/github/v/release/Hadr1en/cuekoda?label=t%C3%A9l%C3%A9charger&color=8A6DFF"></a>
   <img alt="macOS et Windows" src="https://img.shields.io/badge/macOS%2013%2B%20%C2%B7%20Windows%2010%2F11-00D2DC">
+  <a href="LICENSE"><img alt="Licence AGPL-3.0" src="https://img.shields.io/badge/licence-AGPL--3.0-blue"></a>
   <img alt="100 % local" src="https://img.shields.io/badge/100%20%25-local-2ea44f">
   <a href="README.en.md"><img alt="English" src="https://img.shields.io/badge/README-English-lightgrey"></a>
 </p>
@@ -275,11 +276,20 @@ src/test/       unitaires, bout en bout, non-régression, diagnostics
 **Stack et licences tierces** : Electron 45, TypeScript, esbuild, electron-builder ; Essentia.js
 (AGPL-3.0) ; ffmpeg-static (binaire GPL) ; music-metadata ; TensorFlow.js (Apache-2.0) et le modèle
 `voice_instrumental-musicnn-msd-2` du Music Technology Group (UPF), sous CC BY-NC-SA 4.0 (CueKoda est gratuit
-et non commercial). Aucune licence n'est encore choisie pour le code de CueKoda lui-même ; comme Essentia.js
-est sous AGPL-3.0, sa distribution doit rester compatible avec l'AGPL.
+et non commercial). Licence de CueKoda : voir [plus bas](#licence).
 
 **Documentation** : [guide utilisateur](docs/GUIDE_UTILISATEUR.md) · [algorithmes et limites](docs/ALGORITHMES.md) ·
 [matrice d'export](docs/MATRICE_EXPORT.md) · [audit et état des fonctionnalités](docs/AUDIT_ET_PLAN.md)
+
+## Licence
+CueKoda est un logiciel libre sous **GNU AGPL v3 ou ultérieure** ([LICENSE](LICENSE)) : tu peux l'utiliser,
+l'étudier, le modifier et le redistribuer, à condition de publier aussi le code source de tes versions
+modifiées, y compris quand elles sont proposées comme service en ligne. Copyright © 2026 Hadr1en.
+
+Composants tiers, chacun sous sa propre licence : Essentia.js (AGPL-3.0), ffmpeg-static (binaire GPL),
+TensorFlow.js (Apache-2.0), music-metadata (MIT), Electron (MIT), et le modèle
+`voice_instrumental-musicnn-msd-2` du Music Technology Group (UPF) sous **CC BY-NC-SA 4.0** : il interdit
+tout usage commercial du modèle, donc de CueKoda tel qu'il est distribué.
 
 ## Logo
 L'anneau de la *coda* (« Koda ») contient une waveform dont la barre centrale blanche marque le point de cue.

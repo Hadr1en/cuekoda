@@ -13,6 +13,7 @@
 <p align="center">
   <a href="https://github.com/Hadr1en/cuekoda/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Hadr1en/cuekoda?label=download&color=8A6DFF"></a>
   <img alt="macOS and Windows" src="https://img.shields.io/badge/macOS%2013%2B%20%C2%B7%20Windows%2010%2F11-00D2DC">
+  <a href="LICENSE"><img alt="License AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
   <img alt="100% local" src="https://img.shields.io/badge/100%25-local-2ea44f">
   <a href="README.md"><img alt="Français" src="https://img.shields.io/badge/README-Fran%C3%A7ais-lightgrey"></a>
 </p>
@@ -270,8 +271,17 @@ src/test/       unit, end-to-end, regression, diagnostics
 **Stack and third-party licences**: Electron 45, TypeScript, esbuild, electron-builder; Essentia.js
 (AGPL-3.0); ffmpeg-static (GPL binary); music-metadata; TensorFlow.js (Apache-2.0) and the
 `voice_instrumental-musicnn-msd-2` model from the Music Technology Group (UPF), licensed CC BY-NC-SA 4.0
-(CueKoda is free and non-commercial). No licence has been chosen for CueKoda's own code yet; because
-Essentia.js is AGPL-3.0, distributing the app must stay AGPL-compatible.
+(CueKoda is free and non-commercial). Licence: see [below](#licence).
+
+## Licence
+CueKoda is free software under the **GNU AGPL v3 or later** ([LICENSE](LICENSE)): you may use, study, modify
+and redistribute it, provided you also publish the source code of your modified versions, including when
+they are offered as an online service. Copyright © 2026 Hadr1en.
+
+Third-party components, each under its own licence: Essentia.js (AGPL-3.0), ffmpeg-static (GPL binary),
+TensorFlow.js (Apache-2.0), music-metadata (MIT), Electron (MIT), and the `voice_instrumental-musicnn-msd-2`
+model from the Music Technology Group (UPF) under **CC BY-NC-SA 4.0**, which forbids any commercial use of
+the model, and therefore of CueKoda as distributed.
 
 ## Logo
 The *coda* ring ("Koda") holds a waveform whose white centre bar marks the cue point. Sources in
