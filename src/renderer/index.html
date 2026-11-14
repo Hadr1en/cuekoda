@@ -30,6 +30,7 @@
         </div>
         <button type="button" id="btn-retry" class="btn small" hidden>↻ Relancer les erreurs</button>
         <span class="spacer"></span>
+        <div id="update-badge" class="update-badge" role="status" aria-live="polite" hidden></div>
         <button type="button" id="btn-dupes" class="btn ghost" title="Doublons et versions liées">Doublons</button>
         <button type="button" id="btn-settings" class="btn ghost" title="Réglages (profils, performances, dossiers surveillés)">Réglages</button>
         <button type="button" id="btn-export" class="btn primary" disabled>Exporter…</button>
@@ -42,6 +43,7 @@
           <input id="search" type="search" placeholder="Filtrer (titre, artiste, clé, BPM)…" aria-label="Filtrer la bibliothèque" />
           <span id="lib-count" class="muted"></span>
           <span class="spacer"></span>
+          <button type="button" id="btn-order" class="btn small ghost" title="Suggestion d’ordre de mix pour les morceaux affichés (à toi de décider)">Ordre de mix…</button>
           <button type="button" id="btn-reanalyze" class="btn small ghost" title="Ré-analyser les morceaux affichés (vos corrections sont conservées)">↻ Ré-analyser</button>
           <button type="button" id="btn-remove" class="btn small ghost" title="Retirer de la bibliothèque (les fichiers ne sont pas touchés)">Retirer</button>
         </div>
@@ -138,6 +140,7 @@
     <dialog id="dlg-export" aria-labelledby="dlg-export-title" class="dlg"></dialog>
     <dialog id="dlg-settings" aria-labelledby="dlg-settings-title" class="dlg wide"></dialog>
     <dialog id="dlg-dupes" aria-labelledby="dlg-dupes-title" class="dlg wide"></dialog>
+    <dialog id="dlg-order" aria-labelledby="dlg-order-title" class="dlg wide"></dialog>
     <dialog id="dlg-help" aria-labelledby="dlg-help-title" class="dlg"></dialog>
 
     <div id="dropmask" aria-hidden="true" hidden><div>Dépose pour analyser</div></div>

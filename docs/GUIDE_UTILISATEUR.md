@@ -49,9 +49,21 @@ Annuler / rétablir : ⌘Z / ⇧⌘Z. Toutes les modifications sont enregistrée
 une ré-analyse**.
 
 ## 4. Exporter
-« Exporter… » : choisissez rekordbox ou Traktor, les options (memory cues, boucles), lisez le résumé de ce
-qui sera transféré, puis enregistrez le fichier et suivez les étapes d'import affichées. Voir
+« Exporter… » : choisissez votre logiciel (rekordbox et Traktor : import vérifié ; Engine DJ, VirtualDJ et
+djay Pro : via un fichier rekordbox XML, à vérifier), les options (memory cues, boucles), lisez le résumé de
+ce qui sera transféré, puis enregistrez le fichier et suivez les étapes d'import affichées. Voir
 [MATRICE_EXPORT.md](MATRICE_EXPORT.md). Serato n'est pas disponible (il faudrait modifier vos fichiers).
+
+## Ordre de mix (suggestion)
+« Ordre de mix… » (au-dessus de la liste) propose un ordre pour les morceaux affichés (filtrez d'abord si
+besoin) selon un arc d'énergie (montée progressive, vagues ou libre) et la compatibilité tonalité / tempo.
+Chaque enchaînement est noté et justifié ; les enchaînements difficiles sont signalés. Vous pouvez imposer
+l'ouverture, monter / descendre des morceaux, écouter chaque transition (🎧) et copier la liste. Rien n'est
+modifié ni exporté : c'est une piste de départ.
+
+## Mises à jour et langue
+Réglages › Mises à jour : vérification au démarrage (désactivable), installation sur un clic. Réglages ›
+Langue : français ou anglais.
 
 ## Autres outils
 - **Doublons** : doublons exacts, même morceau dans un autre format, versions liées (remix / edit) —

@@ -33,6 +33,10 @@ const api: CueKodaApi = {
   onQueue: on('queue'),
   onSummary: on('summary'),
   onWatch: on('watch'),
+  checkUpdate: () => ipcRenderer.invoke('update-check'),
+  installUpdate: () => ipcRenderer.invoke('update-install'),
+  openExternal: (url) => ipcRenderer.send('open-external', url),
+  onUpdate: on('update'),
 };
 
 contextBridge.exposeInMainWorld('cuekoda', api);

@@ -59,6 +59,15 @@ export function matchTracks(from: AnalysisResult, library: AnalysisResult[], lim
   const out: MatchResult[] = [];
   for (const t of library) {
     if (t.path === from.path || (t.fileHash && t.fileHash === from.fileHash)) continue;
+    const m = pairScore(from, t);
+    if (m.score >= 40) out.push(m);
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+/** How well `t` follows `from` (0–100, explained). Shared by the matching and the mix-order suggestion. */
+export function pairScore(from: AnalysisResult, t: AnalysisResult): MatchResult {
+  {
     const reasons: string[] = [];
     const cautions: string[] = [];
     let score = 0;
@@ -111,7 +120,6 @@ export function matchTracks(from: AnalysisResult, library: AnalysisResult[], lim
         reasons.push(`fenêtre de transition de ${win} mesures`);
       }
     }
-    if (score >= 40) out.push({ path: t.path, title: t.title, artist: t.artist, score, reasons, cautions });
+    return { path: t.path, title: t.title, artist: t.artist, score, reasons, cautions };
   }
-  return out.sort((a, b) => b.score - a.score).slice(0, limit);
 }

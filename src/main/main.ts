@@ -15,6 +15,11 @@ import { backupIfExists, JsonStore } from './store';
 import { FolderWatcher } from './watch';
 import { referenceFrom, type Reference } from '../core/evaluate';
 import { computePeaks, type Peaks } from '../core/peaks';
+import { Updater } from './updater';
+import { resolveLang, translate } from '../shared/i18n';
+
+/** Native dialog texts follow the UI language. */
+const uiText = (s: string) => translate(s, resolveLang(settingsStore.data.language, app.getLocale()));
 
 let win: BrowserWindow | null = null;
 const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
@@ -32,10 +37,12 @@ const DEFAULT_SETTINGS: Settings = {
   learningEnabled: true,
   exportOptions: { memoryCues: true, loops: 'accepted' },
   theme: 'dark',
+  autoUpdateCheck: true,
 };
 
 let library: JsonStore<{ version: 1; tracks: Record<string, TrackRecord> }>;
 let settingsStore: JsonStore<Settings>;
+let updater: Updater;
 let learningStore: JsonStore<LearningStats>;
 let referenceStore: JsonStore<{ version: 1; refs: Record<string, Reference> }>;
 const referenceIndex = () => Object.fromEntries(Object.values(referenceStore.data.refs).map((r) => [r.fileHash, r.createdAt]));
@@ -199,7 +206,16 @@ function registerIpc() {
     learning: describe(learningStore.data),
     cores,
     references: referenceIndex(),
+    appVersion: app.getVersion(),
+    appBuild: updater.currentBuild,
+    update: updater.status,
   }));
+  ipcMain.handle('update-check', () => updater.check());
+  ipcMain.handle('update-install', () => updater.install());
+  // only the CueKoda release pages on GitHub can be opened from the UI
+  ipcMain.on('open-external', (_e, url: string) => {
+    if (typeof url === 'string' && url.startsWith('https://github.com/Hadr1en/cuekoda/')) void shell.openExternal(url);
+  });
 
   ipcMain.handle('reference-save', (_e, p: string, rating?: number) => {
     const r = records()[p]?.result;
@@ -212,7 +228,7 @@ function registerIpc() {
   ipcMain.handle('references-export', async (): Promise<ExportResponse> => {
     if (!win) return { ok: false };
     const res = await dialog.showSaveDialog(win, {
-      title: 'Exporter les références',
+      title: uiText('Exporter les références'),
       defaultPath: path.join(app.getPath('documents'), 'cuekoda-references.json'),
       filters: [{ name: 'JSON', extensions: ['json'] }],
     });
@@ -225,7 +241,7 @@ function registerIpc() {
   ipcMain.handle('pick', async (_e, kind: 'files' | 'folder') => {
     if (!win) return [];
     const r = await dialog.showOpenDialog(win, {
-      title: kind === 'files' ? 'Choisir des fichiers audio' : 'Choisir un dossier de musique',
+      title: uiText(kind === 'files' ? 'Choisir des fichiers audio' : 'Choisir un dossier de musique'),
       properties: kind === 'files' ? ['openFile', 'multiSelections'] : ['openDirectory', 'multiSelections'],
       filters: kind === 'files' ? [{ name: 'Audio', extensions: AUDIO_EXTENSIONS.map((x) => x.slice(1)) }] : undefined,
     });
@@ -307,8 +323,9 @@ function registerIpc() {
     if (!adapter?.build || adapter.status !== 'available') return { ok: false, error: `${adapter?.name ?? id} : export non disponible` };
     const tracks = resultsFor(paths);
     if (!win || !tracks.length) return { ok: false, error: 'Aucun morceau analysé à exporter' };
+    const lang = resolveLang(settingsStore.data.language, app.getLocale());
     const r = await dialog.showSaveDialog(win, {
-      title: `Exporter pour ${adapter.name}`,
+      title: lang === 'en' ? `Export for ${adapter.name}` : `Exporter pour ${adapter.name}`,
       defaultPath: path.join(app.getPath('documents'), `CueKoda-${adapter.id}.${adapter.extension}`),
       filters: [{ name: adapter.formatName, extensions: [adapter.extension] }],
     });
@@ -328,7 +345,7 @@ function registerIpc() {
 
   ipcMain.handle('add-watch-folder', async () => {
     if (!win) return settingsStore.data;
-    const r = await dialog.showOpenDialog(win, { title: 'Dossier à surveiller', properties: ['openDirectory'] });
+    const r = await dialog.showOpenDialog(win, { title: uiText('Dossier à surveiller'), properties: ['openDirectory'] });
     if (!r.canceled && r.filePaths[0] && !settingsStore.data.watchFolders.some((f) => f.path === r.filePaths[0])) {
       settingsStore.data.watchFolders.push({ path: r.filePaths[0], enabled: true });
       settingsStore.save(0);
@@ -455,6 +472,9 @@ const SMOKE_UI_SCRIPT = `(async () => {
 
 function runSmoke() {
   const report: Record<string, unknown> = { rendererErrors: [] as string[], batches: [] as unknown[] };
+  // CUEKODA_SMOKE_LANG=en runs the whole smoke test with the English UI (temporary profile, nothing kept)
+  const smokeLang = process.env.CUEKODA_SMOKE_LANG;
+  if (smokeLang === 'en' || smokeLang === 'fr') settingsStore.data.language = smokeLang;
   // Electron ≥ 35: details on the event object (positional args deprecated, removed in 47)
   win!.webContents.on('console-message', (e) => {
     if (e.level === 'error') (report.rendererErrors as string[]).push(e.message);
@@ -500,7 +520,57 @@ function runSmoke() {
   // Drives the real UI: open a track, move / undo / rename / delete cues, tabs, export dialog, zoom.
   const runUi = async () => {
     try {
-      report.ui = await win!.webContents.executeJavaScript(SMOKE_UI_SCRIPT);
+      if (smokeLang === 'en') {
+        // English UI: the scripted checks look buttons up by their French labels, so only capture screens
+        report.ui = await win!.webContents.executeJavaScript(`(async () => {
+          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+          document.querySelector('tr.row').click();
+          await wait(600);
+          return { lang: document.documentElement.lang, detail: !document.getElementById('detail').hidden };
+        })()`);
+      } else report.ui = await win!.webContents.executeJavaScript(SMOKE_UI_SCRIPT);
+      // export target picker and mix-order suggestion, with screenshots when asked
+      const shots = process.env.CUEKODA_SMOKE_SHOTS;
+      const shot = async (name: string) => {
+        if (!shots) return;
+        await new Promise((r) => setTimeout(r, 400));
+        fs.writeFileSync(path.join(shots, `${name}.png`), (await win!.webContents.capturePage()).toPNG());
+      };
+      if (smokeLang === 'en') {
+        await shot('en-detail');
+        await win!.webContents.executeJavaScript(`document.getElementById('t-sections').click(); true`);
+        await shot('en-structure');
+        await win!.webContents.executeJavaScript(`document.getElementById('t-mix').click(); true`);
+        await shot('en-mix');
+        await win!.webContents.executeJavaScript(`document.getElementById('btn-settings').click(); true`);
+        await shot('en-settings');
+        await win!.webContents.executeJavaScript(`document.getElementById('dlg-settings').close(); document.getElementById('t-cues').click(); true`);
+      }
+      report.dialogs = await win!.webContents.executeJavaScript(`(async () => {
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        document.getElementById('btn-export').click();
+        await wait(400);
+        const d = document.getElementById('dlg-export');
+        return { exportOpen: d.open, targets: [...d.querySelectorAll('.target b')].map((b) => b.textContent),
+          verified: [...d.querySelectorAll('.target .pill.ok')].length };
+      })()`);
+      await shot('export');
+      report.order = await win!.webContents.executeJavaScript(`(async () => {
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        document.getElementById('dlg-export').close();
+        document.getElementById('btn-order').click();
+        await wait(300);
+        const d = document.getElementById('dlg-order');
+        const rows = d.querySelectorAll('tbody tr').length;
+        const listen = d.querySelector('button[aria-label^="Écouter la transition"]');
+        if (listen) listen.click();
+        await wait(2500);
+        const audio = document.getElementById('audio');
+        return { open: d.open, rows, weak: d.querySelectorAll('tr.weak').length, listening: !!listen && !audio.paused };
+      })()`);
+      await shot('order');
+      await win!.webContents.executeJavaScript(`document.getElementById('dlg-order').close(); true`);
+      if (smokeLang === 'en') return finish();
       await new Promise((r) => setTimeout(r, 1000)); // edits are saved after a 300 ms debounce
       const edited = Object.values(records()).find((r) => r.result?.cues.some((c) => c.name === 'Smoke cue'));
       report.uiEditPersisted = !!edited;
@@ -554,9 +624,15 @@ app.whenReady().then(() => {
     },
     (folder, message, level) => send('watch', { folder, message, level }),
   );
+  updater = new Updater((st) => send('update', st));
   registerIpc();
   createWindow();
   if (SMOKE_DIR) runSmoke();
+  // update check: packaged builds only, never during the smoke test, and only if the DJ allows it
+  else if (app.isPackaged && settingsStore.data.autoUpdateCheck !== false) {
+    setTimeout(() => void updater.check(), 8000);
+    setInterval(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 6 * 3600 * 1000);
+  }
   // Analyses interrupted by quitting the app resume automatically
   for (const r of Object.values(records())) if (r.status === 'queued' || r.status === 'analyzing') enqueue(r.path);
   syncWatch();

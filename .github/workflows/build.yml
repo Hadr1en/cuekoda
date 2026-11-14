@@ -68,6 +68,9 @@ jobs:
             echo "L'application n'est pas signée par un certificat Apple / Microsoft :"
             echo "- macOS : ouvrir l'app une fois, puis Réglages Système › Confidentialité et sécurité › **Ouvrir quand même**."
             echo "- Windows : SmartScreen › **Informations complémentaires** › **Exécuter quand même**."
+            echo
+            echo "## Mises à jour"
+            echo "À partir de cette version, CueKoda signale lui-même les nouvelles versions (Réglages › Mises à jour) et les installe sur un clic."
           } > notes.md
           gh release create "$TAG" --draft --target "$GITHUB_SHA" \
             --title "CueKoda ${VERSION} — build ${GITHUB_RUN_NUMBER} (${SHORT})" --notes-file notes.md
@@ -100,7 +103,8 @@ jobs:
         run: node scripts/fetch-ffmpeg.mjs
       - run: npm run build
       - name: electron-builder
-        run: npx electron-builder ${{ matrix.target }} --publish never
+        # the build number (= release tag build-N) lets installed apps know whether a newer build exists
+        run: npx electron-builder ${{ matrix.target }} --publish never -c.extraMetadata.cuekodaBuild=${{ github.run_number }}
         env:
           # no certificate: macOS gets an ad-hoc signature, Windows is unsigned
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

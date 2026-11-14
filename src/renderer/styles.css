@@ -287,7 +287,34 @@
     .busy-line { font-size: 13px; margin-inline-start: 0; }
   }
   .queue.running #queue-label { color: var(--color-text); }
+  .update-badge {
+    display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 1e5px; font-size: 12px;
+    border: 1px solid color-mix(in oklab, var(--color-accent) 45%, transparent);
+    background: color-mix(in oklab, var(--color-accent) 12%, transparent);
+    &[hidden] { display: none; }
+  }
   .memo, .vocals-edit { margin-block-start: 14px; }
+  .targets {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-block: 8px 4px;
+    .target {
+      display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+      border: var(--ui-border); background: var(--color-raised); font-size: 12px;
+      b { font-size: 14px; }
+      input { position: absolute; opacity: 0; pointer-events: none; }
+      .pill { align-self: flex-start; margin-block-start: 4px; }
+      &.on { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent) inset; }
+      &.off { opacity: .65; }
+      &:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    }
+  }
+  .note.ok { color: var(--color-ok); }
+  table.order {
+    td { vertical-align: middle; }
+    td.why { font-size: 12px; max-inline-size: 46ch; }
+    td.acts { white-space: nowrap; }
+    tr.weak td { background: color-mix(in oklab, var(--color-warn) 9%, transparent); }
+    .warn-text { color: var(--color-warn); }
+  }
   .memo tr.selected td { background: color-mix(in oklab, var(--color-accent) 12%, transparent); }
   .d-corrections { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
   .corr {

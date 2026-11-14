@@ -1,10 +1,15 @@
 import type { ExportOptions } from '../core/export/index';
 import type { CueKind, LoopKind } from '../core/types';
+import type { UpdateStatus } from '../shared/update';
+import type { AnalysisResult } from '../core/types';
+import { ARC_LABEL, isWeakLink, suggestOrder, type ArcShape } from '../core/setorder';
+import { pairScore, tempoGapPct } from '../core/matching';
 import { CUE_KIND_LABEL, DEFAULT_COLORS, sanitizeProfile, type Profile } from '../core/profiles';
 import { findDuplicates } from '../core/duplicates';
 import type { AdapterInfo } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, state } from './state';
-import { $, h, hexOf, rgbOf, toast } from './util';
+import { $, camelotColor, h, hexOf, rgbOf, toast } from './util';
+import { tr } from '../shared/i18n';
 
 const closeBtn = (dlg: HTMLDialogElement) =>
   h('button', { type: 'button', class: 'btn ghost', onclick: () => dlg.close() }, 'Fermer');
@@ -23,22 +28,27 @@ export function openExport(currentPath: string | null) {
     const paths = scope === 'current' && currentPath ? [currentPath] : doneResults().map((r) => r.path);
     const preview = await api.exportPreview(target, paths, opts);
     const parts: (Node | null)[] = [
-      h('h2', { id: 'dlg-export-title' }, 'Exporter vers un logiciel DJ'),
+      h('h2', { id: 'dlg-export-title' }, 'Exporter vers…'),
+      h('p', { class: 'muted' }, 'Choisis ton logiciel DJ : CueKoda écrit le fichier qu’il sait lire, puis te guide pour l’import.'),
       h(
         'div',
-        { class: 'seg', role: 'radiogroup', 'aria-label': 'Logiciel cible' },
+        { class: 'targets', role: 'radiogroup', 'aria-label': 'Logiciel DJ' },
         ...state.adapters.map((a) =>
-          h('label', { class: 'seg-item' },
+          h('label', { class: `target${a.id === target ? ' on' : ''}${a.status !== 'available' ? ' off' : ''}` },
             h('input', { type: 'radio', name: 'target', checked: a.id === target, onchange: () => { target = a.id; void render(); } }),
-            ` ${a.name}`,
+            h('b', {}, a.name),
+            h('span', { class: 'muted' }, a.tagline),
             h('span', { class: `pill ${a.status === 'available' ? (a.validated ? 'ok' : 'warn') : 'off'}` },
-              a.status === 'available' ? (a.validated ? 'validé' : 'non validé') : 'indisponible'),
+              a.status === 'available' ? (a.validated ? 'import vérifié' : a.via ? `via ${a.via} XML · non vérifié` : 'non vérifié') : 'indisponible'),
           ),
         ),
       ),
       h('p', { class: 'muted' }, `Format : ${adapter.formatName}`),
+      adapter.validated && adapter.validatedNote ? h('p', { class: 'note ok' }, `✓ ${adapter.validatedNote}.`) : null,
       adapter.status === 'available' && !adapter.validated
-        ? h('p', { class: 'note warn' }, 'Format documenté et XML valide, mais l’import n’a pas encore été vérifié dans le logiciel lui-même. Testez d’abord sur quelques morceaux.')
+        ? h('p', { class: 'note warn' }, adapter.via
+          ? `${adapter.name} sait lire une collection rekordbox XML, mais cet import n’a pas encore été vérifié avec CueKoda. Testez d’abord sur quelques morceaux.`
+          : 'Format documenté et XML valide, mais l’import n’a pas encore été vérifié dans le logiciel lui-même. Testez d’abord sur quelques morceaux.')
         : null,
       h('table', { class: 'caps' },
         h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Donnée'), h('th', { scope: 'col' }, 'Transfert'), h('th', { scope: 'col' }, 'Détail'))),
@@ -50,7 +60,7 @@ export function openExport(currentPath: string | null) {
             h('legend', {}, 'Options'),
             h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'all', onchange: () => { scope = 'all'; void render(); } }), ` Tous les morceaux analysés (${doneResults().length})`),
             currentPath ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'current', onchange: () => { scope = 'current'; void render(); } }), ' Morceau affiché seulement') : null,
-            target === 'rekordbox'
+            target === 'rekordbox' || adapter.via === 'rekordbox'
               ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
               : null,
             h('label', {}, 'Boucles : ',
@@ -265,6 +275,29 @@ export function openSettings(onChanged: () => void) {
       ),
 
       h('section', { class: 'set' },
+        h('h3', {}, 'Mises à jour'),
+        h('p', {}, `Version ${state.appVersion}${state.appBuild ? ` (build ${state.appBuild})` : ' (build de développement : pas de mise à jour automatique)'}`),
+        h('label', {}, h('input', { type: 'checkbox', checked: s.autoUpdateCheck !== false, onchange: (e: Event) => void save({ autoUpdateCheck: (e.target as HTMLInputElement).checked }).then(render) }),
+          ' Vérifier au démarrage s’il existe une nouvelle version'),
+        h('p', { class: 'muted' }, 'Seul GitHub est contacté (aucune donnée de votre bibliothèque n’est envoyée). Rien n’est installé sans votre clic ; le fichier téléchargé est vérifié (taille et empreinte SHA-256). macOS : l’ancienne version part à la Corbeille.'),
+        h('div', { class: 'hrow' },
+          h('button', { type: 'button', class: 'btn small', onclick: async () => { await api.checkUpdate(); render(); } }, 'Vérifier maintenant'),
+          h('span', { id: 'set-update-status' }, updateText(state.update)),
+          state.update.state === 'available' ? h('button', { type: 'button', class: 'btn small primary', onclick: () => void api.installUpdate() }, 'Installer et redémarrer') : '',
+        ),
+      ),
+
+      h('section', { class: 'set' },
+        h('h3', {}, 'Langue / Language'),
+        h('label', { class: 'pf' }, 'Langue de l’interface',
+          h('select', { onchange: (e: Event) => { const language = (e.target as HTMLSelectElement).value as typeof s.language; void save({ language }).then(() => location.reload()); } },
+            h('option', { value: 'system', selected: (s.language ?? 'system') === 'system' }, 'Système'),
+            h('option', { value: 'fr', selected: s.language === 'fr' }, 'Français'),
+            h('option', { value: 'en', selected: s.language === 'en' }, 'English'))),
+        h('p', { class: 'muted' }, 'Les noms des cues exportés vers vos logiciels DJ ne sont pas traduits : ce sont vos données.'),
+      ),
+
+      h('section', { class: 'set' },
         h('h3', {}, 'Apparence'),
         h('label', { class: 'pf' }, 'Thème',
           h('select', { onchange: (e: Event) => { const theme = (e.target as HTMLSelectElement).value as typeof s.theme; applyTheme(theme); void save({ theme }); } },
@@ -276,5 +309,114 @@ export function openSettings(onChanged: () => void) {
     );
   };
   render();
+  dlg.showModal();
+}
+
+// ================================================================= updates
+export function updateText(u: UpdateStatus): string {
+  switch (u.state) {
+    case 'idle': return '';
+    case 'checking': return 'Vérification…';
+    case 'none': return u.currentBuild ? 'CueKoda est à jour.' : 'Build de développement : pas de comparaison possible.';
+    case 'available': return `Nouvelle version disponible : ${u.info.version} (build ${u.info.build}).`;
+    case 'downloading': return `Téléchargement ${Math.round(u.fraction * 100)} %…`;
+    case 'installing': return 'Installation : CueKoda va redémarrer…';
+    case 'manual': return u.message;
+    case 'error': return u.message;
+  }
+}
+
+/** Discreet header badge: only when there is something to do. */
+export function renderUpdateBadge() {
+  const el = $('update-badge');
+  const u = state.update;
+  const show = u.state === 'available' || u.state === 'downloading' || u.state === 'installing' || u.state === 'manual';
+  el.hidden = !show;
+  if (!show) return;
+  el.replaceChildren(
+    h('span', {}, u.state === 'available' ? `Mise à jour ${u.info.version} (build ${u.info.build})` : updateText(u)),
+    u.state === 'available' ? h('button', { type: 'button', class: 'btn small primary', onclick: () => void api.installUpdate() }, 'Installer') : '',
+    u.state === 'available' ? h('button', { type: 'button', class: 'btn small ghost', title: 'Voir ce qui change sur GitHub', onclick: () => api.openExternal(u.info.pageUrl) }, 'Notes') : '',
+    u.state === 'available' ? h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Plus tard', onclick: () => { el.hidden = true; } }, '✕') : '',
+  );
+  const st = document.getElementById('set-update-status');
+  if (st) st.textContent = tr(updateText(u));
+}
+
+// ================================================================= mix order (suggestion only)
+export function openSetOrder(o: {
+  tracks: AnalysisResult[];
+  listen: (a: AnalysisResult, b: AnalysisResult) => void;
+  show: (path: string) => void;
+  stop: () => void;
+}) {
+  const dlg = $<HTMLDialogElement>('dlg-order');
+  const byPath = new Map(o.tracks.map((t) => [t.path, t]));
+  let shape: ArcShape = 'rise';
+  let start = '';
+  let order: string[] = [];
+  const compute = () => { order = suggestOrder(o.tracks, { shape, startPath: start || undefined }).steps.map((s) => s.path); };
+  const move = (i: number, d: number) => {
+    const j = i + d;
+    if (j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    render();
+  };
+  const render = () => {
+    const rows = order.map((p, i) => {
+      const t = byPath.get(p)!;
+      const prev = i > 0 ? byPath.get(order[i - 1])! : null;
+      const link = prev ? pairScore(prev, t) : null;
+      const weak = prev && link ? isWeakLink(link, tempoGapPct(prev.bpm, t.bpm).pct) : false;
+      const b = (label: string, title: string, fn: () => void, disabled = false) =>
+        h('button', { type: 'button', class: 'btn small ghost', title, 'aria-label': title, disabled, onclick: fn }, label);
+      return h('tr', { class: weak ? 'weak' : '' },
+        h('td', { class: 'c-num' }, String(i + 1)),
+        h('td', {}, h('div', {}, t.title), h('div', { class: 'muted' }, t.artist)),
+        h('td', { class: 'c-num' }, t.bpm.toFixed(t.bpm % 1 ? 1 : 0)),
+        h('td', {}, h('span', { class: 'key', style: { background: camelotColor(t.key.camelot) } }, t.key.camelot)),
+        h('td', { class: 'c-num' }, t.energy ? t.energy.score.toFixed(1) : '—'),
+        h('td', { class: 'why' }, link
+          ? h('span', {}, h('b', {}, `${link.score} `), weak ? h('span', { class: 'pill warn' }, 'difficile') : '', ' ',
+              link.reasons.join(' · ') || 'aucun point commun', link.cautions.length ? h('span', { class: 'warn-text' }, ` ⚠ ${link.cautions.join(', ')}`) : '')
+          : h('span', { class: 'muted' }, 'ouverture')),
+        h('td', { class: 'acts' },
+          prev ? b('🎧', `Écouter la transition ${prev.title} → ${t.title}`, () => o.listen(prev, t)) : '',
+          b('↑', 'Monter', () => move(i, -1), i === 0),
+          b('↓', 'Descendre', () => move(i, 1), i === order.length - 1),
+          b('↗', 'Ouvrir le morceau', () => { o.show(p); }),
+        ),
+      );
+    });
+    const scores = order.slice(1).map((p, i) => pairScore(byPath.get(order[i])!, byPath.get(p)!).score);
+    const mean = scores.length ? Math.round(scores.reduce((a, x) => a + x, 0) / scores.length) : 0;
+    dlg.replaceChildren(
+      h('h2', { id: 'dlg-order-title' }, 'Suggestion d’ordre de mix'),
+      h('p', { class: 'muted' },
+        `Une piste de départ pour ${order.length} morceau${order.length > 1 ? 'x' : ''} (ceux affichés dans la bibliothèque), pas une playlist imposée : `,
+        'rien n’est modifié ni exporté. Écoute les transitions, réordonne, décide.'),
+      h('div', { class: 'hrow' },
+        h('label', { class: 'pf' }, 'Arc d’énergie ',
+          h('select', { onchange: (e: Event) => { shape = (e.target as HTMLSelectElement).value as ArcShape; compute(); render(); } },
+            ...(Object.keys(ARC_LABEL) as ArcShape[]).map((k) => h('option', { value: k, selected: k === shape }, ARC_LABEL[k])))),
+        h('label', { class: 'pf' }, 'Ouverture ',
+          h('select', { onchange: (e: Event) => { start = (e.target as HTMLSelectElement).value; compute(); render(); } },
+            h('option', { value: '' }, 'au choix de CueKoda'),
+            ...o.tracks.map((t) => h('option', { value: t.path, selected: t.path === start }, t.title)))),
+        h('span', { class: 'muted' }, `Note moyenne des transitions : ${mean}/100`),
+        h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
+          const text = order.map((p, i) => { const t = byPath.get(p)!; return `${i + 1}. ${t.artist ? `${t.artist} – ` : ''}${t.title} (${t.bpm.toFixed(1)} BPM, ${t.key.camelot})`; }).join('\n');
+          void navigator.clipboard.writeText(text).then(() => toast('Liste copiée'));
+        } }, 'Copier la liste'),
+      ),
+      h('table', { class: 'caps order' },
+        h('thead', {}, h('tr', {}, ...['#', 'Morceau', 'BPM', 'Clé', 'Énergie', 'Transition depuis le précédent', ''].map((t) => h('th', { scope: 'col' }, t)))),
+        h('tbody', {}, ...rows)),
+      h('div', { class: 'dlg-actions' }, closeBtn(dlg)),
+    );
+  };
+  compute();
+  render();
+  dlg.addEventListener('close', () => o.stop(), { once: true });
   dlg.showModal();
 }

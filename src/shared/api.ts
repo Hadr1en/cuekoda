@@ -1,7 +1,9 @@
 import type { AnalysisResult, Overrides } from '../core/types';
 import type { Profile } from '../core/profiles';
-import type { ExportOptions } from '../core/export/index';
+import type { ExportOptions, ExportTargetId } from '../core/export/index';
 import type { Peaks } from '../core/peaks';
+import type { UpdateStatus } from './update';
+import type { LangSetting } from './i18n';
 
 export type TrackStatus = 'queued' | 'analyzing' | 'done' | 'error' | 'cancelled';
 
@@ -56,6 +58,10 @@ export interface Settings {
   exportOptions: ExportOptions;
   /** Dark by default (DJ use); 'system' follows the OS */
   theme: 'dark' | 'light' | 'system';
+  /** Check GitHub for a new CueKoda build at start-up (only GitHub is contacted; installing needs a click) */
+  autoUpdateCheck: boolean;
+  /** Interface language ('system' follows the OS locale) */
+  language?: LangSetting;
 }
 
 export interface WatchEvent {
@@ -73,8 +79,11 @@ export interface ExportResponse {
 }
 
 export interface AdapterInfo {
-  id: 'rekordbox' | 'traktor' | 'serato';
+  id: ExportTargetId;
   name: string;
+  tagline: string;
+  via?: 'rekordbox' | 'traktor';
+  validatedNote?: string;
   status: 'available' | 'unavailable';
   validated: boolean;
   formatName: string;
@@ -92,6 +101,10 @@ export interface InitialState {
   cores: number;
   /** fileHash → date of the DJ-verified reference */
   references: Record<string, string>;
+  appVersion: string;
+  /** CI build number of this app (null for a dev build) */
+  appBuild: number | null;
+  update: UpdateStatus;
 }
 
 export interface AddedFile {
@@ -133,4 +146,8 @@ export interface CueKodaApi {
   onQueue(cb: (q: QueueState) => void): void;
   onSummary(cb: (s: BatchSummary) => void): void;
   onWatch(cb: (e: WatchEvent) => void): void;
+  checkUpdate(): Promise<UpdateStatus>;
+  installUpdate(): Promise<void>;
+  openExternal(url: string): void;
+  onUpdate(cb: (s: UpdateStatus) => void): void;
 }

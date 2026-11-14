@@ -3,13 +3,14 @@ import { allKeys } from '../core/key';
 import { CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
 import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
+import { resolveLang, setLang, tr } from '../shared/i18n';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
 import type { TrackRecord } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, history, state } from './state';
 import { WaveView, drawOverview } from './waveform';
-import { openDuplicates, openExport, openHelp, openSettings } from './dialogs';
+import { openDuplicates, openExport, openHelp, openSetOrder, openSettings, renderUpdateBadge } from './dialogs';
 import {
-  $, announce, camelotColor, clearTokenCache, confBadge, fmtBpm, fmtDur, fmtTime, h, hexOf, initToast, LETTERS, rgb, rgbOf, toast, toFileUrl, worst,
+  $, announce, camelotColor, setText, translateDom, clearTokenCache, confBadge, fmtBpm, fmtDur, fmtTime, h, hexOf, initToast, LETTERS, rgb, rgbOf, toast, toFileUrl, worst,
 } from './util';
 
 const audio = $<HTMLAudioElement>('audio');
@@ -107,7 +108,7 @@ function renderLibrary() {
   const total = state.tracks.size;
   $('empty').hidden = total > 0;
   $('tracks').hidden = total === 0;
-  $('lib-count').textContent = total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '';
+  setText($('lib-count'), total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '');
   document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
     th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
   });
@@ -182,7 +183,7 @@ function updateGlobalButtons() {
   const failed = [...state.tracks.values()].filter((r) => r.status === 'error' || r.status === 'cancelled').length;
   const retry = $<HTMLButtonElement>('btn-retry');
   retry.hidden = failed === 0;
-  retry.textContent = `↻ Relancer ${failed} échec${failed > 1 ? 's' : ''}`;
+  setText(retry, `↻ Relancer ${failed} échec${failed > 1 ? 's' : ''}`);
 }
 
 function onQueue() {
@@ -196,13 +197,13 @@ function onQueue() {
   bar.value = batchTotal - active;
   const running = [...state.tracks.values()].filter((t) => t.status === 'analyzing');
   const now = running.length === 1
-    ? ` · ${running[0].result?.title ?? running[0].fileName} — ${running[0].stage ?? '…'} ${Math.round((running[0].progress ?? 0) * 100)} %`
-    : running.length > 1 ? ` · ${running.length} en cours` : '';
+    ? ` · ${running[0].result?.title ?? running[0].fileName} — ${tr(running[0].stage ?? '…')} ${Math.round((running[0].progress ?? 0) * 100)} %`
+    : running.length > 1 ? ` · ${tr(`${running.length} en cours`)}` : '';
   $('queue-label').textContent = q.paused
-    ? `En pause · ${q.pending} en attente`
-    : `Analyse ${batchTotal - active}/${batchTotal}${now}`;
+    ? tr(`En pause · ${q.pending} en attente`)
+    : `${tr(`Analyse ${batchTotal - active}/${batchTotal}`)}${now}`;
   $('queue').classList.toggle('running', !q.paused && active > 0);
-  $('btn-pause').textContent = q.paused ? 'Reprendre' : 'Pause';
+  setText($('btn-pause'), q.paused ? 'Reprendre' : 'Pause');
 }
 
 // ===================================================================== selection & detail
@@ -321,9 +322,9 @@ function renderDetail() {
   $('d-title').textContent = r.title + (r.artist ? ` — ${r.artist}` : '');
   const busy = '';
   $('d-sub').textContent =
-    `${fmtBpm(r.bpm)} BPM · ${r.key.camelot} (${r.key.musical}) · ${fmtDur(r.durationSec)} · énergie ${r.energy?.score ?? '—'}/10 · ` +
-    `profil ${allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—'}${busy}`;
-  $('d-warn').textContent = r.warnings.join(' · ');
+    `${fmtBpm(r.bpm)} BPM · ${r.key.camelot} (${r.key.musical}) · ${fmtDur(r.durationSec)} · ${tr('énergie')} ${r.energy?.score ?? '—'}/10 · ` +
+    `${tr('profil')} ${tr(allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—')}${busy}`;
+  $('d-warn').textContent = r.warnings.map(tr).join(' · ');
   // corrections
   const bpmInput = $<HTMLInputElement>('bpm-input');
   if (document.activeElement !== bpmInput) bpmInput.value = r.bpm.toFixed(2);
@@ -484,7 +485,7 @@ function renderCues(r: AnalysisResult) {
     ));
   }
   // add-a-cue toolbar: always available (a vocal highlight, a fill, a riser…)
-  const kindSel = h('select', { 'aria-label': 'Type du nouveau cue' }, ...kinds.map((k) => h('option', { value: k, selected: k === 'vocal' }, CUE_KIND_LABEL[k])));
+  const kindSel = h('select', { class: 'new-cue-kind', 'aria-label': 'Type du nouveau cue' }, ...kinds.map((k) => h('option', { value: k, selected: k === 'vocal' }, CUE_KIND_LABEL[k])));
   const tools = h('div', { class: 'hrow' },
     h('button', { type: 'button', class: 'btn small', title: 'Raccourci : C', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind) }, '+ Cue ici'),
     kindSel,
@@ -1057,10 +1058,10 @@ function loop() {
   raf = audio.paused ? 0 : requestAnimationFrame(loop);
 }
 audio.addEventListener('play', () => {
-  $('btn-play').textContent = '❚❚ Pause';
+  setText($('btn-play'), '❚❚ Pause');
   if (!raf) raf = requestAnimationFrame(loop);
 });
-audio.addEventListener('pause', () => ($('btn-play').textContent = '▶︎ Lecture'));
+audio.addEventListener('pause', () => setText($('btn-play'), '▶︎ Lecture'));
 audio.addEventListener('seeked', redrawWave);
 $('zoom-in').addEventListener('click', () => wave.zoom(2, audio.currentTime));
 $('zoom-out').addEventListener('click', () => wave.zoom(0.5, audio.currentTime));
@@ -1123,7 +1124,7 @@ document.addEventListener('keydown', (e) => {
   } else if ((e.key === ',' || e.key === '.' || e.key === '<' || e.key === '>' || e.key === ';' || e.key === ':') && r && selCue) {
     moveCue(r, selCue, (e.key === ',' || e.key === '<' || e.key === ';' ? -1 : 1) * (e.shiftKey ? 4 : 1));
   } else if ((e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'm') && r) {
-    const sel = $('tab-cues').querySelector<HTMLSelectElement>('select[aria-label="Type du nouveau cue"]');
+    const sel = $('tab-cues').querySelector<HTMLSelectElement>('select.new-cue-kind');
     addCue(r, audio.currentTime, (sel?.value as CueKind) || 'custom', e.key.toLowerCase() === 'm');
     setTab('cues');
   } else if (e.key.toLowerCase() === 'l' && r) {
@@ -1143,15 +1144,30 @@ document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
   th.addEventListener('click', go);
   th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
 });
+$('btn-order').addEventListener('click', () => {
+  // the tracks currently shown (filter applies), analysed ones only
+  const shown = new Set([...rowEls.entries()].filter(([, tr]) => tr.isConnected).map(([p]) => p));
+  const tracks = doneResults().filter((r) => shown.has(r.path));
+  if (tracks.length < 2) return toast('Il faut au moins 2 morceaux analysés affichés');
+  openSetOrder({
+    tracks,
+    listen: (a, b) => {
+      if (state.selected !== a.path) select(a.path);
+      void previewTransition(a, b);
+    },
+    show: (p) => select(p),
+    stop: () => { tx?.stop(); audio.pause(); },
+  });
+});
 $('btn-reanalyze').addEventListener('click', () => {
   const paths = [...state.tracks.values()].filter(matchesFilter).map((r) => r.path);
-  if (paths.length > 1 && !confirm(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Vos cues modifiés ou verrouillés sont conservés.`)) return;
+  if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Vos cues modifiés ou verrouillés sont conservés.`))) return;
   void api.reanalyze(paths);
 });
 $('btn-remove').addEventListener('click', () => {
   if (!state.selected) return toast('Sélectionnez un morceau');
   const p = state.selected;
-  if (!confirm('Retirer ce morceau de la bibliothèque CueKoda ? Le fichier audio n’est pas supprimé.')) return;
+  if (!confirm(tr('Retirer ce morceau de la bibliothèque CueKoda ? Le fichier audio n’est pas supprimé.'))) return;
   void api.removeTracks([p]).then(() => {
     state.tracks.delete(p);
     rowEls.delete(p);
@@ -1202,12 +1218,24 @@ async function boot() {
   initToast();
   const s = await api.init();
   state.settings = s.settings;
+  setLang(resolveLang(s.settings.language, navigator.language));
+  document.documentElement.lang = resolveLang(s.settings.language, navigator.language);
+  translateDom(document.body);
   state.builtinProfiles = s.builtinProfiles;
   state.adapters = s.adapters;
   state.learning = s.learning;
   state.cores = s.cores;
   state.references = s.references ?? {};
   state.queue = s.queue;
+  state.appVersion = s.appVersion;
+  state.appBuild = s.appBuild;
+  state.update = s.update;
+  renderUpdateBadge();
+  api.onUpdate((u) => {
+    state.update = u;
+    renderUpdateBadge();
+    if (u.state === 'error' && u.message) toast(u.message, 6000);
+  });
   applyTheme(s.settings.theme ?? 'dark');
   for (const t of s.tracks) state.tracks.set(t.path, t);
   fillProfiles();

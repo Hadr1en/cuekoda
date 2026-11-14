@@ -1,4 +1,5 @@
 import type { Confidence, RGB } from '../core/types';
+import { getLang, tr } from '../shared/i18n';
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -14,11 +15,35 @@ export function h<K extends keyof HTMLElementTagNameMap>(
     if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v as EventListener);
     else if (k === 'class') el.className = String(v);
     else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if ((k === 'title' || k === 'aria-label' || k === 'placeholder') && typeof v === 'string') el.setAttribute(k, tr(v));
     else if (k in el && typeof v !== 'string') (el as unknown as Record<string, unknown>)[k] = v;
     else el.setAttribute(k, v === true ? '' : String(v));
   }
-  for (const c of children) if (c !== null && c !== undefined && c !== false) el.append(c);
+  for (const c of children) if (c !== null && c !== undefined && c !== false) el.append(typeof c === 'string' ? tr(c) : c);
   return el;
+}
+
+/** Set an element's text, translated (use instead of textContent = … for UI text). */
+export function setText(el: HTMLElement, text: string) {
+  el.textContent = tr(text);
+}
+
+/** Translate a static subtree (index.html) once at start-up. */
+export function translateDom(root: ParentNode) {
+  if (getLang() === 'fr') return;
+  const walker = document.createTreeWalker(root as Node, NodeFilter.SHOW_TEXT);
+  const texts: Text[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
+  for (const t of texts) {
+    const v = t.nodeValue ?? '';
+    if (v.trim()) t.nodeValue = v.replace(v.trim(), tr(v.trim()));
+  }
+  root.querySelectorAll<HTMLElement>('[title],[aria-label],[placeholder]').forEach((el) => {
+    for (const a of ['title', 'aria-label', 'placeholder']) {
+      const v = el.getAttribute(a);
+      if (v) el.setAttribute(a, tr(v));
+    }
+  });
 }
 
 export const fmtTime = (t: number) => {
@@ -87,6 +112,7 @@ declare global {
   }
 }
 export function announce(msg: string) {
+  msg = tr(msg);
   if (document.ariaNotify) return document.ariaNotify(msg);
   const el = $('announce');
   el.textContent = '';
@@ -95,6 +121,7 @@ export function announce(msg: string) {
 let toastTimer: number | undefined;
 export function toast(msg: string, ms = 4000) {
   const t = $('toast');
+  msg = tr(msg);
   $('toast-text').textContent = msg;
   announce(msg);
   if (!t.matches(':popover-open')) t.showPopover();

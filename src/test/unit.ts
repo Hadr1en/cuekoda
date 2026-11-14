@@ -19,6 +19,8 @@ import { musicnnMel, predictVoice, resample44kTo16k, vocalModelAvailable } from 
 import { cueCandidates, vocalCandidates } from '../core/cues';
 import { withVocals } from '../core/mix';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
+import { suggestOrder } from '../core/setorder';
+import { MAC_SWAP_SCRIPT, evaluateRelease, parseBuild, type GithubRelease } from '../shared/update';
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
@@ -240,6 +242,54 @@ test('transition plan: tempo match, bar-aligned points, fades, guards', () => {
   assert.ok('error' in planTransition(a, { ...b, bpm: 100 }), 'too far apart: refused, not stretched');
 });
 
+test('update check: build numbers, platform asset, digest, dev builds never updated', () => {
+  const sha = 'a'.repeat(64);
+  const rel: GithubRelease = {
+    tag_name: 'build-42', name: 'CueKoda 0.3.4 — build 42', html_url: 'https://github.com/Hadr1en/cuekoda/releases/tag/build-42',
+    assets: [
+      { name: 'CueKoda-0.3.4-mac-arm64.dmg', browser_download_url: 'u-arm', size: 10, digest: `sha256:${sha}` },
+      { name: 'CueKoda-0.3.4-mac-x64.dmg', browser_download_url: 'u-x64', size: 11 },
+      { name: 'CueKoda-0.3.4-windows-setup.exe', browser_download_url: 'u-win', size: 12, digest: null },
+      { name: 'CueKoda-0.3.4-windows-setup.exe.blockmap', browser_download_url: 'u-bm', size: 1 },
+    ],
+  };
+  assert.equal(parseBuild('build-42'), 42);
+  assert.equal(parseBuild('v1.2'), null);
+  const mac = evaluateRelease(rel, { build: 41 }, 'darwin', 'arm64');
+  assert.equal(mac?.asset.url, 'u-arm');
+  assert.equal(mac?.asset.sha256, sha);
+  assert.equal(mac?.version, '0.3.4');
+  assert.equal(evaluateRelease(rel, { build: 41 }, 'darwin', 'x64')?.asset.url, 'u-x64');
+  const win = evaluateRelease(rel, { build: 3 }, 'win32', 'x64');
+  assert.equal(win?.asset.url, 'u-win');
+  assert.equal(win?.asset.sha256, null);
+  assert.equal(evaluateRelease(rel, { build: 42 }, 'win32', 'x64'), null, 'same build: nothing to do');
+  assert.equal(evaluateRelease(rel, { build: null }, 'win32', 'x64'), null, 'dev build: never offered');
+  assert.equal(evaluateRelease({ ...rel, draft: true }, { build: 1 }, 'win32', 'x64'), null);
+  assert.equal(evaluateRelease(rel, { build: 1 }, 'linux', 'x64'), null);
+  assert.ok(!MAC_SWAP_SCRIPT.includes('rm '), 'the macOS swap never deletes: the old app goes to the Trash');
+});
+
+test('mix order suggestion: harmonic chain, energy arc, fixed opener, deterministic', () => {
+  const mk = (id: string, key: string, bpm: number, e: number) =>
+    track({ path: id, title: id, bpm, key: keyFromMusical(key)!, energy: { score: e } as AnalysisResult['energy'] });
+  // a harmonic chain 8A → 9A → 10A → 11A → 12A plus one clashing key, energies shuffled
+  const lib = [mk('d', 'Gbm', 128, 8), mk('a', 'Am', 126, 4), mk('e', 'Dbm', 128, 9), mk('b', 'Em', 127, 5), mk('c', 'Bm', 128, 6), mk('x', 'F', 128, 7)];
+  const p = suggestOrder(lib, { shape: 'free' });
+  assert.equal(p.steps.length, 6);
+  assert.equal(new Set(p.steps.map((s) => s.path)).size, 6, 'each track once');
+  const chain = p.steps.map((s) => s.path).join('');
+  assert.ok(chain.includes('abcde') || chain.includes('edcba'), `harmonic chain kept together: ${chain}`);
+  assert.ok(p.steps.slice(1).every((s) => s.link && s.link.reasons.length >= 0));
+  const rise = suggestOrder(lib, { shape: 'rise' });
+  const es = rise.steps.map((s) => s.energy!);
+  assert.ok(es[0] <= 5 && Math.max(...es.slice(3, 5)) >= 8, `energy rises: ${es.join(',')}`);
+  const fixed = suggestOrder(lib, { shape: 'rise', startPath: 'x' });
+  assert.equal(fixed.steps[0].path, 'x', 'the DJ’s opener stays first');
+  assert.deepEqual(suggestOrder([...lib].reverse(), { shape: 'rise' }).steps.map((s) => s.path), rise.steps.map((s) => s.path), 'deterministic');
+  assert.equal(suggestOrder([]).steps.length, 0);
+});
+
 // ---------------------------------------------------------------- phrases
 test('phrases: regular 16-bar grid detected, irregular track gives null', () => {
   const base: StructureAnalysis = { origin: 0, nBars: 96, phraseOrigin: 0, landmarks: [], on: [], kickBars: [], changePoints: [] };
@@ -288,7 +338,15 @@ test('export adapters are honest about their status', () => {
   const serato = ADAPTERS.find((a) => a.id === 'serato')!;
   assert.equal(serato.status, 'unavailable');
   assert.equal(serato.build, undefined);
-  assert.ok(ADAPTERS.every((a) => a.validated === false), 'nothing claims to be validated in the real software yet');
+  // only what a DJ actually checked in the real software is marked validated
+  assert.deepEqual(ADAPTERS.filter((a) => a.validated).map((a) => a.id).sort(), ['rekordbox', 'traktor']);
+  assert.ok(ADAPTERS.filter((a) => a.validated).every((a) => !!a.validatedNote));
+  for (const id of ['engine', 'virtualdj', 'djay'] as const) {
+    const a = ADAPTERS.find((x) => x.id === id)!;
+    assert.equal(a.via, 'rekordbox');
+    assert.equal(a.validated, false);
+    assert.match(a.build!([track({ path: 'a', cues: [cue({})] })], { memoryCues: false, loops: 'none' }), /<DJ_PLAYLISTS/);
+  }
   const rb = ADAPTERS.find((a) => a.id === 'rekordbox')!;
   const summary = exportSummary(rb, [track({ path: 'a', cues: [cue({})] })], { memoryCues: true, loops: 'accepted' });
   assert.ok(summary.some((l) => l.includes('1 hot cue')));
@@ -619,4 +677,55 @@ test('duplicates use the fingerprint: encoding group and acoustic related versio
   assert.deepEqual(enc.paths.sort(), ['/a.flac', '/a.mp3'], 'same audio despite different tags and durations');
   assert.ok(groups.some((g) => g.kind === 'version' && g.paths.includes('/a-radio.mp3') && g.reason.includes('mesures musicalement identiques')));
   assert.ok(!groups.some((g) => g.paths.includes('/b.mp3')), 'unrelated track never grouped');
+});
+
+// ---------------------------------------------------------------- English UI (src/shared/i18n-en.ts)
+import { translate } from '../shared/i18n';
+
+test('English UI: dictionary and patterns', () => {
+  const cases: [string, string][] = [
+    // static UI (index.html, renderer, dialogs)
+    ['Réglages', 'Settings'],
+    ['Exporter…', 'Export…'],
+    ['Glisse des fichiers ou un dossier ici', 'Drop files or a folder here'],
+    ['Filtrer (titre, artiste, clé, BPM)…', 'Filter (title, artist, key, BPM)…'],
+    ['Temps 1 ici', 'Downbeat here'],
+    ['▶︎ Lecture', '▶︎ Play'],
+    ['Boucles : ', 'Loops: '],
+    [' Memory cues à l’export', ' Memory cues on export'],
+    ['Confiance moyenne — vérification conseillée', 'Medium confidence — checking advised'],
+    ['Montée progressive (pic aux trois quarts, légère redescente)', 'Gradual rise (peak at three quarters, slight cool-down)'],
+    // queue label, busy text, library
+    ['Analyse 3/13', 'Analyzing 3/13'],
+    ['En attente · 2ᵉ dans la file', 'Queued · 2nd in line'],
+    ['Analyse 45 % — décodage · étape 1/6', 'Analyzing 45% — decoding · step 1/6'],
+    ['3 / 13 morceaux', '3 / 13 tracks'],
+    ['↻ Relancer 1 échec', '↻ Retry 1 failed'],
+    ['À vérifier : Grille rythmique peu fiable — à vérifier ; BPM corrigé de 63.9 à 127.80', 'To check: Unreliable beatgrid — please check; BPM corrected from 63.9 to 127.80'],
+    // section labels (waveform canvas)
+    ['Couplet 2', 'Verse 2'],
+    ['Section calme · voix', 'Quiet section · vocals'],
+    // engine reasons (structure, cues, mix, loops)
+    ['Le groove s’interrompt pendant 8 mesures', 'The groove stops for 8 bars'],
+    ['Plus forte hausse de volume du morceau (+4.0 dB)', 'Biggest volume jump in the track (+4.0 dB)'],
+    ['Entrée de voix détectée (4 mesures, indice faible) — détection heuristique non validée', 'Vocal entry detected (4 bars, weak evidence) — unvalidated heuristic detection'],
+    ['Début de l’outro — 32 mesures, kick présent, énergie décroissante, aucune voix détectée', 'Start of the outro — 32 bars, kick present, energy decreasing, no vocals detected'],
+    ['Prolonger l’outro rythmique (32 temps)', 'Extend the rhythmic outro (32 beats)'],
+    // matching reasons and cautions
+    ['même tonalité (8A → 8A) · BPM proche (128.0, 0.5 %) (⚠ tonalité incertaine)', 'same key (8A → 8A) · close BPM (128.0, 0.5%) (⚠ uncertain key)'],
+    ['fenêtre de transition de 8 mesures', '8-bar transition window'],
+    // export summary, toasts
+    ['13 morceau(x) : BPM et grille (premier temps) pour chacun', '13 tracks: BPM and grid (first downbeat) for each'],
+    ['1 memory cue(s) sans pad (cues mémorisés Traktor)', '1 memory cue without a pad (Traktor stored cues)'],
+    ['Analyse terminée : 10 analysé(s), 1 erreur(s) en 42 s', 'Analysis done: 10 analyzed, 1 error in 42 s'],
+    ['BPM fixé à 128 — ré-analyse en cours (vos cues sont conservés)', 'BPM set to 128 — re-analyzing (your cues are kept)'],
+    ['⚠ Dossier introuvable (/Music/In)', '⚠ Folder not found (/Music/In)'],
+    ['Mise à jour impossible : fichier incomplet (100 / 200 octets)', 'Update failed: incomplete file (100 / 200 bytes)'],
+  ];
+  for (const [fr, en] of cases) {
+    assert.equal(translate(fr, 'en'), en, fr);
+    assert.equal(translate(fr, 'fr'), fr, 'French is the source language: identity');
+  }
+  // data is never translated: user cue names, titles, paths
+  for (const s of ['My cue', 'Strobe (Extended Mix)', '/Music/In/a.mp3']) assert.equal(translate(s, 'en'), s);
 });

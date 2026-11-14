@@ -122,8 +122,9 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 15 | Doublons exacts / encodages / versions liées, sans suppression | **T** | empreinte chromatique par mesure ; calibrée sur 13 morceaux + réencodage + version coupée (marge 2 vs 67 mesures) |
 | 16 | Stems | **N** | non implémenté (coût, modèle local à choisir) |
 | 17 | Apprentissage simple à partir des corrections, réinitialisable | **T** / **V** | suppression enregistrée de bout en bout dans Electron ; effet sur les suggestions à valider en usage |
-| 18 | Export rekordbox XML (cues, couleurs, memory cues, boucles) | **V** | XML valide et testé ; import réel non vérifié |
-| 18 | Export Traktor NML (cues, boucles, grille) | **V** | idem |
+| 18 | Export rekordbox XML (cues, couleurs, memory cues, boucles) | **T** | XML testé ; **import vérifié dans rekordbox par le DJ (2026-11-14)** |
+| 18 | Export Traktor NML (cues, boucles, grille) | **T** | **import vérifié dans Traktor par le DJ (2026-11-14)** |
+| 18 | Un seul bouton Exporter, choix du logiciel ; Engine DJ, VirtualDJ, djay Pro via rekordbox XML | **T** / **V** | choix et étapes pilotés dans Electron ; imports dans ces trois logiciels non vérifiés |
 | 18 | Serato | **N** | exigerait d'écrire dans les fichiers audio |
 | 18 | Sécurité export (sauvegarde, aperçu, pas d'écriture en base) | **T** / **V** | code + aperçu ; fusion gérée par le logiciel DJ |
 | 19 | Interface sombre, bibliothèque triable/filtrable, vue d'analyse zoomable, raccourcis, lecture audio | **T** / **V** | pilotée dans Electron (onglets, export, zoom, lecture et saut dans le morceau) ; raccourcis clavier non automatisés |
@@ -131,3 +132,6 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 21 | Tests de non-régression, relance avec nouveau moteur | **T** | `npm run test:regression`, cache par version |
 | 21 | Évaluation sur annotations de référence vérifiées | **T** / **V** | « Valider comme référence » + `npm run eval` (BPM, phase, temps 1, MIREX, F1 cues / sections, Spearman énergie) ; chaîne vérifiée sur vérité terrain synthétique ; aucune référence réelle encore |
 | 20 | Installeurs macOS (arm64, x64) et Windows, reconstruits à chaque commit | **T** | GitHub Actions ; DMG téléchargé depuis la release vérifié (analyse + cache) ; non signés Apple / Microsoft |
+| 20 | Mise à jour automatique (vérification au démarrage, installation sur clic) | **T** / **V** | logique unitaire (build, plateforme, empreinte) ; remplacement macOS testé sur une fausse app + vrai DMG ; mise à jour réelle à confirmer à la première nouvelle version (dépôt public requis) |
+| 19 | Interface en anglais (Réglages › Langue) | **V** | traduction à l'affichage (dictionnaire + modèles de phrases) ; données du DJ jamais traduites |
+| 14+ | Suggestion d'ordre de mix (arc d'énergie, enchaînements justifiés, difficiles signalés, écoute des transitions) | **T** / **V** | unitaire (chaîne harmonique, arc, ouverture imposée, déterminisme) + fenêtre pilotée dans Electron ; pertinence musicale à juger par le DJ |

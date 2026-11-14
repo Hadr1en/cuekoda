@@ -1,3 +1,4 @@
+import type { UpdateStatus } from '../shared/update';
 import type { AnalysisResult } from '../core/types';
 import type { Profile } from '../core/profiles';
 import type { AdapterInfo, CueKodaApi, QueueState, Settings, TrackRecord } from '../shared/api';
@@ -20,6 +21,9 @@ export const state = {
   queue: { pending: 0, running: 0, paused: false, maxWorkers: 1 } as QueueState,
   selected: null as string | null,
   references: {} as Record<string, string>,
+  appVersion: '',
+  appBuild: null as number | null,
+  update: { state: 'idle' } as UpdateStatus,
 };
 
 export const doneResults = (): AnalysisResult[] =>

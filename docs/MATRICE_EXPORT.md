@@ -1,12 +1,16 @@
 # Matrice de compatibilité des exports
 
-Légende : ✓ transféré · ≈ partiel · ✗ non transféré. **Aucun export n'a encore été validé par un import
-dans le logiciel réel** : les fichiers sont conformes aux formats documentés et vérifiés comme XML valides
-par les tests, mais un essai sur quelques morceaux est indispensable avant un usage en prestation.
+Légende : ✓ transféré · ≈ partiel · ✗ non transféré. **Imports rekordbox et Traktor vérifiés par un DJ
+le 2026-11-14** (morceaux analysés et corrigés dans CueKoda, puis importés). Engine DJ, VirtualDJ et djay Pro
+lisent le même fichier rekordbox XML : chemin plausible mais **pas encore vérifié** dans ces logiciels.
+Un essai sur quelques morceaux reste conseillé avant une prestation.
+
+L'export se fait depuis un seul bouton « Exporter… » : on choisit le logiciel, CueKoda écrit le fichier
+qu'il sait lire et affiche les étapes d'import.
 
 | Donnée | rekordbox (XML) | Traktor Pro (NML) | Serato DJ Pro |
 |---|---|---|---|
-| Statut | Disponible, non validé | Disponible, non validé | **Non disponible** |
+| Statut | **Import vérifié** | **Import vérifié** | **Non disponible** |
 | BPM | ✓ | ✓ | ✗ |
 | Beatgrid | ✓ un marqueur, ou un par plage de tempo si le tempo change | ≈ marqueur AutoGrid (un seul tempo) | ✗ |
 | Tonalité | ✓ (notation musicale) | ✓ (index Traktor + Open Key) | ✗ |
@@ -16,6 +20,16 @@ par les tests, mais un essai sur quelques morceaux est indispensable avant un us
 | Memory cues | ✓ (option pour toutes les cues ; toujours pour les cues sans pad) | ✓ cues sans pad : `CUE_V2 HOTCUE="-1"` | ✗ |
 | Boucles | ✓ memory loops (Type 4) | ✓ boucles mémorisées (TYPE 5) | ✗ |
 | Sections / énergie / phrases / Mix In-Out | ✗ | ✗ | ✗ |
+
+## Engine DJ, VirtualDJ, djay Pro (via rekordbox XML, non vérifiés)
+| Logiciel | Ce que CueKoda écrit | Import (libellés variables selon la version) |
+|---|---|---|
+| Engine DJ (Denon DJ, Numark, Rane) | rekordbox XML | Préférences › Library : activer la bibliothèque rekordbox, indiquer le fichier ; glisser les morceaux dans la Collection. Engine DJ lit aussi une collection Traktor (NML). |
+| VirtualDJ | rekordbox XML | Paramètres › Options : chemin du fichier rekordbox XML ; dossier « rekordbox » du navigateur. |
+| djay Pro | rekordbox XML | Réglages › Bibliothèque : intégration rekordbox, choisir le fichier. |
+
+Ce qui est repris (cues, couleurs, memory cues, boucles, grille) dépend de ce que chaque logiciel lit dans ce
+fichier : à vérifier sur un morceau test, puis à signaler pour passer la ligne en « vérifié ».
 
 ## Pourquoi pas Serato ?
 Serato stocke cues, grille et BPM **dans les tags des fichiers audio** (objets GEOB « Serato Markers2 »).

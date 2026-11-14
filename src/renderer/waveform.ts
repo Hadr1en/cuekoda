@@ -1,4 +1,5 @@
 import type { AnalysisResult, HotCue, Loop, SectionType } from '../core/types';
+import { getLang, tr } from '../shared/i18n';
 import type { Peaks } from '../core/peaks';
 import { LETTERS, rgb, token } from './util';
 
@@ -268,7 +269,7 @@ export class WaveView {
         ctx.beginPath();
         ctx.rect(x0, 0, x1 - x0 - 2, this.SEC_H);
         ctx.clip();
-        ctx.fillText(s.label + (s.confidence === 'low' ? ' ?' : ''), x0 + 5, this.SEC_H / 2 + 1);
+        ctx.fillText(tr(s.label) + (s.confidence === 'low' ? ' ?' : ''), x0 + 5, this.SEC_H / 2 + 1);
         ctx.restore();
       }
     }
@@ -343,7 +344,7 @@ export class WaveView {
       ctx.fillRect(x0, top, Math.max(2, x1 - x0), 4);
       if (x1 - x0 > 46) {
         ctx.font = '10px system-ui, sans-serif';
-        ctx.fillText(v.strength === 'strong' ? 'voix' : 'voix ?', x0 + 4, top + 11);
+        ctx.fillText(tr(v.strength === 'strong' ? 'voix' : 'voix ?'), x0 + 4, top + 11);
         ctx.font = '11px system-ui, sans-serif';
       }
       ctx.restore();
@@ -374,7 +375,7 @@ export class WaveView {
       ctx.fillRect(x0, hgt - 14, Math.max(2, x1 - x0), 12);
       if (x1 - x0 > 50) {
         ctx.fillStyle = token('--sec-text');
-        ctx.fillText(`${l.name} · ${l.beats}t`, x0 + 4, hgt - 8);
+        ctx.fillText(`${tr(l.name)} · ${l.beats}${getLang() === 'en' ? 'b' : 't'}`, x0 + 4, hgt - 8);
       }
     }
 
