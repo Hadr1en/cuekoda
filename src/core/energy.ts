@@ -4,8 +4,10 @@ import type { EnergyEvent, EnergyInfo } from './types';
 /**
  * Energy mapping — an algorithmic estimate, not an objective measurement.
  *
- * Per bar, four features on *absolute* scales (so scores are comparable between tracks):
- *  - loudness   RMS of the mono mix, −32 dBFS → 0 … −8 dBFS → 1           (weight 0.45)
+ * Per bar, four features (so scores are comparable between tracks):
+ *  - loudness   RMS of the mono mix relative to the track's integrated loudness (LUFS): −14 LU → 0 …
+ *               +2 LU → 1 (weight 0.45). DJ software gain-matches tracks, so how loud a master is says
+ *               nothing about its energy on the dance floor; without a LUFS value, −32 … −8 dBFS.
  *  - density    onsets per second, 0 → 0 … 8/s → 1                        (weight 0.25)
  *  - low end    share of power below 130 Hz, 0 → 0 … 50 % → 1              (weight 0.15)
  *  - brightness share of power above 2 kHz, 0 → 0 … 25 % → 1               (weight 0.15)
@@ -19,7 +21,9 @@ export function computeEnergy(
   barLen: number,
   nBars: number,
   firstAudibleBar: number,
+  integratedLufs?: number | null,
 ): EnergyInfo {
+  const lufs = integratedLufs !== undefined && integratedLufs !== null && Number.isFinite(integratedLufs) ? integratedLufs : null;
   const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
   // squared-sample prefix sums for exact per-bar RMS
   const pre = new Float64Array(x.length + 1);
@@ -51,7 +55,7 @@ export function computeEnergy(
     const mid = rangeMean(pM, f0, f1);
     const high = rangeMean(pH, f0, f1);
     const tot = low + mid + high + 1e-12;
-    const loudN = clamp01((rmsDb + 32) / 24);
+    const loudN = lufs !== null ? clamp01((rmsDb - lufs + 14) / 16) : clamp01((rmsDb + 32) / 24);
     const densN = clamp01(onsetsPerSec / 8);
     const lowN = clamp01(low / tot / 0.5);
     const brightN = clamp01(high / tot / 0.25);

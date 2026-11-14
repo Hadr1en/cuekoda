@@ -66,8 +66,8 @@ Installers are rebuilt on every code update and published in the
   **Open Anyway**.
 - **Windows**: at the SmartScreen warning, **More info** › **Run anyway**.
 
-**Updates:** from 0.3.4 on, CueKoda tells you when a new version is out and installs it on a click (see
-[Settings](#9-settings-updates-and-language)). Earlier versions need to be replaced by hand once.
+**Updates** — CueKoda checks public GitHub releases. You can also download the installer from Releases
+and install it manually.
 
 ## Get started in 4 steps
 1. **Import**: drop files or a folder onto the window, or use "+ Files" / "+ Folder". Formats: MP3, WAV,
@@ -88,9 +88,9 @@ Installers are rebuilt on every code update and published in the
 | **BPM** | Estimate, half / double time chosen from the profile's BPM range, stability, confidence. Manual correction, ÷2 and ×2. |
 | **Beatgrid and downbeat** | Phase locked to about 2 ms on the attacks. The downbeat is voted from section changes and from **kick / bass entries**, and marked "uncertain" when the vote is close. Corrections: "Downbeat here", ±10 ms, +1 beat. |
 | **Variable tempo** | Detects tempo changes and builds a tempo map (one marker per range), exported to rekordbox. |
-| **Key** | Musical notation, **Camelot** and Open Key. When the analyses disagree, CueKoda runs a second analysis, then flags the key as **ambiguous** with its alternatives. |
+| **Key** | Musical notation, **Camelot** and Open Key. A second pass flags ambiguous keys and lists alternatives. Detected key changes appear in Info. |
 | **Loudness** | Integrated LUFS, loudness range, true peak, RMS, peak (ffmpeg `ebur128`). |
-| **Energy** | 1–10 score and a per-bar curve (loudness, attack density, low end, brightness). |
+| **Energy** | 1–10 score and a per-bar curve (loudness normalised by integrated LUFS, attack density, low end, brightness). |
 | **Structure** | Intro, build-up, drop, breakdown, outro, 8 / 16 / 32-bar phrases (only when they are regular). **Drops** are found from energy tiers and placed on the bass entry. |
 | **Vocals** | Experimental local detection (MusiCNN model + heuristic): clear or faint vocal parts. |
 | **Fingerprint** | Per-bar chroma fingerprint, used to spot duplicates and versions of the same track. |
@@ -109,6 +109,10 @@ level** and a **reason** ("bass entry: +12 dB in the low end").
   first free pad. When all 8 pads are taken, it becomes a **memory cue**.
 - **Memory cues**: cues without a pad, listed under the pads, which you can move onto a pad at any time.
   They export as rekordbox memory cues and Traktor stored cues.
+- **Vocal cues** — Built-in profiles exclude Vocal suggestions. Enable them in a custom profile or add a
+  Vocal cue manually.
+- **Overlapping cues** — You can only add a cue at a free position. Moving a cue onto another cue flags
+  the duplicate on the pads and in the export preview.
 - Undo / redo (⌘Z / ⇧⌘Z). Sections follow the Intro / Build / Drop / Break / Outro cues you move.
 - **Learning**: a cue type you almost always delete is no longer suggested (local statistics, can be reset).
 
@@ -161,6 +165,10 @@ job**.
   found with the acoustic fingerprint. Nothing is deleted; you decide.
 - **DJ profiles**: EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, or your own (BPM range,
   cues to place, colours, loops).
+- **EDM — fixed pads** assigns pads A through H to Intro, Build 1, Drop 1, Break, Build 2, Drop 2,
+  Outro and Mix Out. If a cue is missing, its pad stays free.
+- **Review** — Use “To review” to find tracks worth checking and “Missing files” to see unavailable
+  paths. Mark tracks as checked after listening.
 - **References**: "Validate as reference" saves a track you checked by ear. References measure the
   engine's accuracy (`npm run eval`).
 
@@ -189,15 +197,22 @@ then follow the import steps.
 Serato stores its cues **inside the audio files themselves**. Writing them would modify your files, which
 CueKoda never does. Details and the checking procedure: [export matrix](docs/MATRICE_EXPORT.md) (French).
 
+In Traktor, AutoGrid occupies button 1. Pads A–G map to buttons 2–8, and pad H becomes a stored cue.
+The generated NML is covered by automated tests. The mapping still needs checking in Traktor Pro.
+
+Use **“Import collection…”** to bring a rekordbox XML or Traktor NML collection into CueKoda. Imported
+cues are locked and suggestions fill free pads. You can also adopt the BPM and first grid marker.
+See the [export and import matrix](docs/MATRICE_EXPORT.md) (French).
+
 Export safety: CueKoda writes a **new collection file** and never touches your DJ software's database
 (`master.db`, `collection.nml`). An existing file is backed up first.
 
 ### 9. Settings, updates and language
 <img src="docs/screenshots/en/settings.png" alt="Settings: automatic updates and interface language" width="100%">
 
-- **Updates**: check at start-up (can be turned off) and a "Check now" button. Only GitHub is contacted, and
-  none of your library data is sent. Updates install on your click, after the file is checked (size and
-  SHA-256 digest).
+- **Updates** — The optional start-up check and “Check now” use public GitHub releases without sending
+  library data. Installation requires a click and a file matching both the expected size and a valid
+  SHA-256 digest. The digest checks download integrity. See [distribution decisions](docs/DISTRIBUTION.md) (French).
   - **Windows**: silent install, then restart.
   - **macOS**: the old version goes to the Trash, the new one takes its place and restarts.
 - **Language**: French or English. Your cue names are never translated; they are your data.
@@ -206,10 +221,10 @@ Export safety: CueKoda writes a **new collection file** and never touches your D
 
 ## Reliability and limits
 CueKoda is upfront about what it can do:
-- **Checked by ear by a DJ**: rekordbox and Traktor imports; drops, downbeat and outro on 3 hand-corrected
-  EDM tracks (within 0.5 s); automatic update on macOS.
-- **Still to confirm**: Engine DJ, VirtualDJ and djay Pro imports; automatic update on Windows. The energy scale and confidence levels are
-  not calibrated on an annotated corpus.
+- **DJ checks** — An export was imported into rekordbox and Traktor. The
+  [evaluation report](docs/EVALUATION.md) measures cue accuracy on three EDM tracks corrected by ear.
+- **Still to confirm** — The new Traktor mapping, import offsets by audio format, Engine DJ, VirtualDJ
+  and djay Pro imports, Windows updates and energy calibration.
 - **Experimental**: vocal detection (some vocals may be missed). Verse / chorus is only suggested on strong
   evidence.
 - **Not done yet**: stem separation.
@@ -258,6 +273,8 @@ npm start
 | `npm run test:regression` | Re-analyses `samples/` and compares with `tests/baselines/samples.json` |
 | `npm run smoke` | Starts the real Electron app (hidden window) and drives the UI |
 | `npm run eval` | Measures engine accuracy on the tracks you validated as references |
+| `npm run eval:dj` | Evaluates the DJ corrections on three tracks supplied locally in `samples/` |
+| `npm run offset-test` | Generates click tracks and XML/NML collections for measuring import offsets |
 | `npm run dist:mac` / `dist:win` | Builds the installers locally |
 
 The command line uses the same engine:
@@ -277,9 +294,8 @@ src/test/       unit, end-to-end, regression, diagnostics
 ```
 
 **Stack and third-party licences**: Electron 45, TypeScript, esbuild, electron-builder; Essentia.js
-(AGPL-3.0); ffmpeg-static (GPL binary); music-metadata; TensorFlow.js (Apache-2.0) and the
-`voice_instrumental-musicnn-msd-2` model from the Music Technology Group (UPF), licensed CC BY-NC-SA 4.0
-(CueKoda is free and non-commercial). Licence: see [below](#licence).
+(AGPL-3.0), ffmpeg-static (GPL binary), music-metadata, TensorFlow.js (Apache-2.0) and the
+`voice_instrumental-musicnn-msd-2` model from the Music Technology Group (UPF). See the [licence](#licence).
 
 ## Licence
 CueKoda is free software under the **GNU AGPL v3 or later** ([LICENSE](LICENSE)): you may use, study, modify
@@ -287,9 +303,9 @@ and redistribute it, provided you also publish the source code of your modified 
 they are offered as an online service. Copyright © 2026 Hadr1en.
 
 Third-party components, each under its own licence: Essentia.js (AGPL-3.0), ffmpeg-static (GPL binary),
-TensorFlow.js (Apache-2.0), music-metadata (MIT), Electron (MIT), and the `voice_instrumental-musicnn-msd-2`
-model from the Music Technology Group (UPF) under **CC BY-NC-SA 4.0**, which forbids any commercial use of
-the model, and therefore of CueKoda as distributed.
+TensorFlow.js (Apache-2.0), music-metadata (MIT) and Electron (MIT). The `voice_instrumental-musicnn-msd-2` vocal model from
+the Music Technology Group (UPF) has its own terms, including a noncommercial clause.
+See the [note on the model licence](docs/DISTRIBUTION.md#décisions-avant-diffusion) (French).
 
 ## Logo
 The *coda* ring ("Koda") holds a waveform whose white centre bar marks the cue point. Sources in

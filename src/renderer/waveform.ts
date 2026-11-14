@@ -300,35 +300,49 @@ export class WaveView {
       }
     }
 
-    // waveform (detailed peaks when available)
+    // waveform (detailed peaks when available). 3 bands when the analysis has them, drawn like the DJ
+    // software does: lows (blue), mids (amber), highs (white) layered from the largest down.
     const peakColor = token('--wave-peak');
     const lowColor = token('--wave-low');
+    const bandColors = [token('--wave-band-low'), token('--wave-band-mid'), token('--wave-band-high')];
     const src = this.peaks;
+    const three = src ? !!src.mid : !!(r.waveMid && r.waveHigh);
     for (let px = 0; px < w; px++) {
       const t0 = this.start + (px / w) * span;
       const t1 = this.start + ((px + 1) / w) * span;
-      let a = 0, l = 0;
+      let a = 0, l = 0, m = 0, hi = 0;
+      const take = (peak: number[], low: number[], mid: number[] | undefined, high: number[] | undefined, i0: number, i1: number) => {
+        for (let i = i0; i < i1 && i < peak.length; i++) {
+          if (peak[i] > a) a = peak[i];
+          if (low[i] > l) l = low[i];
+          if (mid && mid[i] > m) m = mid[i];
+          if (high && high[i] > hi) hi = high[i];
+        }
+      };
       if (src) {
         const i0 = Math.floor(t0 * src.perSec);
-        const i1 = Math.max(i0 + 1, Math.ceil(t1 * src.perSec));
-        for (let i = i0; i < i1 && i < src.peak.length; i++) {
-          if (src.peak[i] > a) a = src.peak[i];
-          if (src.low[i] > l) l = src.low[i];
-        }
+        take(src.peak, src.low, src.mid, src.high, i0, Math.max(i0 + 1, Math.ceil(t1 * src.perSec)));
       } else {
         const n = r.wave.length;
         const i0 = Math.floor((t0 / r.durationSec) * n);
-        const i1 = Math.max(i0 + 1, Math.ceil((t1 / r.durationSec) * n));
-        for (let i = i0; i < i1 && i < n; i++) {
-          if (r.wave[i] > a) a = r.wave[i];
-          if (r.waveLow[i] > l) l = r.waveLow[i];
-        }
+        take(r.wave, r.waveLow, r.waveMid, r.waveHigh, i0, Math.max(i0 + 1, Math.ceil((t1 / r.durationSec) * n)));
       }
-      ctx.fillStyle = peakColor;
-      ctx.fillRect(px, mid - a * amp, 1, a * amp * 2);
-      ctx.fillStyle = lowColor;
-      const ll = Math.min(a, l);
-      ctx.fillRect(px, mid - ll * amp, 1, ll * amp * 2);
+      if (three) {
+        // highs are physically small next to the lows: shown at 2× so hats / claps stay readable
+        const layers = [[l, bandColors[0]], [m, bandColors[1]], [Math.min(a, hi * 2), bandColors[2]]] as [number, string][];
+        layers.sort((x, y) => y[0] - x[0]);
+        for (const [v, color] of layers) {
+          const vv = Math.min(a, v);
+          ctx.fillStyle = color;
+          ctx.fillRect(px, mid - vv * amp, 1, vv * amp * 2);
+        }
+      } else {
+        ctx.fillStyle = peakColor;
+        ctx.fillRect(px, mid - a * amp, 1, a * amp * 2);
+        ctx.fillStyle = lowColor;
+        const ll = Math.min(a, l);
+        ctx.fillRect(px, mid - ll * amp, 1, ll * amp * 2);
+      }
     }
 
     // vocal segments (unvalidated detector: strong = solid strip, light = faded)

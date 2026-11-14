@@ -9,7 +9,8 @@ import { MAC_SWAP_SCRIPT, RELEASES_API, evaluateRelease, type GithubRelease, typ
 /**
  * Self-update from the public GitHub releases. Only GitHub is contacted (no library data is sent):
  * a GET of the latest release, then — on the DJ's click — the download of the installer, checked
- * against its size and SHA-256 digest before anything runs.
+ * against its size and mandatory GitHub SHA-256 digest before anything runs. The digest checks
+ * download integrity, with GitHub as the source of both the installer and its expected digest.
  *   Windows: silent NSIS install over the current one, then relaunch.
  *   macOS: the old app goes to the Trash, the new one is copied in place, then relaunched (the app is not
  *          signed by Apple, so the system updater cannot be used); falls back to opening the DMG.
@@ -99,7 +100,7 @@ export class Updater {
     await new Promise<void>((resolve, reject) => out.end((err?: Error | null) => (err ? reject(err) : resolve())));
     if (got !== info.asset.size) throw new Error(`fichier incomplet (${got} / ${info.asset.size} octets)`);
     const sha = hash.digest('hex');
-    if (info.asset.sha256 && sha !== info.asset.sha256) throw new Error('empreinte SHA-256 différente de celle publiée : fichier rejeté');
+    if (sha !== info.asset.sha256) throw new Error('empreinte SHA-256 différente de celle publiée : fichier rejeté');
     return file;
   }
 

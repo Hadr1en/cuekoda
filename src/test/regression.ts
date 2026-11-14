@@ -70,6 +70,14 @@ async function main() {
     for (const role of Object.keys(n.landmarks)) if (!(role in b.landmarks)) report(name, `nouveau cue ${role} à ${n.landmarks[role]}s`);
     if (n.sections.join(' ') !== b.sections.join(' ')) report(name, `sections ${b.sections.join(' ')} → ${n.sections.join(' ')}`);
   }
+  // energy: not a pass/fail criterion (no DJ ratings yet), but its spread across tracks is reported —
+  // a score that gives every track 8/10 does not help to sort a library
+  const spread = (v: number[]) => {
+    const m = v.reduce((a, b) => a + b, 0) / (v.length || 1);
+    return `moyenne ${m.toFixed(1)}, écart-type ${Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length || 1)).toFixed(2)}, de ${Math.min(...v)} à ${Math.max(...v)}`;
+  };
+  const names = Object.keys(base).filter((k) => now[k]);
+  console.log(`Énergie — référence : ${spread(names.map((k) => base[k].energy))} ; maintenant : ${spread(names.map((k) => now[k].energy))}`);
   console.log(diffs ? `${diffs} différence(s) par rapport à la référence` : 'Aucune différence avec la référence');
   process.exit(diffs ? 1 : 0);
 }

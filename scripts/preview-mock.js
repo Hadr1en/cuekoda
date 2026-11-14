@@ -11,7 +11,7 @@
   };
   const adapters = window.__ADAPTERS__ || [];
   window.cuekoda = {
-    init: async () => ({ tracks, settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8, references: {} }),
+    init: async () => ({ tracks, settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8, references: {}, update: { state: 'idle' }, appVersion: 'preview', appBuild: null }),
     pathsForFiles: () => [],
     pick: async () => [],
     addPaths: async () => [],
@@ -38,5 +38,14 @@
     onQueue: (f) => (cbs.queue = f),
     onSummary: (f) => (cbs.summary = f),
     onWatch: (f) => (cbs.watch = f),
+    onRemoved: () => {},
+    importCollection: async () => ({ ok: true, source: 'rekordbox', matched: tracks.length, added: 0, notFound: 2, cues: 12, gridTaken: false }),
+    setReviewed: async (paths, reviewed) => {
+      for (const t of tracks) if (paths.includes(t.path)) { t.reviewedAt = reviewed ? Date.now() : undefined; cbs.track({ path: t.path, record: t }); }
+    },
+    checkUpdate: async () => ({ state: 'none' }),
+    installUpdate: async () => {},
+    openExternal: () => {},
+    onUpdate: () => {},
   };
 })();

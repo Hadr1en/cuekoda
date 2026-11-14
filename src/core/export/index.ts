@@ -1,6 +1,7 @@
 import type { AnalysisResult } from '../types';
 import { buildRekordboxXml, exportedLoops } from './rekordbox';
 import { buildTraktorNml } from './traktor';
+import { duplicateCueIds } from '../cues';
 
 /**
  * Export engine: one adapter per DJ software, independent from the analysis engine.
@@ -132,7 +133,7 @@ export const ADAPTERS: ExportAdapter[] = [
       { field: 'BPM', support: 'yes', note: 'TEMPO BPM' },
       { field: 'Beatgrid', support: 'partial', note: 'Marqueur AutoGrid sur le premier temps (un seul tempo : les changements de tempo ne sont pas transférés)' },
       { field: 'Tonalité', support: 'yes', note: 'MUSICAL_KEY + INFO KEY (Open Key)' },
-      { field: 'Hot cues (8)', support: 'yes', note: 'CUE_V2 HOTCUE 0–7' },
+      { field: 'Hot cues (8)', support: 'partial', note: 'Pads A–G → hotcues 2–8 (le 1 reste à la grille Traktor) ; pad H en cue mémorisé' },
       { field: 'Noms des cues', support: 'yes', note: 'Attribut NAME' },
       { field: 'Couleurs des cues', support: 'no', note: 'Traktor colore les cues par type, pas par couleur libre' },
       { field: 'Memory cues', support: 'partial', note: 'Cues sans pad uniquement : CUE_V2 HOTCUE -1 (cue mémorisé)' },
@@ -216,6 +217,11 @@ export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], 
   if (opts.commentTags !== false && tracks.length) out.push(`Commentaire de chaque morceau : énergie, clé et voix (ex. « ${commentTag(tracks[0]) || 'E8 · 8B · Vocal'} »)`);
   if (opts.playlistName) out.push(`Playlist « ${opts.playlistName} » : ${tracks.length} morceau(x) dans l’ordre du set`);
   out.push(`${loops} boucle(s) (${opts.loops === 'accepted' ? 'validées uniquement' : opts.loops === 'all' ? 'toutes les suggestions' : 'aucune'})`);
+  const dupTracks = tracks.map((t) => ({ t, n: duplicateCueIds(t.cues).size })).filter((x) => x.n > 0);
+  if (dupTracks.length) {
+    const n = dupTracks.reduce((s, x) => s + x.n, 0);
+    out.push(`⚠ ${n} cue(s) au même endroit qu’un autre (${dupTracks.slice(0, 3).map((x) => x.t.title).join(', ')}${dupTracks.length > 3 ? '…' : ''}) : un pad gaspillé chacun`);
+  }
   out.push('Non transférés : sections, énergie, phrases, suggestions Mix In/Out');
   return out;
 }

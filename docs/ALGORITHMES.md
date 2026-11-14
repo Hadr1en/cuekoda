@@ -50,6 +50,10 @@ doivent pas être lus comme des probabilités.
 - Si les votes divergent : **analyse complémentaire** (profils `bgate` et `temperley` sur 2 min) ; si le
   désaccord persiste, résultat marqué **ambigu** avec ses alternatives plutôt qu'une fausse précision.
 - Notations : musicale, Camelot, Open Key. Correction manuelle parmi les 24 tonalités.
+- Pour les morceaux d'au moins 120 s, la détection locale utilise des fenêtres de 30 s espacées de
+  15 s. Un passage est signalé si au moins trois fenêtres successives indiquent la même tonalité
+  avec une force d'au moins 0,55, différente de la tonalité globale et de sa relative. Le résultat
+  figure dans l'onglet Infos et déclenche un avertissement. Les bornes suivent les fenêtres d'analyse.
 
 ## Structure, phrases, sections — `structure.ts`
 - Caractéristiques par mesure (trames entièrement contenues dans la mesure, pour éviter qu'une attaque
@@ -81,21 +85,22 @@ doivent pas être lus comme des probabilités.
   certains morceaux live) donnent peu de sections et une confiance faible.
 
 ## Énergie — `energy.ts`
-- Par mesure, sur des échelles **absolues** (comparables entre morceaux) : loudness RMS (45 %), densité
-  d'attaques (25 %), poids des graves (15 %), brillance (15 %). Score 1–10 = 75ᵉ percentile.
+- Par mesure, le score combine le RMS (45 %), la densité d'attaques (25 %), le poids des graves (15 %)
+  et la brillance (15 %). Le terme RMS est calculé relativement au LUFS intégré du morceau pour réduire
+  l'effet du niveau de mastering (échelle −14 à +2). En l'absence de LUFS, il utilise une échelle
+  absolue de −32 à −8 dBFS. Le 75ᵉ percentile des mesures audibles est ramené sur l'échelle 1–10.
 - Événements : montées / baisses (|Δ| ≥ 0,12 sur moyennes de 4 mesures), pic (fenêtre de 8 mesures).
-- **Limites** : estimation algorithmique, pas une mesure objective ; les productions EDM très compressées
-  se regroupent entre 7,5 et 9.
+- **Limite** — Échelle de ressenti à calibrer avec des notes attribuées à l'oreille sur plusieurs morceaux.
 
 ## Smart Cues — `cues.ts`
 - Candidats = repères détectés + suggestions Mix In / Out + entrées de voix (jamais d'intervalles
   réguliers). Entrées de voix : début des passages vocaux de ≥ 4 mesures (2 au plus), calé sur la grille
-  de 4 mesures s'il est à ±1 mesure ; confiance moyenne (passage net) ou faible, jamais forte. Le type
-  « vocal » est en dernière priorité dans les profils EDM / house / techno / trance : il ne déplace jamais
-  un repère structurel proche.
+  de 4 mesures s'il est à ±1 mesure, avec une confiance moyenne (passage net) ou faible. Tous les profils
+  intégrés excluent les suggestions « Vocal ». Un profil personnalisé peut réactiver cette suggestion et
+  le DJ peut toujours poser un cue Vocal manuellement.
 - Sélection par profil : exclusions, suppressions apprises, priorité, nombre maximum, écart minimal
-  (pas de marqueurs redondants), puis pads chronologiques ou par priorité. Nom, couleur par fonction,
-  confiance et justification par cue.
+  (pas de marqueurs redondants), puis pads chronologiques, par priorité ou selon le gabarit « EDM — pads
+  fixes ». Nom, couleur par fonction, confiance et justification par cue.
 
 ## Smart Loops — `loops.ts`
 - Intro / outro rythmiques (kick sur ≥ 75 % des mesures) : plus longue longueur autorisée qui tient.
@@ -196,9 +201,9 @@ pas mesurés, et les seuils ont été choisis sur ces mêmes morceaux (risque de
 
 ### Crédits
 Modèle `voice_instrumental-musicnn-msd-2` : Music Technology Group, Universitat Pompeu Fabra (Pablo
-Alonso, 2020), licence [CC BY-NC-SA 4.0](https://essentia.upf.edu/models.html), texte complet dans
-`models/voice_instrumental-musicnn-msd-2/LICENSE`. Référence : Alonso-Jiménez, Bogdanov, Pons, Serra,
-« Tensorflow Audio Models in Essentia », ICASSP 2020. Usage commercial exclu sans licence MTG.
+Alonso, 2020). Le catalogue Essentia indique CC BY-NC-SA 4.0. Le fichier `LICENSE` embarqué présente
+une incohérence à clarifier auprès du MTG avant redistribution. Voir [DISTRIBUTION.md](DISTRIBUTION.md).
+Référence : Alonso-Jiménez, Bogdanov, Pons, Serra, « Tensorflow Audio Models in Essentia », ICASSP 2020.
 
 ## Fusion avec les corrections — `merge.ts`
 Une ré-analyse conserve : cues `user` ou verrouillés (et leurs pads), boucles validées / `user` /
@@ -241,7 +246,7 @@ Un fichier inchangé n'est pas ré-analysé ; une nouvelle version du moteur inv
 | Phase de grille | idem | 2,0 / 2,1 ms |
 | Tonalité | idem (Am, C) | exacte |
 | Frontières de sections / cues | idem | exactes à la mesure près (tolérance 0) |
-| Non-régression | 13 morceaux réels (`samples/`) | référence v0.3.1 ; écarts vs v0.2.0 / v0.3.0 limités aux cues « Vocal » (tempo, clé, grille, sections inchangés) |
+| Non-régression | 13 morceaux réels (`samples/`) | comparaison avec `tests/baselines/samples.json` |
 | Voix | voir *Détection vocale* | exacte sur synthétique ; nettement meilleure avec le modèle sur voix réelles, non mesurée faute d'annotations |
 | Temps d'analyse | 9 morceaux réels, 3 workers | 17,8 s au total ; 58 ms depuis le cache |
 
@@ -252,7 +257,10 @@ Dans l'app, onglet Infos › « Valider comme référence » enregistre l'état 
 l'oreille** (BPM, temps 1, clé, cues, sections, voix, ressenti d'énergie optionnel). `npm run eval` ré-analyse
 chaque référence **sans les corrections ni le cache** et mesure : BPM à ±1 % et erreurs d'octave, erreur de
 phase de grille (médiane), temps 1 correct, tonalité (score MIREX : 1 exacte, 0,5 quinte, 0,3 relative,
-0,2 parallèle), F1 des hot cues à ±1 temps, F1 des frontières de sections à ±1 mesure, corrélation de
-Spearman entre le score d'énergie et le ressenti. Contrôlé sur vérité terrain synthétique (BPM exact, phase
-2 ms, clé exacte, cues 7/7, sections 6/6). **Aucune référence réelle n'est encore enregistrée** : ce sont ces
-mesures qui permettront de calibrer les confiances et l'échelle d'énergie.
+0,2 parallèle), cues du même type à ±40 ms, frontières de sections à ±1 mesure et corrélation de Spearman
+entre le score d'énergie et le ressenti lorsque des notes sont disponibles. Le rappel des cues à ±1 temps est
+rapporté séparément, avec l'écart en temps pour chaque cue raté à ±40 ms. Les annotations sont facultatives.
+
+`npm run eval:dj` évalue les corrections de trois morceaux dans `tests/ground-truth/dj-corrections.json`.
+Voir [le rapport d'évaluation](EVALUATION.md). Le CLI peut aussi charger les références GiantSteps Tempo,
+GiantSteps Key et Harmonix avec les fichiers audio fournis localement.

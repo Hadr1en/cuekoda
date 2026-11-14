@@ -29,6 +29,8 @@ export interface Decoded {
   samples: Float32Array;
   /** EBU R128 measured on the original channels (before the mono downmix) */
   loudness: EbuR128;
+  /** ffmpeg stopped with an error after producing audio: the decoded audio may be truncated */
+  decodeError?: string;
 }
 
 function parseEbuR128(log: string): EbuR128 {
@@ -71,14 +73,15 @@ export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE): Pr
     proc.on('close', (code) => {
       const buf = Buffer.concat(chunks);
       const n = Math.floor(buf.length / 4);
+      const lastErr = () => (log.trim().split('\n').filter((l) => /error|invalid/i.test(l)).pop() ?? log.trim().split('\n').pop() ?? '').slice(0, 200);
       if (code !== 0 && n === 0) {
-        const lastErr = log.trim().split('\n').filter((l) => /error|invalid/i.test(l)).pop() ?? log.trim().split('\n').pop() ?? '';
-        return reject(new Error(`fichier illisible ou corrompu (ffmpeg ${code}) : ${lastErr.slice(0, 200)}`));
+        return reject(new Error(`fichier illisible ou corrompu (ffmpeg ${code}) : ${lastErr()}`));
       }
+      // copy into an aligned buffer, then view it as float32 (little-endian on every supported platform)
       const out = new Float32Array(n);
-      for (let i = 0; i < n; i++) out[i] = buf.readFloatLE(i * 4);
+      new Uint8Array(out.buffer).set(buf.subarray(0, n * 4));
       if (n < sampleRate * 5) return reject(new Error('audio trop court ou illisible (< 5 s)'));
-      resolve({ samples: out, loudness: parseEbuR128(log) });
+      resolve({ samples: out, loudness: parseEbuR128(log), decodeError: code !== 0 ? `ffmpeg ${code} : ${lastErr()}` : undefined });
     });
   });
 }
@@ -86,4 +89,34 @@ export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE): Pr
 /** Backwards compatible helper (v0.1 API). */
 export async function decodeToMono(file: string, sampleRate = ANALYSIS_SAMPLE_RATE): Promise<Float32Array> {
   return (await decodeAudio(file, sampleRate)).samples;
+}
+
+/**
+ * MP3 without a Xing/Info (LAME) header: decoders cannot know the encoder delay, so ffmpeg — and therefore
+ * CueKoda — places everything ~25 ms later than in the source, and DJ software may differ (see
+ * `npm run offset-test`). Returns false for non-MP3 files and for MP3s that carry the header.
+ */
+export function mp3WithoutGaplessHeader(file: string): boolean {
+  if (!/\.mp3$/i.test(file)) return false;
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(file, 'r');
+    const head = Buffer.alloc(10);
+    fs.readSync(fd, head, 0, 10, 0);
+    let off = 0;
+    if (head.toString('latin1', 0, 3) === 'ID3') {
+      off = 10 + ((head[6] & 0x7f) << 21 | (head[7] & 0x7f) << 14 | (head[8] & 0x7f) << 7 | (head[9] & 0x7f));
+    }
+    const frame = Buffer.alloc(4096);
+    const n = fs.readSync(fd, frame, 0, frame.length, off);
+    // first MPEG frame sync after the tag
+    let s = 0;
+    while (s < n - 1 && !(frame[s] === 0xff && (frame[s + 1] & 0xe0) === 0xe0)) s++;
+    const first = frame.subarray(s, Math.min(n, s + 400)).toString('latin1');
+    return !/Xing|Info|VBRI/.test(first);
+  } catch {
+    return false;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
 }

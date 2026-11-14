@@ -22,6 +22,8 @@ await Promise.all([
       'test/unit': 'src/test/unit.ts',
       'test/evaluate': 'src/test/evaluate-cli.ts',
       'test/fingerprint-diag': 'src/test/fingerprint-diag.ts',
+      'test/offset-test': 'src/test/offset-test.ts',
+      'test/beat-diag': 'src/test/beat-diag.ts',
     },
     outdir: 'dist',
     external: ['electron', 'ffmpeg-static', 'essentia.js', '@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm'],

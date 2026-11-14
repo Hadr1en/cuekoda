@@ -28,7 +28,7 @@ export interface UpdateInfo {
   version: string;
   title: string;
   pageUrl: string;
-  asset: { name: string; url: string; size: number; sha256: string | null };
+  asset: { name: string; url: string; size: number; sha256: string };
 }
 
 export type UpdateStatus =
@@ -59,7 +59,7 @@ export function versionOf(assetName: string): string {
   return /^CueKoda-([\d.]+)-/.exec(assetName)?.[1] ?? '';
 }
 
-/** What to offer, if anything. */
+/** What to offer, if anything. A candidate without a valid digest is rejected. */
 export function evaluateRelease(
   rel: GithubRelease,
   current: { build: number | null },
@@ -71,7 +71,10 @@ export function evaluateRelease(
   if (build === null || current.build === null || build <= current.build) return null;
   const a = pickAsset(rel.assets, platform, arch);
   if (!a) return null;
-  const sha = a.digest && /^sha256:[0-9a-f]{64}$/i.test(a.digest) ? a.digest.slice(7).toLowerCase() : null;
+  if (typeof a.digest !== 'string' || a.digest.length !== 71 || !/^sha256:[0-9a-f]{64}$/i.test(a.digest)) {
+    throw new Error('empreinte SHA-256 absente ou invalide : mise à jour rejetée');
+  }
+  const sha = a.digest.slice(7).toLowerCase();
   return {
     build,
     version: versionOf(a.name),

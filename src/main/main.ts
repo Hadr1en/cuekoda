@@ -9,9 +9,10 @@ import { mergeWithPrevious } from '../core/merge';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { describe, emptyStats, recordDeleted, recordMoved, recordSuggested, suppressedKinds, type LearningStats } from '../core/learning';
 import { AUDIO_EXTENSIONS, type AnalysisResult, type CueKind, type Overrides } from '../core/types';
-import type { AdapterInfo, ExportResponse, InitialState, Settings, TrackRecord } from '../shared/api';
+import type { AdapterInfo, ExportResponse, ImportSummary, InitialState, Settings, TrackRecord } from '../shared/api';
+import { applyImport, parseRekordboxXml, parseTraktorNml } from '../core/import/collection';
 import { AnalysisQueue, type WorkerLike } from './queue';
-import { backupIfExists, JsonStore } from './store';
+import { backupIfExists, JsonStore, LibraryStore } from './store';
 import { FolderWatcher } from './watch';
 import { referenceFrom, type Reference } from '../core/evaluate';
 import { computePeaks, type Peaks } from '../core/peaks';
@@ -40,7 +41,7 @@ const DEFAULT_SETTINGS: Settings = {
   autoUpdateCheck: true,
 };
 
-let library: JsonStore<{ version: 1; tracks: Record<string, TrackRecord> }>;
+let library: LibraryStore<AnalysisResult, TrackRecord>;
 let settingsStore: JsonStore<Settings>;
 let updater: Updater;
 let learningStore: JsonStore<LearningStats>;
@@ -61,7 +62,7 @@ function currentProfile() {
   return sanitizeProfile(findProfile(settingsStore.data.profileId, settingsStore.data.customProfiles));
 }
 
-function enqueue(p: string, force = false) {
+function enqueue(p: string, force = false, overrides?: Overrides) {
   const rec = records()[p];
   if (!rec) return;
   const learn = settingsStore.data.learningEnabled ? suppressedKinds(learningStore.data) : [];
@@ -74,7 +75,7 @@ function enqueue(p: string, force = false) {
   queue.enqueue({
     path: p,
     force,
-    options: { profile: currentProfile(), overrides: rec.result?.overrides, suppressKinds: learn },
+    options: { profile: currentProfile(), overrides: overrides ?? rec.result?.overrides, suppressKinds: learn },
   });
   library.save();
 }
@@ -116,7 +117,27 @@ function createQueue() {
       result: (p, result, cached) => {
         const r = records()[p];
         if (!r) return;
-        const merged = mergeWithPrevious(result, r.result);
+        // Relocation: a new path whose content (hash) is that of a track whose file is gone = the same file,
+        // moved or renamed. Its corrections, imported cues and "checked" mark follow it.
+        if (!r.result && result.fileHash) {
+          const old = Object.values(records()).find((o) => o !== r && o.result?.fileHash === result.fileHash && !fs.existsSync(o.path));
+          if (old) {
+            r.result = { ...old.result!, path: p, fileName: path.basename(p) };
+            r.reviewedAt = old.reviewedAt;
+            r.imported = r.imported ?? old.imported;
+            delete records()[old.path];
+            send('removed', { path: old.path, movedTo: p });
+          }
+        }
+        // a new engine version invalidates the "checked by ear" mark
+        if (r.reviewedAt && r.result?.engineVersion && result.engineVersion !== r.result.engineVersion) r.reviewedAt = undefined;
+        const strictSlots = currentProfile().slotOrder === 'template';
+        let merged = mergeWithPrevious(result, r.result, { strictSlots });
+        // cues imported from the DJ's collection before this track was analysed
+        if (r.imported) {
+          merged = applyImport(merged, r.imported, { strictSlots });
+          r.imported = undefined;
+        }
         if (!cached && settingsStore.data.learningEnabled) {
           recordSuggested(learningStore.data, result.cues.map((c) => c.kind));
           learningStore.save();
@@ -260,6 +281,7 @@ function registerIpc() {
     const next: Overrides = { ...(r.result.overrides ?? {}), ...ov };
     for (const k of Object.keys(next) as (keyof Overrides)[]) if (next[k] === undefined || next[k] === null) delete next[k];
     r.result.overrides = next;
+    library.touch(p);
     enqueue(p);
   });
 
@@ -345,6 +367,80 @@ function registerIpc() {
     } catch (e) {
       return { ok: false, error: (e as Error).message };
     }
+  });
+
+  ipcMain.handle('import-collection', async (): Promise<ImportSummary> => {
+    const none: ImportSummary = { ok: false, matched: 0, added: 0, notFound: 0, cues: 0, gridTaken: false };
+    if (!win) return none;
+    const pick = await dialog.showOpenDialog(win, {
+      title: uiText('Importer une collection rekordbox ou Traktor'),
+      properties: ['openFile'],
+      filters: [{ name: 'rekordbox XML / Traktor NML', extensions: ['xml', 'nml'] }],
+    });
+    if (pick.canceled || !pick.filePaths[0]) return { ...none, canceled: true };
+    let tracks;
+    let source: 'rekordbox' | 'traktor';
+    try {
+      const text = fs.readFileSync(pick.filePaths[0], 'utf8');
+      if (text.includes('<DJ_PLAYLISTS')) { tracks = parseRekordboxXml(text); source = 'rekordbox'; }
+      else if (text.includes('<NML')) { tracks = parseTraktorNml(text, macBootVolume()); source = 'traktor'; }
+      else return { ...none, error: uiText('Fichier non reconnu : ni collection rekordbox XML, ni collection Traktor NML') };
+    } catch (e) {
+      return { ...none, error: (e as Error).message };
+    }
+    const norm = (p: string) => p.normalize('NFC');
+    const known = new Map(Object.keys(records()).map((p) => [norm(p), p]));
+    const present = tracks.filter((t) => known.has(norm(t.path)) || fs.existsSync(t.path));
+    const outside = present.filter((t) => !known.has(norm(t.path))).length;
+    const box = await dialog.showMessageBox(win, {
+      type: 'question',
+      message: uiText('Importer les cues de la collection'),
+      detail: uiText(`${present.length} morceau(x) trouvé(s) sur cet ordinateur, dont ${outside} pas encore dans CueKoda (${tracks.length - present.length} introuvable(s)).\nLeurs cues deviennent des cues verrouillés sur leurs pads ; CueKoda ne remplit que les pads libres. Le fichier de collection n’est pas modifié.`),
+      buttons: [uiText('Importer et ajouter les morceaux manquants'), uiText('Seulement les morceaux déjà dans CueKoda'), uiText('Annuler')],
+      defaultId: 0,
+      cancelId: 2,
+      checkboxLabel: uiText('Reprendre aussi le BPM et la grille du logiciel (ré-analyse avec cette grille)'),
+      checkboxChecked: false,
+    });
+    if (box.response === 2) return { ...none, canceled: true };
+    const strictSlots = currentProfile().slotOrder === 'template';
+    const out: ImportSummary = { ok: true, source, matched: 0, added: 0, notFound: tracks.length - present.length, cues: 0, gridTaken: box.checkboxChecked };
+    for (const t of present) {
+      let p = known.get(norm(t.path));
+      if (!p) {
+        if (box.response !== 0) continue;
+        addFiles([t.path]);
+        p = t.path;
+        out.added++;
+      }
+      const r = records()[p];
+      if (!r) continue;
+      out.matched++;
+      out.cues += t.cues.length;
+      if (r.result && r.status !== 'queued' && r.status !== 'analyzing') {
+        r.result = applyImport(r.result, t, { strictSlots });
+        pushRecord(r, true);
+      } else {
+        r.imported = t;
+      }
+      if (box.checkboxChecked && t.bpm && t.gridSec !== undefined) {
+        const ov = { ...(r.result?.overrides ?? {}), bpm: t.bpm, firstDownbeatSec: t.gridSec };
+        if (r.result) { r.result.overrides = ov; library.touch(p); }
+        enqueue(p, false, ov);
+      }
+    }
+    library.save();
+    return out;
+  });
+
+  ipcMain.handle('set-reviewed', (_e, paths: string[], reviewed: boolean) => {
+    for (const p of paths) {
+      const r = records()[p];
+      if (!r) continue;
+      r.reviewedAt = reviewed ? Date.now() : undefined;
+      pushRecord(r);
+    }
+    library.save();
   });
 
   ipcMain.handle('add-watch-folder', async () => {
@@ -633,7 +729,9 @@ function runSmoke() {
 app.whenReady().then(() => {
   // Dev mode on macOS: show the CueKoda icon in the Dock (packaged builds get it from electron-builder)
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(__dirname, '..', '..', 'build', 'icon.png'));
-  library = new JsonStore(path.join(userData(), 'library.json'), { version: 1 as const, tracks: {} });
+  library = new LibraryStore<AnalysisResult, TrackRecord>(path.join(userData(), 'library.json'));
+  // files moved / renamed / on a disconnected drive: flagged, never removed from the library
+  for (const r of Object.values(library.data.tracks)) r.missing = !fs.existsSync(r.path) || undefined;
   settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
   referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });

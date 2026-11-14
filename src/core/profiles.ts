@@ -1,4 +1,4 @@
-import type { CueKind, LoopKind, RGB } from './types';
+import type { CueKind, CueRole, LoopKind, RGB } from './types';
 
 /**
  * DJ style profiles are plain data (no per-genre code): the cue / loop / mix engines read
@@ -18,8 +18,13 @@ export interface Profile {
   /** Cue kinds never suggested */
   excludeKinds: CueKind[];
   colors: Record<CueKind, RGB>;
-  /** Pad ordering: chronological (A = earliest) or by priority (A = most important) */
-  slotOrder: 'chronological' | 'priority';
+  /**
+   * Pad ordering: chronological (A = earliest), by priority (A = most important), or a fixed template
+   * (each pad always holds the same function, e.g. C = Drop 1, on every track — muscle memory).
+   */
+  slotOrder: 'chronological' | 'priority' | 'template';
+  /** For 'template': the roles each pad A–H accepts, in order of preference (empty = pad left free) */
+  padTemplate?: CueRole[][];
   /** Minimum distance between two cues, in bars */
   minCueSpacingBars: number;
   /** Loop lengths offered, in beats */
@@ -62,15 +67,32 @@ export const CUE_KIND_LABEL: Record<CueKind, string> = {
   custom: 'Cue',
 };
 
+/**
+ * Vocal cues are off by default in every built-in profile: on the DJ's corrected tracks the detector placed
+ * 0 of 2 "Vocal" cues on the right beat (docs/EVALUATION.md). Vocal passages are still detected, shown on
+ * the waveform and used for Mix In / Out; a custom profile can turn the cues back on.
+ */
 const base = {
   builtin: true,
   maxCues: 8,
-  excludeKinds: [] as CueKind[],
+  excludeKinds: ['vocal'] as CueKind[],
   colors: DEFAULT_COLORS,
   slotOrder: 'chronological' as const,
   minCueSpacingBars: 4,
   memoryCues: true,
 };
+
+/** Fixed EDM layout: A Intro, B Build 1 (or the kick entry), C Drop 1, D Break, E Build 2, F Drop 2, G Outro, H Mix Out. */
+export const DEFAULT_PAD_TEMPLATE: CueRole[][] = [
+  ['intro', 'mixin'],
+  ['build1', 'groove'],
+  ['drop1'],
+  ['break1'],
+  ['build2'],
+  ['drop2'],
+  ['outro', 'kickout'],
+  ['mixout'],
+];
 
 export const BUILTIN_PROFILES: Profile[] = [
   {
@@ -80,6 +102,20 @@ export const BUILTIN_PROFILES: Profile[] = [
     minBpm: 90,
     maxBpm: 180,
     cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'kickout', 'mixin', 'vocal'],
+    loopBeats: [4, 8, 16, 32],
+    loopKinds: ['intro', 'predrop', 'outro'],
+    transitionBars: 16,
+    vocabulary: 'edm',
+  },
+  {
+    ...base,
+    id: 'edm-fixed',
+    name: 'EDM — pads fixes',
+    minBpm: 90,
+    maxBpm: 180,
+    cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'kickout', 'mixin', 'vocal'],
+    slotOrder: 'template',
+    padTemplate: DEFAULT_PAD_TEMPLATE,
     loopBeats: [4, 8, 16, 32],
     loopKinds: ['intro', 'predrop', 'outro'],
     transitionBars: 16,
@@ -142,7 +178,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     minBpm: 70,
     maxBpm: 140,
     cuePriority: ['vocal', 'drop', 'break', 'intro', 'outro', 'mixin', 'mixout', 'groove'],
-    excludeKinds: ['kickout', 'build'],
+    excludeKinds: ['kickout', 'build', 'vocal'],
     loopBeats: [4, 8],
     loopKinds: ['intro', 'outro'],
     transitionBars: 8,
@@ -183,5 +219,8 @@ export function sanitizeProfile(p: Profile): Profile {
     minCueSpacingBars: Math.max(1, Math.min(32, Math.round(p.minCueSpacingBars || 4))),
     colors: { ...DEFAULT_COLORS, ...(p.colors ?? {}) },
     loopBeats: (p.loopBeats ?? []).filter((b) => [4, 8, 16, 32, 64].includes(b)),
+    padTemplate: p.slotOrder === 'template'
+      ? Array.from({ length: 8 }, (_, i) => (Array.isArray(p.padTemplate?.[i]) ? p.padTemplate![i] : DEFAULT_PAD_TEMPLATE[i]))
+      : p.padTemplate,
   };
 }

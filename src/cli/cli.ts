@@ -38,7 +38,7 @@ async function main() {
     try {
       const r = await analyzeFile(f, opts);
       results.push(r);
-      const cues = r.cues.map((c) => `${'ABCDEFGH'[c.slot]}:${c.name}@${c.timeSec.toFixed(1)}s`).join(' ');
+      const cues = r.cues.map((c) => `${c.slot >= 0 ? 'ABCDEFGH'[c.slot] : 'mémo'}:${c.name}@${c.timeSec.toFixed(1)}s`).join(' ');
       console.log(
         `${r.fileName}  ${r.bpm.toFixed(2)} BPM  ${r.key.camelot || '?'} (${r.key.musical || '?'})  [${(r.analysisMs / 1000).toFixed(1)}s]\n   ${cues}` +
           (r.warnings.length ? `\n   ⚠ ${r.warnings.join(' | ')}` : ''),

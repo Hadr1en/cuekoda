@@ -5,7 +5,6 @@
     "firstDownbeatSec": 1.479,
     "landmarks": {
       "intro": 1.48,
-      "vocal": 58.62,
       "drop1": 104.34,
       "break1": 150.05,
       "drop2": 180.53,
@@ -19,7 +18,7 @@
       "outro@134",
       "section@146"
     ],
-    "energy": 8.1
+    "energy": 7.6
   },
   "Diamond Ace - Too Soon (feat. Nymbius).mp3": {
     "bpm": 105,
@@ -58,7 +57,7 @@
       "drop@92",
       "outro@116"
     ],
-    "energy": 8.2
+    "energy": 8.1
   },
   "Ennex - Fantasy.mp3": {
     "bpm": 125,
@@ -104,7 +103,7 @@
       "drop@90",
       "outro@106"
     ],
-    "energy": 8.1
+    "energy": 8
   },
   "Martin Garrix - This Dream of You.mp3": {
     "bpm": 128,
@@ -112,10 +111,9 @@
     "firstDownbeatSec": 1.612,
     "landmarks": {
       "intro": 1.61,
-      "vocal": 50.36,
       "mixin": 65.36,
       "drop1": 106.61,
-      "break1": 200.36,
+      "break1": 140.36,
       "drop2": 230.36,
       "mixout": 245.36,
       "outro": 260.36
@@ -123,12 +121,12 @@
     "sections": [
       "intro@0",
       "drop@56",
-      "breakdown@106",
+      "breakdown@74",
       "drop@122",
       "outro@138",
       "section@146"
     ],
-    "energy": 7.6
+    "energy": 7.3
   },
   "Mike Chino - Dream Chaser.mp3": {
     "bpm": 128,
@@ -156,7 +154,7 @@
       "section@108",
       "outro@124"
     ],
-    "energy": 8
+    "energy": 7.7
   },
   "Mike Chino - Replicant World.mp3": {
     "bpm": 128,
@@ -183,7 +181,7 @@
       "outro@92",
       "section@99"
     ],
-    "energy": 8
+    "energy": 7.7
   },
   "Peyruis - Dolce Vita.mp3": {
     "bpm": 122,
@@ -204,7 +202,7 @@
       "drop@64",
       "outro@104"
     ],
-    "energy": 8.1
+    "energy": 8.2
   },
   "Peyruis - Hustle.mp3": {
     "bpm": 126,
@@ -235,7 +233,6 @@
       "intro": 0.44,
       "drop1": 61.88,
       "break1": 92.6,
-      "vocal": 100.28,
       "drop2": 131,
       "mixout": 146.36,
       "outro": 161.72
@@ -249,7 +246,7 @@
       "drop@68",
       "outro@84"
     ],
-    "energy": 7.7
+    "energy": 7.5
   },
   "Swedish House Mafia ft. John Martin - Don't You Worry Child (Official Video).mp3": {
     "bpm": 129,
@@ -257,7 +254,6 @@
     "firstDownbeatSec": 1.182,
     "landmarks": {
       "intro": 1.18,
-      "vocal": 16.07,
       "groove": 53.27,
       "drop1": 96.07,
       "break1": 122.11,
@@ -274,7 +270,7 @@
       "section@117",
       "outro@144"
     ],
-    "energy": 7.7
+    "energy": 7.8
   },
   "Vexento - We Are One.mp3": {
     "bpm": 128,
@@ -296,6 +292,6 @@
       "section@86",
       "outro@114"
     ],
-    "energy": 8.4
+    "energy": 8.2
   }
 }

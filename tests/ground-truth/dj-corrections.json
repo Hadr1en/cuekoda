@@ -1,0 +1,55 @@
+[
+  {
+    "version": 1,
+    "fileHash": "",
+    "path": "",
+    "fileName": "Martin Garrix - This Dream of You.mp3",
+    "title": "This Dream of You",
+    "createdAt": "2026-11-14",
+    "engineVersion": "0.3.2",
+    "source": "Corrections à l'oreille du DJ dans CueKoda (2026-11-14). Drop 1 : noté ≈ 106,6 s à la validation ; la bibliothèque contient 106,143 s (un temps plus tôt) — à réécouter.",
+    "bpm": 128,
+    "firstDownbeatSec": 1.612,
+    "cues": [
+      { "kind": "intro", "name": "Intro", "timeSec": 1.612 },
+      { "kind": "vocal", "name": "Vocal", "timeSec": 16.612 },
+      { "kind": "drop", "name": "Drop 1", "timeSec": 106.612 },
+      { "kind": "drop", "name": "Drop 2", "timeSec": 230.362 },
+      { "kind": "outro", "name": "Outro", "timeSec": 260.362 }
+    ]
+  },
+  {
+    "version": 1,
+    "fileHash": "",
+    "path": "",
+    "fileName": "Alesso - Heroes (we could be) ft. Tove Lo.mp3",
+    "title": "Heroes (we could be)",
+    "createdAt": "2026-11-14",
+    "engineVersion": "0.3.2",
+    "source": "Corrections à l'oreille du DJ dans CueKoda (2026-11-14). Intro et Drop 1 tombent sur le temps 2 de la grille du moteur, Drop 2 sur le temps 1 : mesure irrégulière probable entre les deux — premier temps global non annoté.",
+    "bpm": 126,
+    "cues": [
+      { "kind": "intro", "name": "Intro", "timeSec": 35.288 },
+      { "kind": "drop", "name": "Drop 1", "timeSec": 104.812 },
+      { "kind": "drop", "name": "Drop 2", "timeSec": 180.527 },
+      { "kind": "outro", "name": "Outro", "timeSec": 256.717 }
+    ]
+  },
+  {
+    "version": 1,
+    "fileHash": "",
+    "path": "",
+    "fileName": "Sebastian Ingrosso, Alesso - Calling (Lose My Mind) ft. Ryan Tedder.mp3",
+    "title": "Calling (Lose My Mind)",
+    "createdAt": "2026-11-14",
+    "engineVersion": "0.3.2",
+    "source": "Corrections à l'oreille du DJ dans CueKoda (2026-11-14).",
+    "bpm": 125,
+    "firstDownbeatSec": 0.437,
+    "cues": [
+      { "kind": "drop", "name": "Drop 1", "timeSec": 61.877 },
+      { "kind": "vocal", "name": "Vocal", "timeSec": 74.837 },
+      { "kind": "outro", "name": "Outro", "timeSec": 161.717 }
+    ]
+  }
+]
