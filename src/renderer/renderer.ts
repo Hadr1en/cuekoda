@@ -856,7 +856,7 @@ function renderMix(r: AnalysisResult) {
     );
   const matches = matchTracks(r, doneResults(), 8);
   $('tab-mix').replaceChildren(
-    h('p', { class: 'muted' }, 'Suggestions à valider : elles s’appuient sur la structure, les phrases, l’énergie et la percussion. La présence de voix n’est pas encore analysée.'),
+    h('p', { class: 'muted' }, 'Suggestions à valider : elles s’appuient sur la structure, les phrases, l’énergie, la percussion et la détection vocale (expérimentale).'),
     h('div', { class: 'cols' },
       list('Mix In', r.mix?.mixIn ?? [], 'mixin'),
       list('Mix Out', r.mix?.mixOut ?? [], 'mixout'),

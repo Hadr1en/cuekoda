@@ -1,86 +1,243 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo/png/cuekoda-logo-sombre@2x.png">
-    <img src="assets/logo/png/cuekoda-logo-clair@2x.png" alt="CueKoda — Analyze. Cue. Mix." width="560">
+    <img src="assets/logo/png/cuekoda-logo-clair@2x.png" alt="CueKoda — Analyze. Cue. Mix." width="520">
   </picture>
 </p>
 
-# CueKoda — *Analyze. Cue. Mix.*
+<p align="center">
+  <b>La préparation de tes morceaux, faite pour toi. Les décisions restent les tiennes.</b><br>
+  BPM · grille · tonalité Camelot · structure · énergie · hot cues · boucles → rekordbox, Traktor et les autres
+</p>
 
-🇬🇧 [English version](README.en.md)
+<p align="center">
+  <a href="https://github.com/Hadr1en/cuekoda/releases/latest"><img alt="Dernière version" src="https://img.shields.io/github/v/release/Hadr1en/cuekoda?label=t%C3%A9l%C3%A9charger&color=8A6DFF"></a>
+  <img alt="macOS et Windows" src="https://img.shields.io/badge/macOS%2013%2B%20%C2%B7%20Windows%2010%2F11-00D2DC">
+  <img alt="100 % local" src="https://img.shields.io/badge/100%20%25-local-2ea44f">
+  <a href="README.en.md"><img alt="English" src="https://img.shields.io/badge/README-English-lightgrey"></a>
+</p>
 
-Application de **préparation musicale pour DJ** (Windows / macOS, Electron). CueKoda n'est pas un logiciel
-de mix : il transforme des fichiers audio bruts en morceaux analysés, structurés et annotés, prêts pour
-rekordbox, Traktor et les autres logiciels DJ. **CueKoda prépare, le DJ décide** : chaque suggestion est justifiée, notée en confiance,
-modifiable, et vos corrections survivent aux ré-analyses.
+<p align="center">
+  <img src="docs/screenshots/fr/detail.png" alt="CueKoda : bibliothèque, waveform avec sections, courbe d'énergie et hot cues" width="100%">
+</p>
 
-Tout est local : aucun fichier audio n'est envoyé en ligne, modifié ou déplacé.
+CueKoda est une application **de préparation musicale pour DJ** (macOS et Windows). Ce n'est pas un logiciel
+de mix : tu lui donnes des fichiers audio, il les analyse, et il te rend des morceaux annotés que tu importes
+dans **rekordbox, Traktor, Engine DJ, VirtualDJ ou djay Pro**. Il est pensé pour l'EDM (house, big room,
+progressive, techno, trance…) mais fonctionne aussi en open format.
 
-## Ce que fait CueKoda (v0.3)
+## Sommaire
+- [Principes](#principes)
+- [Télécharger et installer](#télécharger-et-installer)
+- [Prise en main en 4 étapes](#prise-en-main-en-4-étapes)
+- [Fonctionnalités en détail](#fonctionnalités-en-détail)
+  - [Analyse](#1-analyse) · [Hot cues et memory cues](#2-hot-cues-et-memory-cues) ·
+    [Structure et voix](#3-structure-et-voix) · [Boucles](#4-boucles) · [Mix et transitions](#5-mix-et-transitions) ·
+    [Ordre de mix](#6-suggestion-dordre-de-mix) · [Bibliothèque](#7-bibliothèque) · [Export](#8-export-vers-ton-logiciel-dj) ·
+    [Réglages, mises à jour, langue](#9-réglages-mises-à-jour-et-langue)
+- [Fiabilité et limites](#fiabilité-et-limites)
+- [Raccourcis clavier](#raccourcis-clavier)
+- [Confidentialité et sécurité](#confidentialité-et-sécurité)
+- [Pour les développeurs](#pour-les-développeurs)
 
-- **Analyse** : BPM (demi/double tempo, stabilité, confiance), grille et premier temps, tonalité
-  (Camelot / Open Key, ambiguïté signalée), LUFS / true peak, énergie 1–10 et courbe, phrases 8/16/32,
-  timeline de sections (intro, build, drop, breakdown, outro… sans forcer l'EDM).
-- **Préparation** : hot cues placés d'après la musique (nom, couleur par fonction, confiance, raison) —
-  drops repérés par palier d'énergie et entrée de la basse, temps 1 voté sur les entrées kick / basse —,
-  boucles suggérées, points Mix In / Mix Out justifiés, morceaux compatibles, doublons (empreinte
-  acoustique), détection vocale expérimentale.
-- **Édition** : waveform zoomable, cues à glisser (aimantés), « + Cue ici » et memory cues (au-delà des
-  8 pads), renommer, colorer, verrouiller, annuler / rétablir, correction BPM / grille / clé, sections qui
-  suivent les cues, passages vocaux corrigeables, boucles.
-- **Aide au mix (discrète)** : aperçu de transition A → B (tempo calé sans changer la tonalité, temps
-  alignés, fondu de 16 mesures) et **suggestion d'ordre de mix** pour les morceaux affichés (arc
-  d'énergie, enchaînements justifiés, enchaînements difficiles signalés). Rien n'est appliqué tout seul :
-  l'ordre reste le travail du DJ.
-- **Bibliothèque** : file d'analyse parallèle avec progression visible (étape et pourcentage par morceau,
-  place dans la file), pause, annulation, relance, limite CPU, cache par contenu, persistance, dossiers
-  surveillés, profils DJ personnalisables, apprentissage simple.
-- **Export** : un seul bouton « Exporter… », puis le choix du logiciel, avec aperçu de ce qui est
-  transféré, étapes d'import et sauvegarde du fichier existant.
+## Principes
+- **CueKoda prépare, le DJ décide.** Chaque suggestion indique sa confiance (forte / moyenne / faible) et
+  la raison pour laquelle elle a été faite. Tout est modifiable.
+- **Tes corrections sont sacrées.** Un cue déplacé, renommé ou verrouillé, une section corrigée, un passage
+  vocal ajusté : tout survit aux ré-analyses.
+- **Rien ne sort de ta machine.** L'analyse est 100 % locale. Les fichiers audio ne sont jamais envoyés,
+  modifiés, déplacés ni supprimés.
+- **Pas de fausse précision.** Ce qui n'est pas vérifié est affiché comme tel : export « non vérifié »,
+  détection vocale « expérimentale », tonalité « ambiguë », temps 1 « incertain ».
 
-  | Logiciel | Fichier écrit | Import |
-  |---|---|---|
-  | rekordbox | rekordbox XML | ✅ vérifié par un DJ |
-  | Traktor Pro | Traktor NML | ✅ vérifié par un DJ |
-  | Engine DJ (Denon / Numark / Rane) | rekordbox XML | à vérifier |
-  | VirtualDJ | rekordbox XML | à vérifier |
-  | djay Pro | rekordbox XML | à vérifier |
-  | Serato DJ Pro | — | indisponible : Serato range ses cues dans les fichiers audio, que CueKoda ne modifie jamais |
-
-  Détails dans la [matrice d'export](docs/MATRICE_EXPORT.md).
-- **Interface en français ou en anglais** (Réglages › Langue).
-
-État détaillé de chaque fonctionnalité (testée / à valider / partielle / absente) :
-[docs/AUDIT_ET_PLAN.md](docs/AUDIT_ET_PLAN.md#5-état-après-les-chantiers-v02-et-v03x-détection-vocale-2026-11-14).
-
-## Télécharger
-
-Les installeurs sont reconstruits automatiquement à chaque commit sur `main` (GitHub Actions) et publiés
-dans les [Releases](https://github.com/Hadr1en/cuekoda/releases/latest) :
+## Télécharger et installer
+Les installeurs sont reconstruits à chaque mise à jour du code et publiés dans les
+[**Releases**](https://github.com/Hadr1en/cuekoda/releases/latest).
 
 | Système | Fichier |
 |---|---|
-| macOS 13+ Apple Silicon (M1–M4) | `CueKoda-<version>-mac-arm64.dmg` |
+| macOS 13+ Apple Silicon (M1 à M4) | `CueKoda-<version>-mac-arm64.dmg` |
 | macOS 13+ Intel | `CueKoda-<version>-mac-x64.dmg` |
-| Windows 10/11 64 bits | `CueKoda-<version>-windows-setup.exe` |
+| Windows 10 / 11 64 bits | `CueKoda-<version>-windows-setup.exe` |
 
-L'application n'est pas encore signée par un certificat Apple / Microsoft :
-- **macOS** : glisser CueKoda dans Applications, l'ouvrir une fois, puis Réglages Système ›
-  Confidentialité et sécurité › **Ouvrir quand même**.
+**Premier lancement :** l'application n'est pas encore signée par Apple ni par Microsoft.
+- **macOS** : glisse CueKoda dans Applications, ouvre-le une fois, puis Réglages Système › Confidentialité
+  et sécurité › **Ouvrir quand même**.
 - **Windows** : à l'avertissement SmartScreen, **Informations complémentaires** › **Exécuter quand même**.
 
-### Mises à jour automatiques
-CueKoda vérifie au démarrage s'il existe une version plus récente (Réglages › Mises à jour, désactivable).
-Seul GitHub est contacté et aucune donnée de la bibliothèque n'est envoyée. L'installation se fait sur un
-clic : le fichier est vérifié (taille et empreinte SHA-256), puis
-- **Windows** : installation silencieuse et redémarrage ;
-- **macOS** : l'ancienne version part à la Corbeille, la nouvelle prend sa place et redémarre.
+**Mises à jour :** à partir de la 0.3.4, CueKoda te prévient quand une nouvelle version sort et l'installe
+sur un clic (voir [Réglages](#9-réglages-mises-à-jour-et-langue)). Les versions précédentes doivent être
+remplacées une fois à la main.
 
-Les versions antérieures à la 0.3.4 n'ont pas ce module : installez une fois la dernière version à la main.
+## Prise en main en 4 étapes
+1. **Importer** : glisse des fichiers ou un dossier dans la fenêtre, ou utilise « + Fichiers » / « + Dossier ».
+   Formats : MP3, WAV, AIFF, FLAC, M4A / AAC, OGG, Opus, WMA.
+2. **Analyser** : l'analyse démarre seule, plusieurs morceaux en parallèle. Chaque ligne affiche l'étape et
+   le pourcentage.
+3. **Vérifier et corriger** : clique un morceau, écoute, déplace les cues sur la waveform, corrige BPM,
+   grille ou tonalité si besoin. La colonne **Fiabilité** indique quoi vérifier en priorité.
+4. **Exporter** : « Exporter… », choisis ton logiciel, enregistre le fichier, suis les étapes d'import affichées.
 
-Construire localement : `npm run dist:mac` (DMG arm64 + x64) ou `npm run dist:win` (sur Windows).
+## Fonctionnalités en détail
 
-## Démarrer
+### 1. Analyse
+<img src="docs/screenshots/fr/progress.png" alt="Progression de l'analyse : étape et pourcentage par morceau, place dans la file" width="100%">
+
+| Donnée | Ce que fait CueKoda |
+|---|---|
+| **BPM** | Estimation, choix demi / double tempo selon le profil (plage BPM), stabilité, confiance. Correction manuelle, ÷2 et ×2. |
+| **Grille et temps 1** | Phase calée à ~2 ms près sur les attaques. Le temps 1 est voté sur les changements de section et sur les **entrées de kick / basse**. Le résultat est marqué « incertain » quand le vote est serré. Corrections : « Temps 1 ici », ±10 ms, +1 temps. |
+| **Tempo variable** | Détection des changements de tempo et carte de tempo (un marqueur par plage), exportée vers rekordbox. |
+| **Tonalité** | Notation musicale, **Camelot** et Open Key. Si les analyses ne concordent pas, CueKoda refait une analyse complémentaire, puis signale la tonalité **ambiguë** avec ses alternatives. |
+| **Volume** | LUFS intégré, plage de loudness, true peak, RMS, crête (ffmpeg `ebur128`). |
+| **Énergie** | Score 1–10 et courbe par mesure (volume, densité d'attaques, graves, brillance). |
+| **Structure** | Intro, build-up, drop, breakdown, outro, phrases de 8 / 16 / 32 mesures (seulement si elles sont régulières). Les **drops** sont repérés par palier d'énergie et placés sur l'entrée de la basse. |
+| **Voix** | Détection locale expérimentale (modèle MusiCNN + heuristique) : passages vocaux nets ou faibles. |
+| **Empreinte** | Empreinte chromatique par mesure, pour repérer doublons et versions d'un même morceau. |
+
+La file d'analyse se met en pause, s'annule, relance les échecs et respecte une limite CPU. Un fichier
+défectueux ne bloque jamais les autres. Un morceau déjà analysé et inchangé revient instantanément du cache.
+
+### 2. Hot cues et memory cues
+Les cues de la capture du haut sont placés d'après la musique : Intro, Vocal, Build, Drop 1, Break, Drop 2,
+Mix In / Mix Out, Outro… Chacun a une **couleur par fonction** (personnalisable par profil), un **indice de
+confiance** et une **raison** (« entrée de la basse : +12 dB dans les graves »).
+
+- **Glisser** un drapeau sur la waveform pour déplacer un cue (aimanté sur le temps, Alt = libre).
+- Boutons ±1 temps / ±1 mesure, renommer, changer la couleur, 🔒 verrouiller, ✕ supprimer.
+- **« + Cue ici »** : ajoute un cue du type choisi (Vocal par défaut, pour la voix qui reprend) sur le
+  premier pad libre. Quand les 8 pads sont pris, il devient une **memory cue**.
+- **Memory cues** : cues sans pad, listées sous les pads, qu'on peut placer sur un pad à tout moment.
+  Elles s'exportent en memory cues rekordbox et en cues mémorisés Traktor.
+- Annuler / rétablir (⌘Z / ⇧⌘Z). Les sections suivent les cues Intro / Build / Drop / Break / Outro que tu déplaces.
+- **Apprentissage** : un type de cue que tu supprimes presque toujours n'est plus proposé (statistiques
+  locales, réinitialisables).
+
+### 3. Structure et voix
+<img src="docs/screenshots/fr/structure.png" alt="Onglet Structure : sections éditables et passages vocaux corrigeables" width="100%">
+
+- **Sections** : changer le type et le nom, déplacer le début à la mesure près, scinder à la position de
+  lecture, fusionner. Le bandeau coloré de la waveform se met à jour.
+- **Voix** : ajouter un passage à la lecture, déplacer début et fin, « Fin de voix ici », « Pause dans la
+  voix ici », choisir nette ou faible, créer un cue Vocal en un clic. Tes passages remplacent la détection
+  automatique à chaque ré-analyse.
+
+### 4. Boucles
+Boucles suggérées (intro, outro, avant le drop, début de breakdown), avec longueur réglable de 4 à 64 temps,
+écoute en boucle et validation. Seules les boucles validées s'exportent par défaut. Touche **L** : boucle de
+16 temps à la position de lecture.
+
+### 5. Mix et transitions
+<img src="docs/screenshots/fr/mix.png" alt="Onglet Mix : points Mix In / Mix Out justifiés et morceaux compatibles avec aperçu de transition" width="100%">
+
+- **Mix In / Mix Out** : points d'entrée et de sortie justifiés (phrases, percussion, énergie, présence de
+  voix), transformables en cue d'un clic.
+- **Morceaux compatibles** : tonalité (même, voisine, relative, energy boost…), écart de BPM (demi / double
+  tempo compris), énergie, longueur des fenêtres de transition. Chaque proposition est notée et expliquée,
+  avec ses mises en garde (deux passages chantés qui se superposent, tonalité incertaine…).
+- **🎧 Transition** : écoute la fin du morceau courant enchaînée avec le début de l'autre. Le tempo est calé
+  sans changer la tonalité, les temps sont alignés au Mix Out / Mix In et le fondu dure 16 mesures. CueKoda
+  refuse au-delà de ±8 % d'écart de tempo plutôt que de déformer le son.
+
+### 6. Suggestion d'ordre de mix
+<img src="docs/screenshots/fr/order.png" alt="Suggestion d'ordre de mix : enchaînements notés et justifiés, enchaînement difficile signalé" width="100%">
+
+Bouton discret « Ordre de mix… » au-dessus de la liste : CueKoda propose un ordre pour les morceaux affichés
+(filtre d'abord pour travailler sur une sélection). Rien n'est appliqué ni exporté : c'est une piste de
+départ, **construire le set reste ton travail**.
+
+- **Arc d'énergie** : montée progressive (pic aux trois quarts puis légère redescente), vagues, ou libre
+  (tonalité et tempo seulement).
+- **Ouverture** : laisse CueKoda choisir ou impose ton premier morceau.
+- Chaque enchaînement est **noté sur 100 et justifié**. Les enchaînements **difficiles** (clés qui
+  s'opposent, écart de tempo > 8 %) sont surlignés.
+- Monte / descends les morceaux, écoute chaque transition (🎧), ouvre un morceau, **copie la liste**.
+
+### 7. Bibliothèque
+- Liste triable et filtrable (titre, artiste, clé, BPM), avec la clé en couleur Camelot, l'énergie, une
+  miniature des cues et la fiabilité.
+- **Dossiers surveillés** : un fichier copié dans un dossier surveillé est analysé automatiquement, une fois
+  sa copie terminée.
+- **Doublons** : doublons exacts, même enregistrement dans un autre format, versions liées (remix, edit),
+  grâce à l'empreinte acoustique. Rien n'est supprimé, tu décides.
+- **Profils DJ** : EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, ou tes propres profils
+  (plage BPM, cues à placer, couleurs, boucles).
+- **Références** : « Valider comme référence » enregistre un morceau que tu as vérifié à l'oreille. Ces
+  références servent à mesurer la justesse du moteur (`npm run eval`).
+
+### 8. Export vers ton logiciel DJ
+<img src="docs/screenshots/fr/export.png" alt="Fenêtre d'export : choix du logiciel DJ, ce qui est transféré, étapes d'import" width="100%">
+
+Un seul bouton **« Exporter… »** : choisis ton logiciel, vois ce qui sera transféré et ce qui ne le sera
+pas, enregistre le fichier, suis les étapes d'import.
+
+| Logiciel | Fichier écrit | BPM / grille / clé | Hot cues, noms | Couleurs | Memory cues | Boucles | Import |
+|---|---|---|---|---|---|---|---|
+| **rekordbox** | rekordbox XML | ✓ (grille multi-tempo) | ✓ | ✓ | ✓ | ✓ | ✅ vérifié |
+| **Traktor Pro** | Traktor NML | ✓ (un seul tempo) | ✓ | — (couleur par type) | ✓ (cues sans pad) | ✓ | ✅ vérifié |
+| **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | selon Engine DJ | selon Engine DJ | ? | ? | ? | à vérifier |
+| **VirtualDJ** | rekordbox XML | selon VirtualDJ | selon VirtualDJ | ? | ? | ? | à vérifier |
+| **djay Pro** | rekordbox XML | selon djay | selon djay | ? | ? | ? | à vérifier |
+| **Serato DJ Pro** | — | — | — | — | — | — | indisponible |
+
+Serato range ses cues **dans les fichiers audio eux-mêmes** : les écrire modifierait tes fichiers, ce que
+CueKoda ne fait jamais. Détails et procédure de vérification : [matrice d'export](docs/MATRICE_EXPORT.md).
+
+Sécurité de l'export : CueKoda écrit un **nouveau fichier de collection**, sans jamais toucher à la base de
+ton logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord sauvegardé à côté.
+
+### 9. Réglages, mises à jour et langue
+<img src="docs/screenshots/fr/settings.png" alt="Réglages : mises à jour automatiques et langue de l'interface" width="100%">
+
+- **Mises à jour** : vérification au démarrage (désactivable) et bouton « Vérifier maintenant ». Seul GitHub
+  est contacté, sans aucune donnée de ta bibliothèque. L'installation se fait sur ton clic, après contrôle du
+  fichier (taille et empreinte SHA-256).
+  - **Windows** : installation silencieuse puis redémarrage.
+  - **macOS** : l'ancienne version part à la Corbeille, la nouvelle prend sa place et redémarre.
+- **Langue** : français ou anglais. Les noms de tes cues ne sont jamais traduits, ce sont tes données.
+- **Thème** sombre (par défaut), clair ou système ; nombre d'analyses en parallèle ; dossiers surveillés ;
+  apprentissage ; profils.
+
+## Fiabilité et limites
+CueKoda est honnête sur ce qu'il sait faire :
+- **Validé à l'oreille par un DJ** : imports rekordbox et Traktor ; drops, temps 1 et outro sur 3 morceaux
+  EDM corrigés à la main (à 0,5 s près).
+- **À confirmer** : imports Engine DJ, VirtualDJ et djay Pro ; échelle d'énergie et niveaux de confiance non
+  calibrés sur un corpus annoté.
+- **Expérimental** : détection vocale (des voix peuvent être manquées) ; couplet / refrain proposés
+  seulement sur preuve forte.
+- **Pas encore fait** : séparation de stems.
+- **Tempo variable** : les marqueurs sont exportés vers rekordbox, mais cues et sections sont calculés sur
+  la grille moyenne ; Traktor ne reçoit qu'un tempo.
+
+Le détail, fonction par fonction, est dans [l'état des fonctionnalités](docs/AUDIT_ET_PLAN.md) et le
+fonctionnement des algorithmes dans [ALGORITHMES.md](docs/ALGORITHMES.md).
+
+## Raccourcis clavier
+| Touche | Action |
+|---|---|
+| Espace | Lecture / pause |
+| ← / → | Une mesure en arrière / en avant (Maj : un temps) |
+| ↑ / ↓ | Morceau précédent / suivant |
+| 1 … 8 | Aller au hot cue A … H |
+| Maj + 1 … 8 | Poser le hot cue A … H à la lecture |
+| C / M | Ajouter un cue (premier pad libre, sinon memory cue) / une memory cue |
+| , / . | Déplacer le cue sélectionné d'un temps (Maj : une mesure) |
+| Suppr | Supprimer le cue sélectionné |
+| L | Boucle de 16 temps à la lecture |
+| + / − / 0 | Zoom avant / arrière / tout le morceau |
+| ⌘Z / ⇧⌘Z | Annuler / rétablir |
+| ⌘E | Exporter |
+| ? | Aide |
+
+## Confidentialité et sécurité
+- Analyse locale : aucun fichier ni aucune donnée de bibliothèque n'est envoyé en ligne.
+- Seule connexion réseau : la vérification des mises à jour sur GitHub (désactivable).
+- Aucun fichier audio n'est jamais modifié, déplacé ni supprimé. Les doublons sont signalés, jamais effacés.
+- Les exports écrivent un nouveau fichier et sauvegardent l'ancien ; la base de ton logiciel DJ n'est jamais
+  modifiée directement.
+
+## Pour les développeurs
 
 ```bash
 npm install
@@ -90,73 +247,40 @@ npm install
 npm start
 ```
 
-## Tests
+| Commande | Rôle |
+|---|---|
+| `npm run test:all` | Typecheck, tests unitaires, test de bout en bout sur morceaux synthétiques |
+| `npm run test:regression` | Ré-analyse `samples/` et compare à `tests/baselines/samples.json` |
+| `npm run smoke` | Lance la vraie app Electron (fenêtre invisible) et pilote l'interface |
+| `npm run eval` | Mesure la justesse du moteur sur tes morceaux validés comme références |
+| `npm run dist:mac` / `dist:win` | Construit les installeurs en local |
 
-```bash
-npm run test:all
-```
-
-```bash
-npm run test:regression
-```
-
-```bash
-npm run smoke
-```
-
-- `test:all` : typecheck, tests unitaires (matching, doublons et empreinte, profils, fusion, exports, file
-  d'analyse, évaluation…) et le test de bout en bout sur morceaux synthétiques (BPM, grille, clé, sections,
-  cues, boucles, corrections manuelles, changement de tempo, évaluation, cache, fichier corrompu, dossier
-  surveillé).
-- `test:regression` : ré-analyse `samples/` et compare à `tests/baselines/samples.json`.
-- `smoke` : lance la vraie app Electron sans fenêtre visible sur `samples/`, pilote l'interface (édition de
-  cues, annulation, export, lecture audio) et écrit `smoke-report.json`.
-- `eval` : mesure la justesse du moteur sur les morceaux validés comme référence dans l'app
-  (voir [ALGORITHMES.md](docs/ALGORITHMES.md#évaluation-sur-références-vérifiées-evaluatets-npm-run-eval)).
-
-Ligne de commande (même moteur) :
+La ligne de commande utilise le même moteur :
 
 ```bash
 npm run build && node dist/cli/cli.js ~/Music/MonDossier --profile house --out sortie
 ```
 
+**Architecture**
+```
+src/core/       moteur pur : décodage, tempo, grille, tonalité, énergie, structure, cues, boucles, mix,
+                profils, fusion, matching, ordre de mix, transitions, doublons, apprentissage, export/
+src/main/       Electron : bibliothèque persistante, cache, file d'analyse (workers), dossiers surveillés,
+                mises à jour
+src/renderer/   interface (bibliothèque, vue d'analyse, dialogues) : HTML / CSS / TypeScript sans framework
+src/shared/     types IPC, logique de mise à jour, traduction
+src/test/       unitaires, bout en bout, non-régression, diagnostics
+```
+
+**Stack et licences tierces** : Electron 45, TypeScript, esbuild, electron-builder ; Essentia.js
+(AGPL-3.0) ; ffmpeg-static (binaire GPL) ; music-metadata ; TensorFlow.js (Apache-2.0) et le modèle
+`voice_instrumental-musicnn-msd-2` du Music Technology Group (UPF), sous CC BY-NC-SA 4.0 (CueKoda est gratuit
+et non commercial). Aucune licence n'est encore choisie pour le code de CueKoda lui-même ; comme Essentia.js
+est sous AGPL-3.0, sa distribution doit rester compatible avec l'AGPL.
+
+**Documentation** : [guide utilisateur](docs/GUIDE_UTILISATEUR.md) · [algorithmes et limites](docs/ALGORITHMES.md) ·
+[matrice d'export](docs/MATRICE_EXPORT.md) · [audit et état des fonctionnalités](docs/AUDIT_ET_PLAN.md)
+
 ## Logo
-
-Symbole : l'anneau de la *coda* (« Koda ») contenant une waveform dont la barre centrale blanche marque le
-point de cue. Sources SVG et PNG dans [assets/logo](assets/logo) ; icône d'application `build/icon.png`
-(electron-builder en tire les `.icns` / `.ico`) ; régénérer les PNG avec `scripts/render-logo.cjs`.
-
-## Documentation
-
-- [Guide utilisateur](docs/GUIDE_UTILISATEUR.md)
-- [Algorithmes et limites](docs/ALGORITHMES.md)
-- [Matrice de compatibilité des exports](docs/MATRICE_EXPORT.md)
-- [Audit, architecture, plan et état des fonctionnalités](docs/AUDIT_ET_PLAN.md)
-
-## Architecture
-
-```
-src/core/       moteur pur (décodage, tempo, grille, tonalité, énergie, structure, cues, boucles,
-                mix, profils, fusion, matching, doublons, apprentissage, export/ adaptateurs)
-src/main/       Electron : bibliothèque persistante, cache, file d'analyse (workers), dossiers surveillés
-src/renderer/   interface (bibliothèque, vue d'analyse, dialogues) — HTML/CSS/TS sans framework
-src/test/       unitaires, bout en bout, non-régression, diagnostic tempo
-```
-
-Stack : Electron 45 (macOS 13+ requis, Windows 64 bits uniquement), TypeScript, esbuild 0.28,
-electron-builder 26, Essentia.js (AGPL-3.0 — à prendre en compte avant toute distribution),
-ffmpeg-static (binaire GPL), music-metadata 12 (ESM, intégré au bundle par esbuild). Node.js ≥ 22.12
-pour les outils de développement.
-Détection vocale : TensorFlow.js (Apache-2.0) et le modèle `voice_instrumental-musicnn-msd-2` du Music
-Technology Group (UPF), sous licence CC BY-NC-SA 4.0 — CueKoda est gratuit et non commercial ; le modèle
-est stocké dans `models/` avec sa licence (voir [ALGORITHMES.md](docs/ALGORITHMES.md#crédits)).
-
-## Licence
-Aucune licence n'est encore choisie pour le code de CueKoda. Essentia.js étant sous AGPL-3.0, la
-distribution de l'application doit rester compatible avec l'AGPL (le code source public y contribue).
-
-## Limites connues
-- Imports rekordbox et Traktor vérifiés par un DJ ; Engine DJ, VirtualDJ et djay Pro pas encore.
-- Détection vocale expérimentale, non validée sur annotations ; pas de séparation de stems.
-- Tempo changeant : marqueurs de tempo exportés vers rekordbox, mais cues et sections calculés sur la grille moyenne.
-- Énergie et confiances non calibrées sur un corpus annoté.
+L'anneau de la *coda* (« Koda ») contient une waveform dont la barre centrale blanche marque le point de cue.
+Sources dans [assets/logo](assets/logo).

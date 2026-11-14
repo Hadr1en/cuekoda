@@ -520,31 +520,37 @@ function runSmoke() {
   // Drives the real UI: open a track, move / undo / rename / delete cues, tabs, export dialog, zoom.
   const runUi = async () => {
     try {
-      if (smokeLang === 'en') {
-        // English UI: the scripted checks look buttons up by their French labels, so only capture screens
-        report.ui = await win!.webContents.executeJavaScript(`(async () => {
-          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-          document.querySelector('tr.row').click();
-          await wait(600);
-          return { lang: document.documentElement.lang, detail: !document.getElementById('detail').hidden };
-        })()`);
+      // CUEKODA_SMOKE_LANG set = screenshot mode (README): no scripted edits, clean screens in that language
+      const captureOnly = smokeLang === 'en' || smokeLang === 'fr';
+      const js = (code: string) => win!.webContents.executeJavaScript(`(async () => { const wait = (ms) => new Promise((r) => setTimeout(r, ms)); ${code} })()`);
+      if (captureOnly) {
+        report.ui = await js(`
+          const row = [...document.querySelectorAll('tr.row')].find((tr) => tr.textContent.includes('This Dream of You')) ?? document.querySelector('tr.row');
+          row.click();
+          await wait(800);
+          return { lang: document.documentElement.lang, detail: !document.getElementById('detail').hidden };`);
       } else report.ui = await win!.webContents.executeJavaScript(SMOKE_UI_SCRIPT);
       // export target picker and mix-order suggestion, with screenshots when asked
       const shots = process.env.CUEKODA_SMOKE_SHOTS;
       const shot = async (name: string) => {
         if (!shots) return;
-        await new Promise((r) => setTimeout(r, 400));
+        // no notification over the screenshot
+        await win!.webContents.executeJavaScript(`(() => { const t = document.getElementById('toast'); if (t && t.matches(':popover-open')) t.hidePopover(); return true; })()`);
+        await new Promise((r) => setTimeout(r, 500));
         fs.writeFileSync(path.join(shots, `${name}.png`), (await win!.webContents.capturePage()).toPNG());
       };
-      if (smokeLang === 'en') {
-        await shot('en-detail');
-        await win!.webContents.executeJavaScript(`document.getElementById('t-sections').click(); true`);
-        await shot('en-structure');
-        await win!.webContents.executeJavaScript(`document.getElementById('t-mix').click(); true`);
-        await shot('en-mix');
-        await win!.webContents.executeJavaScript(`document.getElementById('btn-settings').click(); true`);
-        await shot('en-settings');
-        await win!.webContents.executeJavaScript(`document.getElementById('dlg-settings').close(); document.getElementById('t-cues').click(); true`);
+      if (captureOnly) {
+        await shot('detail');
+        const toTabs = `const d = document.getElementById('detail'); d.scrollTop += document.querySelector('.tabs').getBoundingClientRect().top - d.getBoundingClientRect().top - 8;`;
+        await js(`document.getElementById('t-sections').click(); await wait(100); ${toTabs} return true;`);
+        await shot('structure');
+        await js(`document.getElementById('t-mix').click(); await wait(100); ${toTabs} return true;`);
+        await shot('mix');
+        await js(`document.getElementById('detail').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300);
+          const d = document.getElementById('dlg-settings'); const h = [...d.querySelectorAll('h3')].find((x) => /Mises à jour|Updates/.test(x.textContent));
+          if (h) h.scrollIntoView({ block: 'start' }); return true;`);
+        await shot('settings');
+        await js(`document.getElementById('dlg-settings').close(); return true;`);
       }
       report.dialogs = await win!.webContents.executeJavaScript(`(async () => {
         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -562,7 +568,7 @@ function runSmoke() {
         await wait(300);
         const d = document.getElementById('dlg-order');
         const rows = d.querySelectorAll('tbody tr').length;
-        const listen = d.querySelector('button[aria-label^="Écouter la transition"]');
+        const listen = ${captureOnly ? 'null' : `d.querySelector('button[aria-label^="Écouter la transition"]')`};
         if (listen) listen.click();
         await wait(2500);
         const audio = document.getElementById('audio');
@@ -570,7 +576,7 @@ function runSmoke() {
       })()`);
       await shot('order');
       await win!.webContents.executeJavaScript(`document.getElementById('dlg-order').close(); true`);
-      if (smokeLang === 'en') return finish();
+      if (captureOnly) return finish();
       await new Promise((r) => setTimeout(r, 1000)); // edits are saved after a 300 ms debounce
       const edited = Object.values(records()).find((r) => r.result?.cues.some((c) => c.name === 'Smoke cue'));
       report.uiEditPersisted = !!edited;

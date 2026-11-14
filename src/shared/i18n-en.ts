@@ -249,8 +249,8 @@ export const EN_EXACT: Record<string, string> = {
   // ================================================================ tab: mix & compatibles
   'Créer un cue': 'Create a cue',
   'Aucune suggestion.': 'No suggestions.',
-  'Suggestions à valider : elles s’appuient sur la structure, les phrases, l’énergie et la percussion. La présence de voix n’est pas encore analysée.':
-    'Suggestions to review: they rely on structure, phrases, energy and percussion. Vocal presence is not analyzed yet.',
+  'Suggestions à valider : elles s’appuient sur la structure, les phrases, l’énergie, la percussion et la détection vocale (expérimentale).':
+    'Suggestions to review: they rely on structure, phrases, energy, percussion and vocal detection (experimental).',
   'Morceaux compatibles': 'Compatible tracks',
   'Écouter la transition : fin de ce morceau → début de l’autre, tempo calé, temps alignés, fondu de 16 mesures':
     'Listen to the transition: end of this track → start of the other, tempo matched, beats aligned, 16-bar crossfade',

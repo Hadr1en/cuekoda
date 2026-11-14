@@ -8,6 +8,10 @@ name: Installeurs
 on:
   push:
     branches: [main]
+    # documentation and screenshots alone do not need new installers
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
@@ -103,6 +107,8 @@ jobs:
         run: node scripts/fetch-ffmpeg.mjs
       - run: npm run build
       - name: electron-builder
+        # bash on every OS: PowerShell would split "-c.extraMetadata…" into two arguments
+        shell: bash
         # the build number (= release tag build-N) lets installed apps know whether a newer build exists
         run: npx electron-builder ${{ matrix.target }} --publish never -c.extraMetadata.cuekodaBuild=${{ github.run_number }}
         env:
