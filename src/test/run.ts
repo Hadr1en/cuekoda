@@ -400,7 +400,7 @@ async function main() {
     };
     const upper = bpmWith('techno', '--max-bpm', '180');
     check('Borne haute explicite prise en compte', Math.abs(upper - 174) < 0.05, `${upper} BPM`);
-    const lower = bpmWith('house', '--min-bpm', '70');
+    const lower = bpmWith('house', '--min-bpm', '90');
     check('Borne haute du profil conservée avec une borne basse explicite', Math.abs(lower - 87) < 0.05, `${lower} BPM`);
     const invalid = spawnSync(process.execPath, [cli, file, '--profile', 'house', '--max-bpm', '100'], { encoding: 'utf8' });
     check('Plage de tempo invalide signalée', invalid.status === 1 && invalid.stderr.includes('Plage de tempo invalide'), invalid.stderr.trim());
