@@ -66,6 +66,8 @@ async function main() {
       );
     }
     console.log(`→ ${path.resolve(out)}`);
+  } else {
+    process.exitCode = 1;
   }
 }
 

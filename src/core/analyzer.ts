@@ -235,10 +235,12 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const opt = { ...DEFAULT_OPTIONS, ...options };
   const progress = opt.onProgress ?? (() => {});
   const profile = sanitizeProfile(opt.profile ?? findProfile(opt.profileId));
-  // Explicit min/max (CLI) win; otherwise the profile decides the tempo window.
-  const useProfileRange = !!(opt.profile || opt.profileId) && options.minBpm === undefined;
-  const minBpm = useProfileRange ? profile.minBpm : opt.minBpm;
-  const maxBpm = useProfileRange ? profile.maxBpm : opt.maxBpm;
+  // Each explicit CLI bound replaces the corresponding profile bound.
+  const minBpm = options.minBpm ?? profile.minBpm;
+  const maxBpm = options.maxBpm ?? profile.maxBpm;
+  if (!Number.isFinite(minBpm) || !Number.isFinite(maxBpm) || minBpm <= 0 || maxBpm <= minBpm) {
+    throw new Error('Plage de tempo invalide : le BPM maximal doit être supérieur au BPM minimal (positif).');
+  }
   const ov = opt.overrides ?? {};
   const warnings: string[] = [];
 
