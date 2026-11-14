@@ -1,0 +1,121 @@
+# Builds the macOS and Windows installers on every push to main and publishes them in a GitHub Release
+# (one release per build, the newest one marked "Latest").
+#
+# Installers go straight into the release instead of workflow artifacts: ~650 MB per build would exceed
+# the artifact storage quota of a free private repository.
+name: Installeurs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: installers-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - name: Test de bout en bout (morceaux synthétiques)
+        run: npm test
+
+  prepare:
+    name: Préparer la release
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        name: Créer la release (brouillon)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="build-${GITHUB_RUN_NUMBER}"
+          SHORT=${GITHUB_SHA::7}
+          {
+            echo "Construit automatiquement à partir du commit ${SHORT}."
+            echo
+            echo '```'
+            git log -1 --pretty=%B
+            echo '```'
+            echo
+            echo "## Télécharger"
+            echo "- **macOS Apple Silicon (M1/M2/M3/M4)** : \`CueKoda-${VERSION}-mac-arm64.dmg\`"
+            echo "- **macOS Intel** : \`CueKoda-${VERSION}-mac-x64.dmg\`"
+            echo "- **Windows 64 bits** : \`CueKoda-${VERSION}-windows-setup.exe\`"
+            echo
+            echo "## Premier lancement"
+            echo "L'application n'est pas signée par un certificat Apple / Microsoft :"
+            echo "- macOS : ouvrir l'app une fois, puis Réglages Système › Confidentialité et sécurité › **Ouvrir quand même**."
+            echo "- Windows : SmartScreen › **Informations complémentaires** › **Exécuter quand même**."
+          } > notes.md
+          gh release create "$TAG" --draft --target "$GITHUB_SHA" \
+            --title "CueKoda ${VERSION} — build ${GITHUB_RUN_NUMBER} (${SHORT})" --notes-file notes.md
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Installeur ${{ matrix.name }}
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-14
+            target: --mac
+            files: release/*.dmg
+          - name: Windows
+            os: windows-latest
+            target: --win
+            files: release/*.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Binaires ffmpeg (macOS arm64 / x64, Windows x64)
+        run: node scripts/fetch-ffmpeg.mjs
+      - run: npm run build
+      - name: electron-builder
+        run: npx electron-builder ${{ matrix.target }} --publish never
+        env:
+          # no certificate: macOS gets an ad-hoc signature, Windows is unsigned
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Envoyer dans la release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" ${{ matrix.files }} --clobber
+
+  publish:
+    name: Publier la release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publier et marquer comme dernière version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --draft=false --latest

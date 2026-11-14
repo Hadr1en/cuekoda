@@ -31,6 +31,26 @@ Tout est local : aucun fichier audio n'est envoyé en ligne, modifié ou déplac
 État détaillé de chaque fonctionnalité (testée / à valider / partielle / absente) :
 [docs/AUDIT_ET_PLAN.md](docs/AUDIT_ET_PLAN.md#5-état-après-les-chantiers-v02-et-v03x-détection-vocale-2026-11-14).
 
+## Télécharger
+
+Les installeurs sont reconstruits automatiquement à chaque commit sur `main` (GitHub Actions) et publiés
+dans les [Releases](https://github.com/Hadr1en/cuekoda/releases/latest) :
+
+| Système | Fichier |
+|---|---|
+| macOS 13+ Apple Silicon (M1–M4) | `CueKoda-<version>-mac-arm64.dmg` |
+| macOS 13+ Intel | `CueKoda-<version>-mac-x64.dmg` |
+| Windows 10/11 64 bits | `CueKoda-<version>-windows-setup.exe` |
+
+L'application n'est pas encore signée par un certificat Apple / Microsoft :
+- **macOS** : glisser CueKoda dans Applications, l'ouvrir une fois, puis Réglages Système ›
+  Confidentialité et sécurité › **Ouvrir quand même**.
+- **Windows** : à l'avertissement SmartScreen, **Informations complémentaires** › **Exécuter quand même**.
+
+Le dépôt étant privé, seuls les comptes GitHub ayant accès au dépôt peuvent télécharger les installeurs.
+
+Construire localement : `npm run dist:mac` (DMG arm64 + x64) ou `npm run dist:win` (sur Windows).
+
 ## Démarrer
 
 ```bash

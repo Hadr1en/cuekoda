@@ -23,13 +23,14 @@ app.whenReady().then(async () => {
   fs.mkdirSync(path.join(root, 'build'), { recursive: true });
   // One offscreen window reused for every render (re-creating windows breaks subsequent loads)
   const win = new BrowserWindow({ width: 2400, height: 1024, show: false, frame: false, transparent: true, useContentSize: true, webPreferences: { offscreen: true } });
-  const pages = [];
+  // Temporary pages go to the OS temp folder (cleaned by the system), pointing at the SVG by absolute URL
+  const tmp = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'cuekoda-logo-'));
   try {
     for (const [i, [file, w, h, dest]] of jobs.entries()) {
-      const page = path.join(logo, `.render-${process.pid}-${i}.html`);
-      pages.push(page);
+      const page = path.join(tmp, `render-${i}.html`);
+      const src = require('node:url').pathToFileURL(path.join(logo, file)).href;
       fs.writeFileSync(page, `<!doctype html><html><body style="margin:0;background:transparent;overflow:hidden">
-        <img src="${file}" style="display:block;width:${w}px;height:${h}px"></body></html>`);
+        <img src="${src}" style="display:block;width:${w}px;height:${h}px"></body></html>`);
       win.setContentSize(w, h);
       await win.loadFile(page);
       await new Promise((r) => setTimeout(r, 300));
@@ -42,7 +43,6 @@ app.whenReady().then(async () => {
     console.error('render failed:', e.message);
     process.exitCode = 1;
   } finally {
-    for (const p of pages) fs.rmSync(p, { force: true });
     win.destroy();
     app.quit();
   }

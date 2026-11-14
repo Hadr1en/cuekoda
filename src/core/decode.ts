@@ -1,9 +1,18 @@
 import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 export const ANALYSIS_SAMPLE_RATE = 22050;
 
 /** Resolves the bundled ffmpeg binary, also when the app is packaged in an asar archive. */
 export function ffmpegPath(): string {
+  // Installed app: the binary for this OS / CPU is shipped in Resources/ffmpeg (see package.json "build").
+  const resources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (resources) {
+    const bundled = path.join(resources, 'ffmpeg', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+    if (fs.existsSync(bundled)) return bundled;
+  }
+  // Development / CLI: the binary installed by the ffmpeg-static package
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const p: string | null = require('ffmpeg-static');
   if (!p) throw new Error('ffmpeg-static: no binary available for this platform');

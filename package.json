@@ -19,7 +19,9 @@
     "test:all": "npm run typecheck && npm run test:unit && npm test",
     "smoke": "npm run build && CUEKODA_SMOKE_DIR=samples CUEKODA_SMOKE_REPORT=smoke-report.json electron .",
     "preview": "npm run build && node dist/cli/cli.js samples --out cuekoda-out --preview dist/renderer/preview-data.js && node scripts/make-preview.mjs",
-    "dist": "npm run build && electron-builder"
+    "dist": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac --win",
+    "dist:mac": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac",
+    "dist:win": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --win"
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
@@ -39,32 +41,83 @@
     "appId": "com.cuekoda.app",
     "productName": "CueKoda",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
+      "!dist/**/*.map",
+      "!dist/test/**",
+      "!dist/renderer/preview*",
       "package.json",
-      "models/**/*"
+      "models/**/*",
+      "!node_modules/ffmpeg-static/ffmpeg",
+      "!node_modules/ffmpeg-static/ffmpeg.exe"
     ],
     "asarUnpack": [
-      "node_modules/ffmpeg-static/**",
       "node_modules/@tensorflow/tfjs-backend-wasm/**",
       "models/**"
     ],
     "mac": {
       "category": "public.app-category.music",
       "target": [
-        "dmg"
-      ]
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "minimumSystemVersion": "13.0",
+      "identity": "-",
+      "extraResources": [
+        {
+          "from": "vendor/ffmpeg/darwin-${arch}",
+          "to": "ffmpeg"
+        }
+      ],
+      "hardenedRuntime": false
     },
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "extraResources": [
+        {
+          "from": "vendor/ffmpeg/win32-x64",
+          "to": "ffmpeg"
+        }
       ]
+    },
+    "dmg": {
+      "artifactName": "CueKoda-${version}-mac-${arch}.${ext}",
+      "title": "CueKoda ${version}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CueKoda",
+      "artifactName": "CueKoda-${version}-windows-setup.${ext}"
     }
   },
   "allowScripts": {
     "ffmpeg-static@5.3.0": true,
     "esbuild@0.28.2": true
+  },
+  "author": {
+    "name": "Hadrien"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hadr1en/cuekoda.git"
   }
 }
