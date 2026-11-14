@@ -57,6 +57,10 @@ async function main() {
     refs = r;
     label = `jeu de données ${dataset}`;
     if (withoutAudio) console.log(`${withoutAudio} annotation(s) sans fichier audio correspondant (ignorées)`);
+    if (!refs.length) {
+      console.error(`Aucune paire audio/annotation exploitable pour ${dataset}.`);
+      process.exit(2);
+    }
   } else {
     const refsSrc = opt('--refs') || appReferencesPath();
     if (!fs.existsSync(refsSrc)) {
@@ -75,6 +79,7 @@ async function main() {
   refs = refs.slice(0, limit);
   const evals: TrackEvaluation[] = [];
   const missing: string[] = [];
+  let failed = 0;
   for (const ref of refs) {
     if (!ref.path || !fs.existsSync(ref.path)) {
       missing.push(ref.fileName);
@@ -85,6 +90,7 @@ async function main() {
       det = await analyzeFile(ref.path, { profileId: ref.profileId ?? 'edm' }); // fresh: no overrides, no user edits, no cache
     } catch (e) {
       console.log(`${ref.fileName}: échec de l'analyse (${(e as Error).message})`);
+      failed++;
       continue;
     }
     const e = evaluateTrack(det, ref);
@@ -101,6 +107,10 @@ async function main() {
       const err = m.errorBeats === null ? 'aucun cue de ce type' : `${m.errorBeats > 0 ? '+' : ''}${fmt(m.errorBeats, 1)} temps`;
       console.log(`    ✗ ${m.name} à ${fmt(m.timeSec, 3)} s : ${err}`);
     }
+  }
+  if (dataset && !evals.length) {
+    console.error(`Aucune analyse réussie pour ${dataset}.`);
+    process.exit(2);
   }
   const s = summarize(evals);
   const c = s.counts;
@@ -119,6 +129,7 @@ async function main() {
     `# Évaluation du moteur CueKoda v${ENGINE_VERSION}`,
     '',
     `${s.tracks} morceau(x) — ${label}${missing.length ? ` (${missing.length} introuvable(s) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''})` : ''}.`,
+    ...(dataset ? [`${refs.length} analyse(s) tentée(s), ${failed} échec(s) de l'analyse.`] : []),
     'Les références du DJ ne sont pas exhaustives : pour les cues, le rappel compte plus que la précision.',
     '',
     '| Mesure | Morceaux | Résultat |',
