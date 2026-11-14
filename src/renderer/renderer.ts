@@ -661,10 +661,51 @@ $('key-select').addEventListener('change', (e) => {
 });
 
 // transport
+/**
+ * Playback errors: the first time, the file is simply reloaded (on a first launch macOS may still have
+ * been asking for folder access). If it fails again, say why instead of blaming the format.
+ */
+let audioRetried = '';
+const MEDIA_ERR: Record<number, string> = {
+  1: 'lecture interrompue',
+  2: 'fichier inaccessible (dossier protégé par macOS ou fichier déplacé ?)',
+  3: 'décodage impossible',
+  4: 'format non pris en charge par le lecteur',
+};
+function playbackHelp(code: number): string {
+  const access = code === 2 || code === 4;
+  const mac = navigator.userAgent.includes('Mac');
+  return (
+    `Lecture impossible : ${MEDIA_ERR[code] ?? 'erreur inconnue'}.` +
+    (access && mac ? ' Vérifiez Réglages Système › Confidentialité et sécurité › Fichiers et dossiers › CueKoda, puis relancez l’app.' : '') +
+    ' L’analyse et l’export restent valides.'
+  );
+}
+audio.addEventListener('error', () => {
+  const r = current();
+  if (!r || !audio.error) return;
+  if (audioRetried !== r.path) {
+    audioRetried = r.path;
+    const t = audio.currentTime;
+    audio.src = toFileUrl(r.path);
+    audio.load();
+    if (t) audio.currentTime = t;
+    return;
+  }
+  toast(playbackHelp(audio.error.code), 10000);
+});
+audio.addEventListener('canplay', () => {
+  audioRetried = '';
+});
+
 function togglePlay() {
   if (!current()) return;
-  if (audio.paused) audio.play().catch(() => toast('Lecture impossible pour ce format (l’analyse et l’export restent valides)'));
-  else audio.pause();
+  if (audio.paused) {
+    audio.play().catch(() => {
+      // the 'error' handler retries once and explains; only report here if no media error is pending
+      if (!audio.error) toast('Lecture impossible pour le moment — réessayez dans un instant', 6000);
+    });
+  } else audio.pause();
 }
 $('btn-play').addEventListener('click', togglePlay);
 let raf = 0;

@@ -83,7 +83,7 @@ stems (non disponibles).
 Validation à chaque étape : `npm run typecheck`, `npm test` (synthétique, tolérance zéro mesure),
 `npm run test:unit`, ré-analyse des échantillons réels et comparaison à la référence de non-régression.
 
-## 5. État après les chantiers v0.2 et v0.3.x (détection vocale) (2026-11-14)
+## 5. État après les chantiers v0.2, v0.3.x (détection vocale) et v0.3.2 (2026-11-14)
 
 Légende — **T** : implémentée et testée automatiquement · **V** : implémentée, nécessite une validation
 (manuelle ou sur données annotées) · **P** : partiellement disponible · **N** : non disponible.
@@ -91,9 +91,9 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | § | Fonctionnalité | État | Preuve / remarque |
 |---|---|---|---|
 | 3.1 | BPM, demi/double tempo, confiance, alternatives, correction | **T** | e2e synthétique (128, 174 BPM), overrides testés |
-| 3.1 | Tempo variable | **V** | algorithme présent ; aucun morceau à tempo variable dans les tests |
+| 3.1 | Tempo variable | **T** / **V** | détecté sur enchaînement synthétique 124 → 128 BPM ; 0 faux positif sur 13 morceaux réels ; aucun morceau réel à tempo variable testé |
 | 3.2 | Beatgrid, downbeat, correction (temps 1, ±10 ms, ±1 temps) | **T** | phase 2 ms ; overrides testés |
-| 3.2 | Changements de tempo (multi-marqueurs) | **N** | grille fixe uniquement (signalée) |
+| 3.2 | Changements de tempo (multi-marqueurs) | **T** / **P** | marqueurs exacts sur synthétique (bascule à 4 ms, temps 1), exportés vers rekordbox ; Traktor : un seul tempo ; cues calculés sur la grille moyenne |
 | 3.3 | Tonalité, Camelot, Open Key, confiance, correction | **T** | e2e + unitaires |
 | 3.3 | Ambiguïté + analyse complémentaire | **V** | logique présente, pas de morceau ambigu de référence |
 | 3.4 | Métadonnées, LUFS, LRA, true peak, RMS, crête | **T** | valeurs ffmpeg `ebur128`, séparées des tags |
@@ -102,7 +102,7 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 5 | Phrases 8/16/32 sans hypothèse forcée | **T** | unitaires + e2e |
 | 6 | Énergie (courbe, score 1–10, événements, comparaison) | **V** | relations vérifiées ; échelle non calibrée |
 | 7 | Smart Cue Engine, couleurs configurables, confiance, raisons | **T** | e2e + unitaires |
-| 7.5 | Ajout, déplacement (waveform), suppression, renommage, couleur, verrou, annulation | **V** | testé dans l'UI simulée (navigateur) ; pas encore dans Electron |
+| 7.5 | Ajout, déplacement (waveform), suppression, renommage, couleur, verrou, annulation | **T** | piloté dans le vrai Electron (`npm run smoke`) : déplacement, annulation, renommage, suppression, persistance, conservation après ré-analyse forcée |
 | 7.5 | Ré-analyse sans perte des ajustements | **T** | unitaire `merge` |
 | 8 | Smart Loops (suggestion, validation, export) | **T** | e2e + export unitaire |
 | 9 | Détection vocale (passages par mesure, confiance qualitative, affichage waveform) | **V** | v0.3.1 : modèle local Essentia MusiCNN (CC BY-NC-SA, logiciel gratuit non commercial) + heuristique ; exacte sur voix synthétique, 0 faux passage sur synthétiques sans voix ; sur 4 morceaux chantés réels 25–62 % de mesures détectées, 0–10 % (faibles) sur 6 présumés instrumentaux ; aucune annotation horodatée → précision/rappel non mesurés ; +5–10 s d'analyse par morceau |
@@ -114,14 +114,15 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 12 | Analyse par lots : parallèle, limite CPU, pause, reprise, annulation, échecs isolés, relance, cache, persistance, résumé | **T** | unitaires (faux workers) + workers réels + test de fumée Electron |
 | 13 | Dossiers surveillés (copie terminée, doublons, erreurs, pause) | **T** | e2e hors sandbox |
 | 14 | Track matching justifié | **T** | unitaires |
-| 15 | Doublons exacts / encodages / versions liées, sans suppression | **T** / **P** | unitaires ; pas d'empreinte acoustique dédiée |
+| 15 | Doublons exacts / encodages / versions liées, sans suppression | **T** | empreinte chromatique par mesure ; calibrée sur 13 morceaux + réencodage + version coupée (marge 2 vs 67 mesures) |
 | 16 | Stems | **N** | non implémenté (coût, modèle local à choisir) |
-| 17 | Apprentissage simple à partir des corrections, réinitialisable | **V** | logique testée ; intégration à valider en usage |
+| 17 | Apprentissage simple à partir des corrections, réinitialisable | **T** / **V** | suppression enregistrée de bout en bout dans Electron ; effet sur les suggestions à valider en usage |
 | 18 | Export rekordbox XML (cues, couleurs, memory cues, boucles) | **V** | XML valide et testé ; import réel non vérifié |
 | 18 | Export Traktor NML (cues, boucles, grille) | **V** | idem |
 | 18 | Serato | **N** | exigerait d'écrire dans les fichiers audio |
 | 18 | Sécurité export (sauvegarde, aperçu, pas d'écriture en base) | **T** / **V** | code + aperçu ; fusion gérée par le logiciel DJ |
-| 19 | Interface sombre, bibliothèque triable/filtrable, vue d'analyse zoomable, raccourcis | **V** | rendue et manipulée dans le navigateur ; chargée sans erreur dans Electron |
+| 19 | Interface sombre, bibliothèque triable/filtrable, vue d'analyse zoomable, raccourcis, lecture audio | **T** / **V** | pilotée dans Electron (onglets, export, zoom, lecture et saut dans le morceau) ; raccourcis clavier non automatisés |
 | 20 | Local, hors ligne, fichiers corrompus, sans tags, cache, persistance | **T** | e2e + fumée Electron |
 | 21 | Tests de non-régression, relance avec nouveau moteur | **T** | `npm run test:regression`, cache par version |
-| 21 | Évaluation sur annotations de référence vérifiées | **N** | aucun corpus annoté disponible |
+| 21 | Évaluation sur annotations de référence vérifiées | **T** / **V** | « Valider comme référence » + `npm run eval` (BPM, phase, temps 1, MIREX, F1 cues / sections, Spearman énergie) ; chaîne vérifiée sur vérité terrain synthétique ; aucune référence réelle encore |
+| 20 | Installeurs macOS (arm64, x64) et Windows, reconstruits à chaque commit | **T** | GitHub Actions ; DMG téléchargé depuis la release vérifié (analyse + cache) ; non signés Apple / Microsoft |

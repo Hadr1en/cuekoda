@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.3.1';
+export const ENGINE_VERSION = '0.3.2';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
@@ -295,6 +295,10 @@ export interface AnalysisResult extends TrackInfo {
   mix?: { mixIn: MixSuggestion[]; mixOut: MixSuggestion[] };
   /** Vocal presence per bar + segments (engine ≥ 0.3.0) */
   vocals?: VocalInfo;
+  /** Chromagram per bar for duplicate / related-version detection (core/fingerprint.ts) */
+  /** Tempo markers when the tempo changes (≥ 2 entries); absent for constant-tempo tracks (spec §3.2) */
+  tempoMap?: import('./tempomap').TempoMarker[];
+  fingerprint?: import('./fingerprint').Fingerprint;
   overrides?: Overrides;
   /** Overview waveform, 0..1 values */
   wave: number[];

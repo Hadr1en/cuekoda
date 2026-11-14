@@ -37,8 +37,36 @@ export function chooseTempo(bands: Bands, rawBpm: number, min: number, max: numb
   return { bpm: base };
 }
 
+/**
+ * Local tempo of consecutive 64-beat segments, each fitted independently within ±8 % of `bpm`.
+ * Segments without a clear pulse (breakdowns) are skipped: score below half of the whole-track score.
+ */
+export function localTempi(bands: Bands, bpm: number, durSec: number): number[] {
+  const o = detrend(bands.onset, Math.round(bands.frameRate * 0.5));
+  const fr = bands.frameRate;
+  const global = combScore(o, fr, bpm).s;
+  const segSec = (64 * 60) / bpm;
+  const out: number[] = [];
+  for (let t0 = 0; t0 + segSec <= durSec; t0 += segSec) {
+    const f0 = Math.max(0, Math.floor(timeToFrame(bands, t0)));
+    const f1 = Math.floor(timeToFrame(bands, t0 + segSec));
+    let best = { bpm, s: -1 };
+    for (let b = bpm * 0.92; b <= bpm * 1.08; b += 0.05) {
+      const r = combScore(o, fr, b, f0, f1);
+      if (r.s > best.s) best = { bpm: b, s: r.s };
+    }
+    const c = best.bpm;
+    for (let b = c - 0.06; b <= c + 0.06; b += 0.005) {
+      const r = combScore(o, fr, b, f0, f1);
+      if (r.s > best.s) best = { bpm: b, s: r.s };
+    }
+    if (best.s >= 0.5 * global) out.push(best.bpm);
+  }
+  return out;
+}
+
 /** Removes the slow-moving baseline so that only peaks (onsets) remain. */
-function detrend(o: Float32Array, win: number): Float32Array {
+export function detrend(o: Float32Array, win: number): Float32Array {
   const base = movingAverage(o, win);
   const out = new Float32Array(o.length);
   for (let i = 0; i < o.length; i++) out[i] = Math.max(0, o[i] - base[i]);
@@ -53,34 +81,36 @@ interface CombFit {
 }
 
 /** Coarse grid fit: finds the tempo (around `bpmEst`) and phase that best explains the onset envelope. */
+/** Mean onset strength on the best-phased grid of `bpm`, over frames [f0, f1). */
+export function combScore(o: Float32Array, fr: number, bpm: number, f0 = 0, f1 = o.length): { s: number; ph: number } {
+  const P = (fr * 60) / bpm;
+  const nPh = Math.max(8, Math.round(P * 2));
+  const end = Math.min(o.length - 1, f1);
+  let best = -1;
+  let bestPh = 0;
+  for (let i = 0; i < nPh; i++) {
+    const ph = (P * i) / nPh;
+    let s = 0;
+    let n = 0;
+    for (let t = f0 + ph; t < end; t += P) {
+      const i0 = t | 0;
+      const w = t - i0;
+      s += o[i0] * (1 - w) + o[i0 + 1] * w;
+      n++;
+    }
+    s = n ? s / n : 0;
+    if (s > best) {
+      best = s;
+      bestPh = ph;
+    }
+  }
+  return { s: best, ph: bestPh };
+}
+
 export function fitGridComb(bands: Bands, bpmEst: number, span = 3): CombFit {
   const o = detrend(bands.onset, Math.round(bands.frameRate * 0.5));
-  const T = o.length;
   const fr = bands.frameRate;
-
-  const scoreAt = (bpm: number) => {
-    const P = (fr * 60) / bpm;
-    const nPh = Math.max(8, Math.round(P * 2));
-    let best = -1;
-    let bestPh = 0;
-    for (let i = 0; i < nPh; i++) {
-      const ph = (P * i) / nPh;
-      let s = 0;
-      let n = 0;
-      for (let t = ph; t < T - 1; t += P) {
-        const i0 = t | 0;
-        const w = t - i0;
-        s += o[i0] * (1 - w) + o[i0 + 1] * w;
-        n++;
-      }
-      s = n ? s / n : 0;
-      if (s > best) {
-        best = s;
-        bestPh = ph;
-      }
-    }
-    return { s: best, ph: bestPh };
-  };
+  const scoreAt = (bpm: number) => combScore(o, fr, bpm);
 
   let bestBpm = bpmEst;
   let best = scoreAt(bpmEst);
@@ -110,7 +140,7 @@ export function fitGridComb(bands: Bands, bpmEst: number, span = 3): CombFit {
  * Sharp "attack" envelope in the time domain (positive derivative of a smoothed |x|),
  * used to place the beat grid with millisecond accuracy.
  */
-function attackEnvelope(x: Float32Array, sr: number): Float32Array {
+export function attackEnvelope(x: Float32Array, sr: number): Float32Array {
   const a1 = Math.exp(-1 / (0.002 * sr));
   const a2 = Math.exp(-1 / (0.001 * sr));
   const d = new Float32Array(x.length);
@@ -287,15 +317,9 @@ export function estimateGrid(
   const ff = robustFit(mf, false);
   const confidence = ff.used >= 16 ? ff.inlierFrac : 0;
 
-  // Tempo stability: local tempo on ~64-beat segments, measured against the global grid.
-  const mw = measureOffsets(d, sr, bpm, phase, durSec, 0.06);
-  const local: number[] = [];
-  const SEG = 64;
-  for (let s = 0; s + SEG <= mw.k.length; s += SEG) {
-    const sub: Measure = { k: mw.k.slice(s, s + SEG), off: mw.off.slice(s, s + SEG), str: mw.str.slice(s, s + SEG) };
-    const f = robustFit(sub, true);
-    if (f.used >= 32 && f.inlierFrac >= 0.5) local.push(60 / (P + f.slope));
-  }
+  // Tempo stability: tempo of each ~64-beat segment estimated on its own (grid fit within ±8 % of the
+  // global tempo), so a tempo step is seen even when the global grid drifts far away from the beats.
+  const local = localTempi(bands, bpm, durSec);
   const localMin = local.length ? Math.min(...local) : bpm;
   const localMax = local.length ? Math.max(...local) : bpm;
   const variable = local.length >= 2 && (localMax - localMin) / bpm > 0.01;

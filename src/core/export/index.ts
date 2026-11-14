@@ -48,7 +48,7 @@ export const ADAPTERS: ExportAdapter[] = [
     formatName: 'rekordbox XML (collection)',
     capabilities: [
       { field: 'BPM', support: 'yes', note: 'AverageBpm + TEMPO' },
-      { field: 'Beatgrid', support: 'partial', note: 'Un seul marqueur de tempo (grille fixe) — pas de grille variable' },
+      { field: 'Beatgrid', support: 'yes', note: 'Marqueur de tempo unique, ou un marqueur par segment quand le tempo change' },
       { field: 'Tonalité', support: 'yes', note: 'Tonality (notation musicale)' },
       { field: 'Hot cues (8)', support: 'yes', note: 'POSITION_MARK Num 0–7' },
       { field: 'Noms des cues', support: 'yes', note: 'Attribut Name' },
@@ -73,7 +73,7 @@ export const ADAPTERS: ExportAdapter[] = [
     formatName: 'Traktor NML (collection)',
     capabilities: [
       { field: 'BPM', support: 'yes', note: 'TEMPO BPM' },
-      { field: 'Beatgrid', support: 'partial', note: 'Marqueur AutoGrid sur le premier temps (grille fixe)' },
+      { field: 'Beatgrid', support: 'partial', note: 'Marqueur AutoGrid sur le premier temps (un seul tempo : les changements de tempo ne sont pas transférés)' },
       { field: 'Tonalité', support: 'yes', note: 'MUSICAL_KEY + INFO KEY (Open Key)' },
       { field: 'Hot cues (8)', support: 'yes', note: 'CUE_V2 HOTCUE 0–7' },
       { field: 'Noms des cues', support: 'yes', note: 'Attribut NAME' },

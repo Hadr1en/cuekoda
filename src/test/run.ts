@@ -332,6 +332,35 @@ async function main() {
     }
   }
 
+  // ---- tempo change: 32 bars at 124 bpm, then 32 bars at 128 bpm (spec §3.2) -------------------------
+  {
+    console.log('\n▶ changement de tempo (124 → 128 BPM)');
+    check('Pas de marqueurs sur tempo fixe', results.every((r) => !r.tempoMap), results.map((r) => r.tempoMap?.length ?? 0).join(','));
+    const part = (bpm: number, lead: number) =>
+      render({ name: 'x', bpm, lead, chord: [220, 261.63, 329.63], sections: [S(32, { kick: true, bass: true, hats: true, clap: true, pad: 0.6 })] });
+    const lead = 0.2;
+    const a = part(124, lead);
+    const cut = Math.round((lead + (32 * 4 * 60) / 124) * SR); // exactly the end of bar 32 at 124 bpm
+    const b = part(128, 0);
+    const x = new Float32Array(cut + b.length);
+    x.set(a.subarray(0, cut), 0);
+    x.set(b, cut);
+    const file = path.join(dir, 'tempo-change-124-128.wav');
+    writeWav(file, x);
+    const r = await analyzeFile(file, { profileId: 'edm' });
+    const m = r.tempoMap ?? [];
+    console.log('   marqueurs : ' + m.map((k) => `${k.bpm} BPM @ ${k.startSec.toFixed(3)} s (temps ${k.beatInBar})`).join('  |  '));
+    check('Tempo variable détecté', r.tempo?.variable === true, `${r.tempo?.localMin.toFixed(1)}–${r.tempo?.localMax.toFixed(1)}`);
+    check('Deux marqueurs de tempo', m.length === 2, `${m.length}`);
+    check('Tempos des segments', m.length === 2 && Math.abs(m[0].bpm - 124) < 0.2 && Math.abs(m[1].bpm - 128) < 0.2, m.map((k) => k.bpm).join(' → '));
+    const change = cut / SR;
+    check('Position du changement', m.length === 2 && Math.abs(m[1].startSec - change) < 0.05, `${m[1]?.startSec.toFixed(3)} s vs ${change.toFixed(3)} s`);
+    check('Temps 1 des marqueurs', m.length === 2 && m[0].beatInBar === 1 && m[1].beatInBar === 1, m.map((k) => k.beatInBar).join(', '));
+    const { buildRekordboxXml } = await import('../core/export/rekordbox');
+    const xml = buildRekordboxXml([r], { memoryCues: false, loops: 'none' });
+    check('Export rekordbox : un TEMPO par segment', (xml.match(/<TEMPO /g) ?? []).length === 2, `${(xml.match(/<TEMPO /g) ?? []).length} marqueurs`);
+  }
+
   // ---- evaluation pipeline against a ground truth (spec §21) -----------------------------------
   {
     console.log('\n▶ évaluation contre une vérité terrain');

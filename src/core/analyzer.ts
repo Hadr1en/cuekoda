@@ -6,6 +6,8 @@ import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset } from './rhythm
 import { keyFromMusical, keyFromTonic } from './key';
 import { analyzeStructure, buildSections, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
 import { computeEnergy } from './energy';
+import { computeFingerprint } from './fingerprint';
+import { buildTempoMap, type TempoMarker } from './tempomap';
 import { cueCandidates, selectCues } from './cues';
 import { suggestLoops } from './loops';
 import { suggestMix } from './mix';
@@ -294,6 +296,16 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const structure = analyzeStructure(feats);
   const phrases = detectPhrases(structure);
   const energy = computeEnergy(x, SR_DSP, bands, firstDownbeatSec, barLen, feats.nBars, structure.origin);
+  const fingerprint = computeFingerprint(x, SR_DSP, firstDownbeatSec, barLen, feats.nBars, bpm);
+  // Tempo changes: beat-by-beat tracking → constant-tempo segments → markers (only for "variable" tracks)
+  let tempoMap: TempoMarker[] | undefined;
+  if (grid.variable && !ov.bpm) {
+    const markers = buildTempoMap(x, SR_DSP, bands, bpm, firstDownbeatSec);
+    if (markers.length >= 2) {
+      tempoMap = markers;
+      warnings.push(`Changements de tempo : ${markers.map((m) => `${m.bpm} BPM à ${Math.floor(m.startSec / 60)}:${String(Math.floor(m.startSec % 60)).padStart(2, '0')}`).join(' → ')} (marqueurs exportés vers rekordbox)`);
+    }
+  }
   progress('voix', 0.72);
   const voiceModel = await predictVoice(full);
   const vocals = detectVocals(x, SR_DSP, firstDownbeatSec, barLen, feats.nBars, durSec, structure.origin, voiceModel, vocalModelError());
@@ -341,6 +353,8 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     key,
     loudness,
     energy,
+    fingerprint,
+    tempoMap,
     phrases,
     sections,
     cues,

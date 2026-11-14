@@ -532,3 +532,40 @@ test('evaluateTrack: perfect, octave error, shifted cues', () => {
   assert.equal(s.tracks, 2);
   assert.equal(s.downbeatAccuracy, 0.5);
 });
+
+// ---------------------------------------------------------------- acoustic fingerprint (§15)
+import { compareFingerprints, type Fingerprint } from '../core/fingerprint';
+
+function fakeFp(bars: number, seed: number, bpm = 128): Fingerprint {
+  let s = seed;
+  const rnd = () => ((s = (Math.imul(s, 1103515245) + 12345) >>> 0) / 4294967296);
+  return { chroma: Array.from({ length: bars * 12 }, () => Math.round(rnd() * 255)), bars, bpm };
+}
+
+test('fingerprint: same recording, shared passage, different track, tempo guard', () => {
+  const a = fakeFp(100, 1);
+  const same = compareFingerprints(a, { ...a, chroma: a.chroma.map((v) => Math.min(255, v + 3)) })!;
+  assert.ok(same.matchRatio > 0.95 && same.offsetBars === 0);
+  // "radio edit": bars 40-59 removed
+  const edit: Fingerprint = { ...a, chroma: [...a.chroma.slice(0, 40 * 12), ...a.chroma.slice(60 * 12)], bars: 80 };
+  const m = compareFingerprints(a, edit)!;
+  assert.ok(m.longestRunBars >= 40, `longest run ${m.longestRunBars}`);
+  const other = compareFingerprints(a, fakeFp(100, 99))!;
+  assert.ok(other.longestRunBars < 4, `random tracks share ${other.longestRunBars} bars`);
+  assert.equal(compareFingerprints(a, fakeFp(100, 1, 140)), null, 'different tempo: not compared');
+});
+
+test('duplicates use the fingerprint: encoding group and acoustic related versions', () => {
+  const fp = fakeFp(100, 7);
+  const edit: Fingerprint = { ...fp, chroma: [...fp.chroma.slice(0, 40 * 12), ...fp.chroma.slice(60 * 12)], bars: 80 };
+  const groups = findDuplicates([
+    track({ path: '/a.mp3', title: 'Alpha', fileHash: '1', fingerprint: fp }),
+    track({ path: '/a.flac', title: 'Totally other tag', fileHash: '2', fingerprint: { ...fp }, durationSec: 203 }),
+    track({ path: '/a-radio.mp3', title: 'Different name', fileHash: '3', fingerprint: edit, durationSec: 160 }),
+    track({ path: '/b.mp3', title: 'Beta', fileHash: '4', fingerprint: fakeFp(100, 42) }),
+  ]);
+  const enc = groups.find((g) => g.kind === 'encoding')!;
+  assert.deepEqual(enc.paths.sort(), ['/a.flac', '/a.mp3'], 'same audio despite different tags and durations');
+  assert.ok(groups.some((g) => g.kind === 'version' && g.paths.includes('/a-radio.mp3') && g.reason.includes('mesures musicalement identiques')));
+  assert.ok(!groups.some((g) => g.paths.includes('/b.mp3')), 'unrelated track never grouped');
+});

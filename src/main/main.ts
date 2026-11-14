@@ -361,6 +361,64 @@ function registerIpc() {
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 if (SMOKE_DIR) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
 
+/** Renderer-side script of the smoke test (runs in the real UI). */
+const SMOKE_UI_SCRIPT = `(async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const $ = (id) => document.getElementById(id);
+  const pads = () => [...document.querySelectorAll('.pad:not(.empty-pad)')];
+  const btn = (el, label) => [...el.querySelectorAll('button')].find((b) => b.textContent === label);
+  const out = {};
+  const rows = [...document.querySelectorAll('tr.row')];
+  out.rows = rows.length;
+  rows[0].click();
+  await wait(400);
+  out.detailVisible = !$('detail').hidden;
+  out.pads = pads().length;
+  const t0 = pads()[0].querySelector('.tm').textContent;
+  btn(pads()[0], '+1').click();
+  await wait(50);
+  out.cueMoved = pads()[0].querySelector('.tm').textContent !== t0;
+  $('btn-undo').click();
+  await wait(50);
+  out.undoRestored = pads()[0].querySelector('.tm').textContent === t0;
+  const nm = pads()[0].querySelector('input.nm');
+  nm.value = 'Smoke cue';
+  nm.dispatchEvent(new Event('change'));
+  await wait(50);
+  out.renamed = pads()[0].querySelector('input.nm').value === 'Smoke cue';
+  const before = pads().length;
+  btn(pads()[pads().length - 1], '✕').click();
+  await wait(50);
+  out.cueDeleted = pads().length === before - 1;
+  for (const t of ['loops', 'sections', 'mix', 'info', 'cues']) { $('t-' + t).click(); await wait(30); }
+  out.tabsOk = !$('tab-cues').hidden;
+  $('btn-export').click();
+  await wait(300);
+  out.exportDialogOpen = $('dlg-export').open;
+  out.exportRows = $('dlg-export').querySelectorAll('.caps tbody tr').length;
+  $('dlg-export').close();
+  $('zoom-in').click();
+  out.errorsShown = [...document.querySelectorAll('.err')].length;
+  // audio playback of the selected track (what the DJ needs to check cues by ear)
+  const audio = $('audio');
+  audio.muted = true;
+  out.audioSrc = audio.src.slice(0, 40);
+  try {
+    await audio.play();
+    await wait(1500);
+    out.audioPlaying = !audio.paused && audio.currentTime > 0.5;
+    out.audioTime = audio.currentTime;
+    audio.currentTime = 30;
+    await wait(500);
+    out.audioSeek = audio.currentTime >= 29.5;
+    audio.pause();
+  } catch (e) {
+    out.audioPlaying = false;
+    out.audioError = String(e) + ' code=' + (audio.error ? audio.error.code + ' ' + audio.error.message : 'none');
+  }
+  return out;
+})()`;
+
 function runSmoke() {
   const report: Record<string, unknown> = { rendererErrors: [] as string[], batches: [] as unknown[] };
   // Electron ≥ 35: details on the event object (positional args deprecated, removed in 47)
@@ -379,10 +437,27 @@ function runSmoke() {
     app.exit(0);
   };
   let round = 0;
+  let editedPath: string | null = null;
   win!.webContents.once('did-finish-load', () => {
     report.rendererLoaded = true;
     addFiles(collectAudioFiles([SMOKE_DIR!]));
   });
+  // Drives the real UI: open a track, move / undo / rename / delete cues, tabs, export dialog, zoom.
+  const runUi = async () => {
+    try {
+      report.ui = await win!.webContents.executeJavaScript(SMOKE_UI_SCRIPT);
+      await new Promise((r) => setTimeout(r, 1000)); // edits are saved after a 300 ms debounce
+      const edited = Object.values(records()).find((r) => r.result?.cues.some((c) => c.name === 'Smoke cue'));
+      report.uiEditPersisted = !!edited;
+      report.learningDeletions = Object.values(learningStore.data.kinds).reduce((n, k) => n + (k?.deleted ?? 0), 0);
+      if (!edited) return finish();
+      editedPath = edited.path;
+      enqueue(edited.path, true); // forced re-analysis: the renamed cue must survive
+    } catch (e) {
+      report.uiError = String(e);
+      finish();
+    }
+  };
   // hook the queue's drained event
   const q = queue as unknown as { hooks: { drained: (s: unknown) => void } };
   const prev = q.hooks.drained;
@@ -393,7 +468,12 @@ function runSmoke() {
     if (round === 1) {
       // second pass: same files, forced through the queue → must be served by the cache
       for (const p of Object.keys(records())) enqueue(p);
-    } else finish();
+    } else if (round === 2) {
+      void runUi();
+    } else {
+      report.editKeptAfterReanalysis = !!editedPath && !!records()[editedPath]?.result?.cues.some((c) => c.name === 'Smoke cue');
+      finish();
+    }
   };
   setTimeout(() => {
     report.timeout = true;

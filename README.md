@@ -75,11 +75,15 @@ npm run test:regression
 npm run smoke
 ```
 
-- `test:all` : typecheck, 16 tests unitaires (matching, doublons, profils, fusion, exports, file d'analyse…)
-  et le test de bout en bout sur morceaux synthétiques (BPM, grille, clé, sections, cues, boucles,
-  corrections manuelles, cache, fichier corrompu, dossier surveillé).
+- `test:all` : typecheck, tests unitaires (matching, doublons et empreinte, profils, fusion, exports, file
+  d'analyse, évaluation…) et le test de bout en bout sur morceaux synthétiques (BPM, grille, clé, sections,
+  cues, boucles, corrections manuelles, changement de tempo, évaluation, cache, fichier corrompu, dossier
+  surveillé).
 - `test:regression` : ré-analyse `samples/` et compare à `tests/baselines/samples.json`.
-- `smoke` : lance la vraie app Electron sans fenêtre visible sur `samples/` et écrit `smoke-report.json`.
+- `smoke` : lance la vraie app Electron sans fenêtre visible sur `samples/`, pilote l'interface (édition de
+  cues, annulation, export, lecture audio) et écrit `smoke-report.json`.
+- `eval` : mesure la justesse du moteur sur les morceaux validés comme référence dans l'app
+  (voir [ALGORITHMES.md](docs/ALGORITHMES.md#évaluation-sur-références-vérifiées-evaluatets-npm-run-eval)).
 
 Ligne de commande (même moteur) :
 
@@ -121,5 +125,5 @@ est stocké dans `models/` avec sa licence (voir [ALGORITHMES.md](docs/ALGORITHM
 ## Limites connues
 - Imports rekordbox / Traktor **non encore validés** dans les logiciels réels.
 - Détection vocale expérimentale, non validée sur annotations ; pas de séparation de stems.
-- Grille fixe (pas de multi-marqueurs pour les morceaux à tempo changeant).
+- Tempo changeant : marqueurs de tempo exportés vers rekordbox, mais cues et sections calculés sur la grille moyenne.
 - Énergie et confiances non calibrées sur un corpus annoté.

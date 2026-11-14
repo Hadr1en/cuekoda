@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import type { AnalysisResult, Loop } from '../types';
+import { ENGINE_VERSION } from '../types';
 import type { ExportOptions } from './index';
 
 export const esc = (s: string): string =>
@@ -40,7 +41,7 @@ export function buildRekordboxXml(
   const lines: string[] = [];
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
   lines.push('<DJ_PLAYLISTS Version="1.0.0">');
-  lines.push('  <PRODUCT Name="CueKoda" Version="0.2.0" Company="CueKoda"/>');
+  lines.push(`  <PRODUCT Name="CueKoda" Version="${ENGINE_VERSION}" Company="CueKoda"/>`);
   lines.push(`  <COLLECTION Entries="${tracks.length}">`);
   tracks.forEach((t, i) => {
     const id = i + 1;
@@ -51,7 +52,12 @@ export function buildRekordboxXml(
         `BitRate="${Math.round(t.bitrate / 1000)}" SampleRate="${t.sampleRate}" Comments="" PlayCount="0" Rating="0" ` +
         `Location="${esc(rekordboxLocation(t.path))}" Remixer="" Tonality="${esc(t.key.musical)}" Label="" Mix="">`,
     );
-    lines.push(`      <TEMPO Inizio="${f3(t.grid.firstDownbeatSec)}" Bpm="${t.bpm.toFixed(2)}" Metro="4/4" Battito="1"/>`);
+    if (t.tempoMap && t.tempoMap.length > 1) {
+      // tempo changes: one TEMPO marker per constant-tempo segment
+      for (const m of t.tempoMap) lines.push(`      <TEMPO Inizio="${f3(m.startSec)}" Bpm="${m.bpm.toFixed(2)}" Metro="4/4" Battito="${m.beatInBar}"/>`);
+    } else {
+      lines.push(`      <TEMPO Inizio="${f3(t.grid.firstDownbeatSec)}" Bpm="${t.bpm.toFixed(2)}" Metro="4/4" Battito="1"/>`);
+    }
     for (const c of [...t.cues].sort((a, b) => a.timeSec - b.timeSec)) {
       const [r, g, b] = c.color;
       if (opts.memoryCues) {

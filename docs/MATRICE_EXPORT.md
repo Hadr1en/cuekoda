@@ -8,7 +8,7 @@ par les tests, mais un essai sur quelques morceaux est indispensable avant un us
 |---|---|---|---|
 | Statut | Disponible, non validé | Disponible, non validé | **Non disponible** |
 | BPM | ✓ | ✓ | ✗ |
-| Beatgrid | ≈ un marqueur (grille fixe) | ≈ marqueur AutoGrid (grille fixe) | ✗ |
+| Beatgrid | ✓ un marqueur, ou un par plage de tempo si le tempo change | ≈ marqueur AutoGrid (un seul tempo) | ✗ |
 | Tonalité | ✓ (notation musicale) | ✓ (index Traktor + Open Key) | ✗ |
 | Hot cues (8) | ✓ Num 0–7 | ✓ HOTCUE 0–7 | ✗ |
 | Noms des cues | ✓ | ✓ | ✗ |

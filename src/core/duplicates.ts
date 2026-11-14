@@ -1,4 +1,5 @@
 import type { AnalysisResult } from './types';
+import { compareFingerprints } from './fingerprint';
 
 /**
  * Duplicate detection. Never deletes anything: it only groups files so the DJ can compare.
@@ -52,6 +53,22 @@ export function correlation(a: number[], b: number[]): number {
   return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
 }
 
+/** Thresholds calibrated on 13 real tracks + a re-encoded copy + a cut edit (docs/ALGORITHMES.md). */
+export const SAME_RECORDING_RATIO = 0.9;
+export const RELATED_RUN_BARS = 16;
+
+/** Same recording in another file: fingerprints agree on ≥ 90 % of ≥ 80 % of the shorter track. */
+export function sameRecording(a: AnalysisResult, b: AnalysisResult): boolean {
+  if (a.fingerprint && b.fingerprint) {
+    const m = compareFingerprints(a.fingerprint, b.fingerprint);
+    return !!m && m.matchRatio >= SAME_RECORDING_RATIO && m.overlapBars >= 0.8 * Math.min(a.fingerprint.bars, b.fingerprint.bars);
+  }
+  // older analyses without fingerprint
+  if (Math.abs(a.durationSec - b.durationSec) > 1) return false;
+  if (Math.abs(a.bpm - b.bpm) > 0.1 || a.key.camelot !== b.key.camelot) return false;
+  return !!a.energy && !!b.energy && correlation(a.energy.curve, b.energy.curve) >= 0.97;
+}
+
 export function findDuplicates(tracks: AnalysisResult[]): DuplicateGroup[] {
   const groups: DuplicateGroup[] = [];
   const inGroup = new Set<string>();
@@ -75,9 +92,7 @@ export function findDuplicates(tracks: AnalysisResult[]): DuplicateGroup[] {
     for (let j = i + 1; j < pool.length; j++) {
       const b = pool[j];
       if (used.has(b.path) || a.fileHash === b.fileHash) continue;
-      if (Math.abs(a.durationSec - b.durationSec) > 1) continue;
-      if (Math.abs(a.bpm - b.bpm) > 0.1 || a.key.camelot !== b.key.camelot) continue;
-      if (!a.energy || !b.energy || correlation(a.energy.curve, b.energy.curve) < 0.97) continue;
+      if (!sameRecording(a, b)) continue;
       members.push(b.path);
       used.add(b.path);
     }
@@ -85,8 +100,27 @@ export function findDuplicates(tracks: AnalysisResult[]): DuplicateGroup[] {
       used.add(a.path);
       groups.push({
         kind: 'encoding',
-        reason: 'Même durée, tempo, tonalité et courbe d’énergie : probablement le même enregistrement dans un autre encodage',
+        reason: a.fingerprint
+          ? 'Empreinte acoustique identique (≥ 90 % des mesures concordent) : le même enregistrement dans un autre fichier ou encodage'
+          : 'Même durée, tempo, tonalité et courbe d’énergie : probablement le même enregistrement dans un autre encodage',
         paths: members,
+      });
+    }
+  }
+
+  // related versions, acoustic: long identical passages (radio edit vs extended mix, edits…), whatever the titles
+  const inEncoding = (p: string) => groups.some((g) => g.kind !== 'version' && g.paths.includes(p));
+  for (let i = 0; i < tracks.length; i++) {
+    for (let j = i + 1; j < tracks.length; j++) {
+      const a = tracks[i], b = tracks[j];
+      if (!a.fingerprint || !b.fingerprint || a.fileHash === b.fileHash) continue;
+      if (inEncoding(a.path) && inEncoding(b.path) && groups.some((g) => g.kind !== 'version' && g.paths.includes(a.path) && g.paths.includes(b.path))) continue;
+      const m = compareFingerprints(a.fingerprint, b.fingerprint);
+      if (!m || m.longestRunBars < RELATED_RUN_BARS || sameRecording(a, b)) continue;
+      groups.push({
+        kind: 'version',
+        reason: `${m.longestRunBars} mesures musicalement identiques (décalage de ${Math.abs(m.offsetBars)} mesures) : versions liées probables (edit, extended, remix proche) — pas des doublons à supprimer`,
+        paths: [a.path, b.path],
       });
     }
   }
@@ -101,6 +135,8 @@ export function findDuplicates(tracks: AnalysisResult[]): DuplicateGroup[] {
   for (const [k, paths] of byTitle) {
     const distinct = paths.filter((p) => !groups.some((g) => g.kind !== 'version' && g.paths.includes(p) && g.paths[0] !== p));
     if (distinct.length < 2) continue;
+    // already reported as an acoustic pair with exactly these files
+    if (distinct.length === 2 && groups.some((g) => g.kind === 'version' && distinct.every((p) => g.paths.includes(p)))) continue;
     groups.push({
       kind: 'version',
       reason: `Même titre de base « ${k} » : versions liées (remix, edit, extended…) — pas des doublons à supprimer`,

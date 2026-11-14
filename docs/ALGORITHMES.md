@@ -19,12 +19,18 @@ doivent pas être lus comme des probabilités.
    ×4/3, ×3/4. Essentia n'est remplacé que si un autre candidat s'aligne ≥ 15 % mieux, jamais arbitrairement.
 4. Affinage au centième par régression robuste (Theil-Sen) des attaques mesurées dans le domaine temporel,
    puis arrondi à un tempo entier / demi-entier seulement si l'ajustement est aussi bon.
-5. **Stabilité** : tempo local sur des segments de 64 temps ; écart > 1 % → « tempo variable » (la grille
-   reste fixe et est signalée approximative).
+5. **Stabilité** : tempo de chaque segment de 64 temps estimé **indépendamment** (alignement de grille à ±8 %
+   du tempo global ; segments sans pulsation nette ignorés) ; écart > 1 % → « tempo variable ». Sur les 13
+   morceaux réels, l'écart local maximal est de 0,43 BPM : aucun faux « variable ».
+6. **Marqueurs de tempo** (`tempomap.ts`, seulement si « variable ») : segments regroupés en plages de tempo
+   constant (±0,4 %), grille précise par plage (phase cherchée au pas de 4 ms sur l'enveloppe d'attaques), puis
+   point de bascule cherché temps par temps (16 temps de chaque grille, fenêtre ±10 ms). Mesuré sur un
+   enchaînement synthétique 124 → 128 BPM : bascule à 4 ms près, temps 1 correct.
 - Confiance : forte si grille ≥ 70 % alignée, tempo stable et accord avec Essentia ; faible si tempo variable
   ou grille < 40 % ; moyenne sinon. Alternatives ÷2, ×2 et l'estimation brute proposées en un clic.
-- **Limites** : grille unique (pas de multi-marqueurs pour les morceaux à tempo changeant) ; l'ambiguïté
-  ×2 dépend de la plage du profil.
+- **Limites** : la structure, les cues et les boucles restent calculés sur la grille moyenne (un morceau à tempo
+  variable peut avoir des cues décalés, à vérifier) ; tempo en dérive continue (live) → nombreux petits
+  segments non garantis ; l'ambiguïté ×2 dépend de la plage du profil.
 
 ## Grille et premier temps
 - Phase par alignement sur l'enveloppe d'attaques, précision mesurée ~2 ms sur signaux de test.
@@ -186,9 +192,15 @@ demi/double), écart d'énergie, longueur des fenêtres outro / intro. Chaque cr
 
 ## Doublons — `duplicates.ts`
 - Exact : même SHA-256 du contenu.
-- Même enregistrement, autre encodage : même durée (±1 s), tempo, tonalité et courbe d'énergie
-  (corrélation ≥ 0,97). C'est une comparaison **fondée sur l'analyse**, pas une empreinte audio dédiée.
-- Versions liées : même titre de base (remix, edit, extended…) — explicitement « pas des doublons ».
+- **Empreinte acoustique** (`fingerprint.ts`) : chromagramme (12 classes de hauteur, 65 Hz–2 kHz) moyenné par
+  mesure, quantifié sur 0–255 ; comparaison par corrélation centrée (Pearson) mesure à mesure, au meilleur
+  décalage (±64 mesures), seulement à tempo égal (±1 %).
+- Même enregistrement, autre fichier ou encodage : ≥ 90 % des mesures concordent sur ≥ 80 % de la durée.
+- Versions liées : ≥ 16 mesures consécutives identiques (radio edit / extended…), ou même titre de base.
+  Explicitement « pas des doublons ».
+- Calibrage (13 morceaux réels + copie réencodée en AAC + version coupée de 30 s) : réencodage 115 mesures
+  consécutives / 100 % ; version coupée 67 mesures / 72 % ; 78 paires de morceaux différents : **2 mesures
+  au maximum**, ≤ 5 %. Analyses antérieures sans empreinte : ancienne règle (durée, tempo, tonalité, énergie).
 - Rien n'est jamais supprimé.
 
 ## Apprentissage — `learning.ts`
@@ -210,6 +222,14 @@ Un fichier inchangé n'est pas ré-analysé ; une nouvelle version du moteur inv
 | Voix | voir *Détection vocale* | exacte sur synthétique ; nettement meilleure avec le modèle sur voix réelles, non mesurée faute d'annotations |
 | Temps d'analyse | 9 morceaux réels, 3 workers | 17,8 s au total ; 58 ms depuis le cache |
 
-Les 9 morceaux réels **n'ont pas d'annotations de référence vérifiées** : la référence de non-régression
-détecte les changements, elle ne mesure pas la justesse. Format prévu pour des annotations :
-`tests/baselines/samples.json` (à enrichir de positions vérifiées à l'oreille).
+La référence de non-régression détecte les changements, elle ne mesure pas la justesse.
+
+### Évaluation sur références vérifiées (`evaluate.ts`, `npm run eval`)
+Dans l'app, onglet Infos › « Valider comme référence » enregistre l'état d'un morceau **après vérification à
+l'oreille** (BPM, temps 1, clé, cues, sections, voix, ressenti d'énergie optionnel). `npm run eval` ré-analyse
+chaque référence **sans les corrections ni le cache** et mesure : BPM à ±1 % et erreurs d'octave, erreur de
+phase de grille (médiane), temps 1 correct, tonalité (score MIREX : 1 exacte, 0,5 quinte, 0,3 relative,
+0,2 parallèle), F1 des hot cues à ±1 temps, F1 des frontières de sections à ±1 mesure, corrélation de
+Spearman entre le score d'énergie et le ressenti. Contrôlé sur vérité terrain synthétique (BPM exact, phase
+2 ms, clé exacte, cues 7/7, sections 6/6). **Aucune référence réelle n'est encore enregistrée** : ce sont ces
+mesures qui permettront de calibrer les confiances et l'échelle d'énergie.
