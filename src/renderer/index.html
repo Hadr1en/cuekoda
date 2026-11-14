@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src file: 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Dark by default (DJ booth); the settings can switch to light or follow the OS -->
+    <meta name="color-scheme" content="dark light" />
+    <title>CueKoda</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand"><svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="96 96 320 320" width="24" height="24" aria-hidden="true" focusable="false"><defs><linearGradient id="ck-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A6DFF"/><stop offset="1" stop-color="#00D2DC"/></linearGradient></defs><circle cx="256" cy="256" r="150" fill="none" stroke="url(#ck-logo)" stroke-width="30"/><rect x="145.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/><rect x="166.3" y="228.1" width="13" height="55.9" rx="6.5" fill="url(#ck-logo)"/><rect x="187.1" y="218.9" width="13" height="74.1" rx="6.5" fill="url(#ck-logo)"/><rect x="207.9" y="194.8" width="13" height="122.5" rx="6.5" fill="url(#ck-logo)"/><rect x="228.7" y="178.3" width="13" height="155.3" rx="6.5" fill="url(#ck-logo)"/><rect x="249.5" y="192.6" width="13" height="126.7" rx="6.5" fill="#FFFFFF"/><rect x="270.3" y="198.1" width="13" height="115.8" rx="6.5" fill="url(#ck-logo)"/><rect x="291.1" y="190.5" width="13" height="130.9" rx="6.5" fill="url(#ck-logo)"/><rect x="311.9" y="207.8" width="13" height="96.4" rx="6.5" fill="url(#ck-logo)"/><rect x="332.7" y="231.3" width="13" height="49.5" rx="6.5" fill="url(#ck-logo)"/><rect x="353.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/></svg> CueKoda <span class="tag">Analyze. Cue. Mix</span></div>
+      <nav class="actions" aria-label="Actions principales">
+        <button type="button" id="btn-files" class="btn">+ Fichiers</button>
+        <button type="button" id="btn-folder" class="btn">+ Dossier</button>
+        <label class="field" title="Profil DJ : règles de cues, couleurs, boucles et plage BPM">
+          Profil
+          <select id="profile"></select>
+        </label>
+        <div id="queue" class="queue" hidden>
+          <progress id="queue-bar" max="1" value="0" aria-labelledby="queue-label"></progress>
+          <span id="queue-label"></span>
+          <button type="button" id="btn-pause" class="btn small">Pause</button>
+          <button type="button" id="btn-cancel" class="btn small ghost">Annuler</button>
+        </div>
+        <button type="button" id="btn-retry" class="btn small" hidden>↻ Relancer les erreurs</button>
+        <span class="spacer"></span>
+        <button type="button" id="btn-dupes" class="btn ghost" title="Doublons et versions liées">Doublons</button>
+        <button type="button" id="btn-settings" class="btn ghost" title="Réglages (profils, performances, dossiers surveillés)">Réglages</button>
+        <button type="button" id="btn-export" class="btn primary" disabled>Exporter…</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="library" aria-label="Bibliothèque">
+        <div class="lib-tools">
+          <input id="search" type="search" placeholder="Filtrer (titre, artiste, clé, BPM)…" aria-label="Filtrer la bibliothèque" />
+          <span id="lib-count" class="muted"></span>
+          <span class="spacer"></span>
+          <button type="button" id="btn-reanalyze" class="btn small ghost" title="Ré-analyser les morceaux affichés (vos corrections sont conservées)">↻ Ré-analyser</button>
+          <button type="button" id="btn-remove" class="btn small ghost" title="Retirer de la bibliothèque (les fichiers ne sont pas touchés)">Retirer</button>
+        </div>
+        <div id="list-wrap">
+          <div id="empty" class="empty">
+            <div class="big">Glisse des fichiers ou un dossier ici</div>
+            <div class="sub">Import → Analyse → Revue → Export. Les fichiers audio ne sont jamais modifiés ni envoyés en ligne.</div>
+          </div>
+          <table id="tracks" hidden>
+            <caption class="sr-only">Morceaux de la bibliothèque</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="c-state"><span class="sr-only">État</span></th>
+                <th scope="col" data-sort="title">Titre</th>
+                <th scope="col" data-sort="artist">Artiste</th>
+                <th scope="col" class="c-num" data-sort="bpm">BPM</th>
+                <th scope="col" class="c-key" data-sort="key">Clé</th>
+                <th scope="col" class="c-energy" data-sort="energy">Énergie</th>
+                <th scope="col" class="c-cues">Structure</th>
+                <th scope="col" class="c-num" data-sort="cues">Cues</th>
+                <th scope="col" class="c-conf" data-sort="conf">Fiabilité</th>
+                <th scope="col" class="c-num" data-sort="duration">Durée</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="detail" aria-label="Analyse du morceau" hidden>
+        <div class="detail-head">
+          <div class="d-titles">
+            <h2 id="d-title" class="d-title"></h2>
+            <div id="d-sub" class="d-sub"></div>
+          </div>
+          <div class="d-corrections">
+            <div class="corr" role="group" aria-labelledby="lbl-bpm">
+              <span id="lbl-bpm" class="corr-label">BPM</span>
+              <input id="bpm-input" type="number" step="0.01" min="40" max="260" aria-label="BPM" />
+              <button type="button" class="btn small" id="bpm-half" title="Diviser par 2">÷2</button>
+              <button type="button" class="btn small" id="bpm-double" title="Multiplier par 2">×2</button>
+              <span id="bpm-conf"></span>
+            </div>
+            <div class="corr" role="group" aria-labelledby="lbl-grid">
+              <span id="lbl-grid" class="corr-label">Grille</span>
+              <button type="button" class="btn small" id="grid-here" title="Le temps 1 d’une mesure est à la position de lecture">Temps 1 ici</button>
+              <button type="button" class="btn small" id="grid-minus" title="Décaler la grille de −10 ms">−10 ms</button>
+              <button type="button" class="btn small" id="grid-plus" title="Décaler la grille de +10 ms">+10 ms</button>
+              <button type="button" class="btn small" id="grid-beat" title="Le temps 1 était un autre temps : décaler d’un temps">+1 temps</button>
+              <span id="grid-conf"></span>
+            </div>
+            <div class="corr" role="group" aria-labelledby="lbl-key">
+              <span id="lbl-key" class="corr-label">Clé</span>
+              <select id="key-select" aria-label="Tonalité"></select>
+              <span id="key-conf"></span>
+            </div>
+          </div>
+        </div>
+        <div id="d-warn" class="d-warn"></div>
+
+        <div class="wave-toolbar">
+          <button type="button" id="btn-play" class="btn">▶︎ Lecture</button>
+          <span id="time" class="time">0:00.0</span>
+          <button type="button" class="btn small ghost" id="zoom-out" aria-label="Dézoomer">−</button>
+          <button type="button" class="btn small ghost" id="zoom-in" aria-label="Zoomer">+</button>
+          <button type="button" class="btn small ghost" id="zoom-fit">Tout</button>
+          <span class="hint">Molette : zoom · Maj+molette : défiler · glisser un cue (Alt = sans aimantation) · ? : raccourcis</span>
+          <span class="spacer"></span>
+          <button type="button" class="btn small ghost" id="btn-undo" title="Annuler (⌘Z)" disabled>↶ Annuler</button>
+          <button type="button" class="btn small ghost" id="btn-redo" title="Rétablir (⇧⌘Z)" disabled>↷ Rétablir</button>
+        </div>
+        <div id="wave-wrap">
+          <canvas id="wave" tabindex="0" role="slider" aria-label="Waveform — flèches : une mesure, Maj+flèches : un temps" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></canvas>
+        </div>
+        <canvas id="overview" aria-hidden="true"></canvas>
+
+        <div class="tabs" role="tablist" aria-label="Préparation">
+          <button type="button" role="tab" aria-selected="true" aria-controls="tab-cues" id="t-cues">Hot cues</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tab-loops" id="t-loops">Boucles</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tab-sections" id="t-sections">Structure</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tab-mix" id="t-mix">Mix &amp; compatibles</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="tab-info" id="t-info">Infos</button>
+        </div>
+        <div id="tab-cues" role="tabpanel" aria-labelledby="t-cues" class="tabpanel"></div>
+        <div id="tab-loops" role="tabpanel" aria-labelledby="t-loops" class="tabpanel" hidden></div>
+        <div id="tab-sections" role="tabpanel" aria-labelledby="t-sections" class="tabpanel" hidden></div>
+        <div id="tab-mix" role="tabpanel" aria-labelledby="t-mix" class="tabpanel" hidden></div>
+        <div id="tab-info" role="tabpanel" aria-labelledby="t-info" class="tabpanel" hidden></div>
+      </section>
+    </main>
+
+    <dialog id="dlg-export" aria-labelledby="dlg-export-title" class="dlg"></dialog>
+    <dialog id="dlg-settings" aria-labelledby="dlg-settings-title" class="dlg wide"></dialog>
+    <dialog id="dlg-dupes" aria-labelledby="dlg-dupes-title" class="dlg wide"></dialog>
+    <dialog id="dlg-help" aria-labelledby="dlg-help-title" class="dlg"></dialog>
+
+    <div id="dropmask" aria-hidden="true" hidden><div>Dépose pour analyser</div></div>
+    <div role="region" aria-label="Notifications">
+      <div id="toast" class="toast" popover="manual">
+        <span id="toast-text"></span>
+        <button type="button" class="toast-close" popovertarget="toast" popovertargetaction="hide" aria-label="Fermer la notification">×</button>
+      </div>
+    </div>
+    <div id="announce" class="sr-only" aria-live="polite"></div>
+    <audio id="audio" preload="metadata"></audio>
+    <script src="renderer.js"></script>
+  </body>
+</html>

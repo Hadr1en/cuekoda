@@ -1,0 +1,294 @@
+{
+  "Alesso - Heroes (we could be) ft. Tove Lo.mp3": {
+    "bpm": 126,
+    "key": "7B",
+    "firstDownbeatSec": 1.479,
+    "landmarks": {
+      "intro": 1.48,
+      "drop1": 28.15,
+      "vocal": 58.62,
+      "break1": 172.91,
+      "drop2": 180.53,
+      "outro": 256.72
+    },
+    "sections": [
+      "intro@0",
+      "drop@14",
+      "breakdown@90",
+      "drop@94",
+      "outro@134",
+      "section@146"
+    ],
+    "energy": 8.1
+  },
+  "Diamond Ace - Too Soon (feat. Nymbius).mp3": {
+    "bpm": 105,
+    "key": "1B",
+    "firstDownbeatSec": 0.153,
+    "landmarks": {
+      "intro": 0.15,
+      "drop1": 18.44,
+      "mixout": 183.01,
+      "outro": 201.3
+    },
+    "sections": [
+      "intro@0",
+      "drop@8",
+      "outro@88",
+      "section@96"
+    ],
+    "energy": 7.9
+  },
+  "Edwin Ajtún - Live The Life.mp3": {
+    "bpm": 126,
+    "key": "9A",
+    "firstDownbeatSec": 0.121,
+    "landmarks": {
+      "intro": 2.03,
+      "drop1": 22.98,
+      "break1": 83.93,
+      "drop2": 175.36,
+      "mixout": 198.22,
+      "outro": 221.07
+    },
+    "sections": [
+      "intro@1",
+      "drop@12",
+      "breakdown@44",
+      "drop@92",
+      "outro@116"
+    ],
+    "energy": 8.2
+  },
+  "Ennex - Fantasy.mp3": {
+    "bpm": 125,
+    "key": "11B",
+    "firstDownbeatSec": 0.117,
+    "landmarks": {
+      "intro": 5.88,
+      "drop1": 23.16,
+      "break1": 99.96,
+      "drop2": 161.4,
+      "mixout": 182.52,
+      "outro": 192.12
+    },
+    "sections": [
+      "intro@3",
+      "drop@12",
+      "section@35",
+      "breakdown@52",
+      "section@60",
+      "drop@84",
+      "outro@100"
+    ],
+    "energy": 8
+  },
+  "Kisma - We Are.mp3": {
+    "bpm": 128,
+    "key": "12B",
+    "firstDownbeatSec": 0.635,
+    "landmarks": {
+      "intro": 0.63,
+      "drop1": 30.63,
+      "break1": 105.63,
+      "drop2": 165.63,
+      "outro": 188.13
+    },
+    "sections": [
+      "intro@0",
+      "drop@16",
+      "section@25",
+      "breakdown@56",
+      "drop@88",
+      "outro@100"
+    ],
+    "energy": 8.1
+  },
+  "Martin Garrix - This Dream of You.mp3": {
+    "bpm": 128,
+    "key": "8B",
+    "firstDownbeatSec": 1.143,
+    "landmarks": {
+      "intro": 1.14,
+      "drop1": 16.14,
+      "vocal": 46.14,
+      "break1": 136.14,
+      "drop2": 226.14,
+      "mixout": 256.14,
+      "outro": 263.64
+    },
+    "sections": [
+      "intro@0",
+      "drop@8",
+      "section@16",
+      "section@56",
+      "breakdown@72",
+      "drop@120",
+      "outro@140",
+      "section@147"
+    ],
+    "energy": 7.6
+  },
+  "Mike Chino - Dream Chaser.mp3": {
+    "bpm": 128,
+    "key": "4B",
+    "firstDownbeatSec": 0.06,
+    "landmarks": {
+      "intro": 0.06,
+      "build1": 30.06,
+      "drop1": 60.06,
+      "break1": 112.56,
+      "build2": 135.06,
+      "drop2": 165.06,
+      "mixout": 210.06,
+      "outro": 232.56
+    },
+    "sections": [
+      "intro@0",
+      "build@16",
+      "drop@32",
+      "breakdown@60",
+      "build@72",
+      "drop@88",
+      "section@104",
+      "section@108",
+      "outro@124"
+    ],
+    "energy": 8
+  },
+  "Mike Chino - Replicant World.mp3": {
+    "bpm": 128,
+    "key": "7B",
+    "firstDownbeatSec": 0.026,
+    "landmarks": {
+      "intro": 0.03,
+      "drop1": 15.03,
+      "break1": 30.03,
+      "drop2": 60.03,
+      "vocal": 97.53,
+      "mixout": 165.03,
+      "outro": 172.53
+    },
+    "sections": [
+      "intro@0",
+      "drop@8",
+      "breakdown@16",
+      "drop@32",
+      "outro@92",
+      "section@99"
+    ],
+    "energy": 8
+  },
+  "Peyruis - Dolce Vita.mp3": {
+    "bpm": 122,
+    "key": "4A",
+    "firstDownbeatSec": 0.348,
+    "landmarks": {
+      "intro": 0.35,
+      "drop1": 47.56,
+      "break1": 79.04,
+      "drop2": 126.25,
+      "mixout": 173.46,
+      "outro": 204.94
+    },
+    "sections": [
+      "intro@0",
+      "drop@24",
+      "breakdown@40",
+      "drop@64",
+      "outro@104"
+    ],
+    "energy": 8.1
+  },
+  "Peyruis - Hustle.mp3": {
+    "bpm": 126,
+    "key": "10A",
+    "firstDownbeatSec": 1.685,
+    "landmarks": {
+      "intro": 1.68,
+      "drop1": 30.26,
+      "break1": 75.97,
+      "drop2": 106.45,
+      "outro": 167.4
+    },
+    "sections": [
+      "intro@0",
+      "section@11",
+      "drop@15",
+      "breakdown@39",
+      "drop@55",
+      "outro@87"
+    ],
+    "energy": 8.8
+  },
+  "Sebastian Ingrosso, Alesso - Calling (Lose My Mind) ft. Ryan Tedder.mp3": {
+    "bpm": 125,
+    "key": "12B",
+    "firstDownbeatSec": 1.877,
+    "landmarks": {
+      "intro": 1.88,
+      "drop1": 17.24,
+      "groove": 63.32,
+      "vocal": 86.36,
+      "break1": 94.04,
+      "drop2": 132.44,
+      "outro": 140.12
+    },
+    "sections": [
+      "intro@0",
+      "drop@8",
+      "intro@32",
+      "breakdown@48",
+      "drop@68",
+      "outro@72"
+    ],
+    "energy": 7.6
+  },
+  "Swedish House Mafia ft. John Martin - Don't You Worry Child (Official Video).mp3": {
+    "bpm": 129,
+    "key": "10B",
+    "firstDownbeatSec": 0.717,
+    "landmarks": {
+      "intro": 0.72,
+      "vocal": 10.02,
+      "drop1": 21.18,
+      "groove": 50.95,
+      "break1": 65.83,
+      "drop2": 95.6,
+      "outro": 266.76
+    },
+    "sections": [
+      "intro@0",
+      "drop@11",
+      "intro@27",
+      "breakdown@35",
+      "section@43",
+      "drop@51",
+      "outro@143"
+    ],
+    "energy": 7.7
+  },
+  "Vexento - We Are One.mp3": {
+    "bpm": 128,
+    "key": "11B",
+    "firstDownbeatSec": 1.676,
+    "landmarks": {
+      "intro": 1.68,
+      "drop1": 42.93,
+      "break1": 117.93,
+      "drop2": 125.43,
+      "mixout": 198.55,
+      "outro": 215.43
+    },
+    "sections": [
+      "intro@0",
+      "drop@22",
+      "breakdown@62",
+      "drop@66",
+      "section@81",
+      "section@86",
+      "outro@114"
+    ],
+    "energy": 8.4
+  }
+}

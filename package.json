@@ -1,0 +1,70 @@
+{
+  "name": "cuekoda",
+  "productName": "CueKoda",
+  "version": "0.2.0",
+  "description": "Préparation musicale pour DJ : BPM, grille, tonalité, structure, énergie, hot cues, boucles — export rekordbox & Traktor",
+  "main": "dist/main/main.js",
+  "private": true,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "tsc --noEmit",
+    "cli": "npm run build && node dist/cli/cli.js",
+    "test": "npm run build && node dist/test/run.js",
+    "test:unit": "npm run build && node --test dist/test/unit.js",
+    "test:regression": "npm run build && node dist/test/regression.js samples",
+    "test:all": "npm run typecheck && npm run test:unit && npm test",
+    "smoke": "npm run build && CUEKODA_SMOKE_DIR=samples CUEKODA_SMOKE_REPORT=smoke-report.json electron .",
+    "preview": "npm run build && node dist/cli/cli.js samples --out cuekoda-out --preview dist/renderer/preview-data.js && node scripts/make-preview.mjs",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "essentia.js": "^0.1.3",
+    "ffmpeg-static": "^5.2.0",
+    "music-metadata": "^12.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.6.0"
+  },
+  "build": {
+    "appId": "com.cuekoda.app",
+    "productName": "CueKoda",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "models/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**",
+      "node_modules/@tensorflow/tfjs-backend-wasm/**",
+      "models/**"
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  },
+  "allowScripts": {
+    "ffmpeg-static@5.3.0": true,
+    "esbuild@0.28.2": true
+  }
+}

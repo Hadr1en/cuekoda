@@ -1,0 +1,11 @@
+node_modules/
+dist/
+release/
+cuekoda-out/
+smoke-report.json
+*.log
+.DS_Store
+# Morceaux de test : œuvres d'artistes, jamais publiées
+samples/
+# Réglages locaux de Claude Code
+.claude/settings.local.json

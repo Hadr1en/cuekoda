@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs><linearGradient id="ck" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A6DFF"/><stop offset="1" stop-color="#00D2DC"/></linearGradient></defs>
+  <rect width="512" height="512" rx="114" fill="#0E0F13"/>
+  <rect x="150" y="70" width="40" height="372" rx="20" fill="#FFFFFF"/>
+  <path d="M190 70 h86 l-22 28 l22 28 h-86 z" fill="#FF3B4E"/>
+  <g fill="url(#ck)"><rect x="250.0" y="247.0" width="13" height="18.0" rx="6.5"/><rect x="250.0" y="247.0" width="13" height="18.0" rx="6.5"/><rect x="268.8" y="224.1" width="13" height="21.2" rx="6.5"/><rect x="268.8" y="266.6" width="13" height="21.2" rx="6.5"/><rect x="287.5" y="201.2" width="13" height="24.5" rx="6.5"/><rect x="287.5" y="286.2" width="13" height="24.5" rx="6.5"/><rect x="306.2" y="178.4" width="13" height="27.8" rx="6.5"/><rect x="306.2" y="305.9" width="13" height="27.8" rx="6.5"/><rect x="325.0" y="155.5" width="13" height="31.0" rx="6.5"/><rect x="325.0" y="325.5" width="13" height="31.0" rx="6.5"/><rect x="343.8" y="132.6" width="13" height="34.2" rx="6.5"/><rect x="343.8" y="345.1" width="13" height="34.2" rx="6.5"/><rect x="362.5" y="109.8" width="13" height="37.5" rx="6.5"/><rect x="362.5" y="364.8" width="13" height="37.5" rx="6.5"/><rect x="381.2" y="86.9" width="13" height="40.8" rx="6.5"/><rect x="381.2" y="384.4" width="13" height="40.8" rx="6.5"/><rect x="400.0" y="64.0" width="13" height="44.0" rx="6.5"/><rect x="400.0" y="404.0" width="13" height="44.0" rx="6.5"/></g>
+</svg>
