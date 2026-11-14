@@ -17,18 +17,21 @@ const closeBtn = (dlg: HTMLDialogElement) =>
 // ================================================================= export
 const SUPPORT_TEXT = { yes: '✓', partial: '≈', no: '✗' } as const;
 
-export function openExport(currentPath: string | null) {
+/** set: tracks in the order of the mix-order window, exported as one named playlist */
+export function openExport(currentPath: string | null, set?: { name: string; paths: string[] }) {
   const dlg = $<HTMLDialogElement>('dlg-export');
   let target: AdapterInfo['id'] = 'rekordbox';
-  let scope: 'all' | 'current' = 'all';
+  let scope: 'all' | 'current' | 'set' = set ? 'set' : 'all';
+  let setName = set?.name ?? '';
   const opts: ExportOptions = { ...state.settings.exportOptions };
 
   const render = async () => {
     const adapter = state.adapters.find((a) => a.id === target)!;
-    const paths = scope === 'current' && currentPath ? [currentPath] : doneResults().map((r) => r.path);
+    const paths = scope === 'set' && set ? set.paths : scope === 'current' && currentPath ? [currentPath] : doneResults().map((r) => r.path);
+    opts.playlistName = scope === 'set' ? setName.trim() || 'Set CueKoda' : undefined;
     const preview = await api.exportPreview(target, paths, opts);
     const parts: (Node | null)[] = [
-      h('h2', { id: 'dlg-export-title' }, 'Exporter vers…'),
+      h('h2', { id: 'dlg-export-title' }, set ? 'Exporter le set vers…' : 'Exporter vers…'),
       h('p', { class: 'muted' }, 'Choisis ton logiciel DJ : CueKoda écrit le fichier qu’il sait lire, puis te guide pour l’import.'),
       h(
         'div',
@@ -58,11 +61,17 @@ export function openExport(currentPath: string | null) {
       adapter.status === 'available'
         ? h('fieldset', { class: 'opts' },
             h('legend', {}, 'Options'),
+            set ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'set', onchange: () => { scope = 'set'; void render(); } }), ` Le set (${set.paths.length} morceaux, dans l’ordre) en playlist : `,
+              h('input', { type: 'text', class: 'set-name', value: setName, 'aria-label': 'Nom de la playlist', disabled: scope !== 'set',
+                onchange: (e: Event) => { setName = (e.target as HTMLInputElement).value; void render(); } })) : null,
             h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'all', onchange: () => { scope = 'all'; void render(); } }), ` Tous les morceaux analysés (${doneResults().length})`),
             currentPath ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'current', onchange: () => { scope = 'current'; void render(); } }), ' Morceau affiché seulement') : null,
             target === 'rekordbox' || adapter.via === 'rekordbox'
               ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
               : null,
+            h('label', { title: 'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.' },
+              h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
+              ' Énergie, clé et voix dans le commentaire (ex. « E8 · 8B · Vocal »)'),
             h('label', {}, 'Boucles : ',
               h('select', { onchange: (e: Event) => { opts.loops = (e.target as HTMLSelectElement).value as ExportOptions['loops']; void render(); } },
                 ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))),
@@ -408,6 +417,8 @@ export function openSetOrder(o: {
           const text = order.map((p, i) => { const t = byPath.get(p)!; return `${i + 1}. ${t.artist ? `${t.artist} – ` : ''}${t.title} (${t.bpm.toFixed(1)} BPM, ${t.key.camelot})`; }).join('\n');
           void navigator.clipboard.writeText(text).then(() => toast('Liste copiée'));
         } }, 'Copier la liste'),
+        h('button', { type: 'button', class: 'btn small primary', title: 'Exporter ces morceaux, dans cet ordre, comme une playlist pour ton logiciel DJ',
+          onclick: () => openExport(null, { name: `Set CueKoda ${new Date().toISOString().slice(0, 10)}`, paths: [...order] }) }, 'Exporter ce set…'),
       ),
       h('table', { class: 'caps order' },
         h('thead', {}, h('tr', {}, ...['#', 'Morceau', 'BPM', 'Clé', 'Énergie', 'Transition depuis le précédent', ''].map((t) => h('th', { scope: 'col' }, t)))),

@@ -12,7 +12,7 @@ import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles
 import { allKeys, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml } from '../core/export/traktor';
-import { ADAPTERS, exportSummary } from '../core/export/index';
+import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
 import { detectPhrases, labelVocalSections, type StructureAnalysis } from '../core/structure';
 import { FUSED_THRESHOLDS, fuseScores, modelBarProbs, segmentVocals, vocalBarFeatures, vocalFrames, vocalPresence, VOCAL_ON } from '../core/vocals';
 import { musicnnMel, predictVoice, resample44kTo16k, vocalModelAvailable } from '../core/vocalModel';
@@ -288,6 +288,42 @@ test('mix order suggestion: harmonic chain, energy arc, fixed opener, determinis
   assert.equal(fixed.steps[0].path, 'x', 'the DJ’s opener stays first');
   assert.deepEqual(suggestOrder([...lib].reverse(), { shape: 'rise' }).steps.map((s) => s.path), rise.steps.map((s) => s.path), 'deterministic');
   assert.equal(suggestOrder([]).steps.length, 0);
+});
+
+test('export: comment tags (energy, key, vocals) and the set as an ordered, named playlist', () => {
+  const vi = (segs: VocalInfo['segments'], informative = true): VocalInfo => ({
+    method: 'x', validated: false, curve: [], present: [], segments: segs, coverage: 0, tonalShare: 1, level: 'medium', informative,
+  });
+  const seg = (strength: 'strong' | 'light') => ({ startBar: 1, endBar: 9, startSec: 2, endSec: 17, score: 0.8, strength, confidence: 'medium' as const });
+  const base = (id: string, extra: Partial<AnalysisResult>) =>
+    track({ path: `/m/${id}.mp3`, title: id, energy: { score: 7.6 } as AnalysisResult['energy'], key: keyFromMusical('C')!, ...extra });
+  const vocal = base('voc', { vocals: vi([seg('strong')]) });
+  const instru = base('ins', { vocals: vi([]) });
+  const unsure = base('uns', { vocals: vi([seg('light')]) });
+  const unknown = base('unk', { vocals: vi([], false) });
+  assert.equal(commentTag(vocal), 'E8 · 8B · Vocal');
+  assert.equal(commentTag(instru), 'E8 · 8B · Instru');
+  assert.equal(commentTag(unsure), 'E8 · 8B', 'faint vocals only: no claim');
+  assert.equal(commentTag(unknown), 'E8 · 8B', 'uninformative detector: no claim');
+
+  const set = [instru, vocal, unsure];
+  const opts = { memoryCues: false, loops: 'none' as const, playlistName: 'Set & Co' };
+  const xml = buildRekordboxXml(set, opts, opts.playlistName);
+  assert.match(xml, /Name="voc"[^>]*Comments="E8 · 8B · Vocal"/);
+  assert.match(xml, /<NODE Name="Set &amp; Co" Type="1" KeyType="0" Entries="3">\s*<TRACK Key="1"\/>\s*<TRACK Key="2"\/>\s*<TRACK Key="3"\/>/);
+  assert.ok(xml.indexOf('Name="ins"') < xml.indexOf('Name="voc"'), 'tracks keep the set order');
+  const noTags = buildRekordboxXml(set, { ...opts, commentTags: false });
+  assert.match(noTags, /Comments=""/);
+  const nml = buildTraktorNml(set, opts, 'Macintosh HD');
+  assert.match(nml, /COMMENT="E8 · 8B · Instru"/);
+  assert.match(nml, /<NODE TYPE="PLAYLIST" NAME="Set &amp; Co">/);
+  const order = [...nml.matchAll(/PRIMARYKEY TYPE="TRACK" KEY="[^"]*\/:(\w+)\.mp3"/g)].map((m) => m[1]);
+  assert.deepEqual(order, ['ins', 'voc', 'uns']);
+  const rb = ADAPTERS.find((a) => a.id === 'engine')!;
+  assert.match(rb.build!(set, opts), /<NODE Name="Set &amp; Co"/, 'targets via rekordbox XML get the set name too');
+  const sum = exportSummary(ADAPTERS[0], set, opts);
+  assert.ok(sum.some((l) => l.includes('Playlist « Set & Co » : 3 morceau(x)')));
+  assert.ok(sum.some((l) => l.startsWith('Commentaire de chaque morceau')));
 });
 
 // ---------------------------------------------------------------- phrases

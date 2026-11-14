@@ -125,6 +125,7 @@ Légende — **T** : implémentée et testée automatiquement · **V** : implém
 | 18 | Export rekordbox XML (cues, couleurs, memory cues, boucles) | **T** | XML testé ; **import vérifié dans rekordbox par le DJ (2026-11-14)** |
 | 18 | Export Traktor NML (cues, boucles, grille) | **T** | **import vérifié dans Traktor par le DJ (2026-11-14)** |
 | 18 | Un seul bouton Exporter, choix du logiciel ; Engine DJ, VirtualDJ, djay Pro via rekordbox XML | **T** / **V** | choix et étapes pilotés dans Electron ; imports dans ces trois logiciels non vérifiés |
+| 18 | Commentaire « E8 · 8B · Vocal » et export d'un set en playlist ordonnée et nommée | **T** / **V** | unitaire (tags, prudence sur la voix, ordre, nom échappé) + fenêtre pilotée dans Electron ; affichage dans rekordbox / Traktor à vérifier |
 | 18 | Serato | **N** | exigerait d'écrire dans les fichiers audio |
 | 18 | Sécurité export (sauvegarde, aperçu, pas d'écriture en base) | **T** / **V** | code + aperçu ; fusion gérée par le logiciel DJ |
 | 19 | Interface sombre, bibliothèque triable/filtrable, vue d'analyse zoomable, raccourcis, lecture audio | **T** / **V** | pilotée dans Electron (onglets, export, zoom, lecture et saut dans le morceau) ; raccourcis clavier non automatisés |

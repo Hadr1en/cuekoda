@@ -51,7 +51,10 @@ une ré-analyse**.
 ## 4. Exporter
 « Exporter… » : choisissez votre logiciel (rekordbox et Traktor : import vérifié ; Engine DJ, VirtualDJ et
 djay Pro : via un fichier rekordbox XML, à vérifier), les options (memory cues, boucles), lisez le résumé de
-ce qui sera transféré, puis enregistrez le fichier et suivez les étapes d'import affichées. Voir
+ce qui sera transféré, puis enregistrez le fichier et suivez les étapes d'import affichées. L'option
+« Énergie, clé et voix dans le commentaire » écrit par exemple « E8 · 8B · Vocal » dans le champ Commentaire,
+pour trier par énergie dans votre logiciel DJ (si vous acceptez d'écraser les informations d'un morceau déjà
+présent, son commentaire est remplacé). Voir
 [MATRICE_EXPORT.md](MATRICE_EXPORT.md). Serato n'est pas disponible (il faudrait modifier vos fichiers).
 
 ## Ordre de mix (suggestion)
@@ -59,7 +62,8 @@ ce qui sera transféré, puis enregistrez le fichier et suivez les étapes d'imp
 besoin) selon un arc d'énergie (montée progressive, vagues ou libre) et la compatibilité tonalité / tempo.
 Chaque enchaînement est noté et justifié ; les enchaînements difficiles sont signalés. Vous pouvez imposer
 l'ouverture, monter / descendre des morceaux, écouter chaque transition (🎧) et copier la liste. Rien n'est
-modifié ni exporté : c'est une piste de départ.
+modifié ni exporté : c'est une piste de départ. « Exporter ce set… » ouvre l'export avec ces morceaux dans
+cet ordre, en playlist nommée (le nom est modifiable).
 
 ## Mises à jour et langue
 Réglages › Mises à jour : vérification au démarrage (désactivable), installation sur un clic. Réglages ›

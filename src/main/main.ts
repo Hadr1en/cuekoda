@@ -326,7 +326,9 @@ function registerIpc() {
     const lang = resolveLang(settingsStore.data.language, app.getLocale());
     const r = await dialog.showSaveDialog(win, {
       title: lang === 'en' ? `Export for ${adapter.name}` : `Exporter pour ${adapter.name}`,
-      defaultPath: path.join(app.getPath('documents'), `CueKoda-${adapter.id}.${adapter.extension}`),
+      // a set is saved under its own name (letters, digits, spaces, dashes only)
+      defaultPath: path.join(app.getPath('documents'),
+        `${opts.playlistName ? opts.playlistName.replace(/[^\p{L}\p{N} _-]+/gu, '').trim() || 'CueKoda-set' : `CueKoda-${adapter.id}`}.${adapter.extension}`),
       filters: [{ name: adapter.formatName, extensions: [adapter.extension] }],
     });
     if (r.canceled || !r.filePath) return { ok: false, canceled: true };
@@ -335,7 +337,9 @@ function registerIpc() {
       // Never silently overwrite: an existing file is copied aside first.
       const backup = backupIfExists(r.filePath);
       fs.writeFileSync(r.filePath, body, 'utf8');
-      settingsStore.data.exportOptions = opts;
+      // remember the options, not the one-off set name
+      const { playlistName: _set, macVolume: _vol, ...keep } = opts;
+      settingsStore.data.exportOptions = keep;
       settingsStore.save();
       return { ok: true, file: r.filePath, backup };
     } catch (e) {
@@ -575,6 +579,19 @@ function runSmoke() {
         return { open: d.open, rows, weak: d.querySelectorAll('tr.weak').length, listening: !!listen && !audio.paused };
       })()`);
       await shot('order');
+      // "Export this set…": export window on top, with the set as a named playlist and the comment tags
+      report.setExport = await win!.webContents.executeJavaScript(`(async () => {
+        const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+        document.getElementById('dlg-order').querySelector('.hrow button.primary').click();
+        await wait(500);
+        const e = document.getElementById('dlg-export');
+        const text = e.textContent;
+        const out = { open: e.open, nameField: !!e.querySelector('input.set-name'),
+          playlistLine: /Playlist « Set CueKoda|Playlist “Set CueKoda/.test(text), commentLine: /E\\d+ · \\d+[AB]/.test(text) };
+        return out;
+      })()`);
+      await shot('export-set');
+      await win!.webContents.executeJavaScript(`document.getElementById('dlg-export').close(); true`);
       await win!.webContents.executeJavaScript(`document.getElementById('dlg-order').close(); true`);
       if (captureOnly) return finish();
       await new Promise((r) => setTimeout(r, 1000)); // edits are saved after a 300 ms debounce

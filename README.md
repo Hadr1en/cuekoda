@@ -153,6 +153,7 @@ départ, **construire le set reste ton travail**.
 - Chaque enchaînement est **noté sur 100 et justifié**. Les enchaînements **difficiles** (clés qui
   s'opposent, écart de tempo > 8 %) sont surlignés.
 - Monte / descends les morceaux, écoute chaque transition (🎧), ouvre un morceau, **copie la liste**.
+- **Exporter ce set…** : la liste part dans ton logiciel DJ comme une playlist nommée, dans ton ordre.
 
 ### 7. Bibliothèque
 - Liste triable et filtrable (titre, artiste, clé, BPM), avec la clé en couleur Camelot, l'énergie, une
@@ -180,6 +181,13 @@ pas, enregistre le fichier, suis les étapes d'import.
 | **VirtualDJ** | rekordbox XML | selon VirtualDJ | selon VirtualDJ | ? | ? | ? | à vérifier |
 | **djay Pro** | rekordbox XML | selon djay | selon djay | ? | ? | ? | à vérifier |
 | **Serato DJ Pro** | — | — | — | — | — | — | indisponible |
+
+**Options utiles** :
+- **Commentaire « E8 · 8B · Vocal »** (activé par défaut) : énergie, clé Camelot et voix écrites dans le champ
+  Commentaire, pour trier et filtrer ta collection directement dans ton logiciel DJ. « Vocal » ou « Instru »
+  n'est écrit que si la détection est nette.
+- **Exporter un set** : depuis « Ordre de mix… », « Exporter ce set… » crée une playlist nommée, avec les
+  morceaux dans l'ordre que tu as arrangé.
 
 Serato range ses cues **dans les fichiers audio eux-mêmes** : les écrire modifierait tes fichiers, ce que
 CueKoda ne fait jamais. Détails et procédure de vérification : [matrice d'export](docs/MATRICE_EXPORT.md).

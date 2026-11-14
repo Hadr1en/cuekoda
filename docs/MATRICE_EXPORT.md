@@ -19,7 +19,9 @@ qu'il sait lire et affiche les étapes d'import.
 | Couleurs des cues | ≈ RGB (rekordbox peut les ramener à sa palette) | ✗ (couleur imposée par le type) | ✗ |
 | Memory cues | ✓ (option pour toutes les cues ; toujours pour les cues sans pad) | ✓ cues sans pad : `CUE_V2 HOTCUE="-1"` | ✗ |
 | Boucles | ✓ memory loops (Type 4) | ✓ boucles mémorisées (TYPE 5) | ✗ |
-| Sections / énergie / phrases / Mix In-Out | ✗ | ✗ | ✗ |
+| Commentaire « E8 · 8B · Vocal » (option) | ✓ attribut Comments | ✓ INFO COMMENT | ✗ |
+| Playlist (set dans l'ordre, nommée) | ✓ NODE Type 1 | ✓ NODE PLAYLIST | ✗ |
+| Sections / énergie / phrases / Mix In-Out | ✗ (énergie seulement via le commentaire) | ✗ (idem) | ✗ |
 
 ## Engine DJ, VirtualDJ, djay Pro (via rekordbox XML, non vérifiés)
 | Logiciel | Ce que CueKoda écrit | Import (libellés variables selon la version) |

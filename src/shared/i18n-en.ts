@@ -566,9 +566,26 @@ export const EN_EXACT: Record<string, string> = {
   'Choisir des fichiers audio': 'Choose audio files',
   'Choisir un dossier de musique': 'Choose a music folder',
   'Dossier à surveiller': 'Folder to watch',
+
+  // ================================================================ comment tags, set export
+  'Exporter le set vers…': 'Export the set to…',
+  'Nom de la playlist': 'Playlist name',
+  'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.':
+    'To sort and filter by energy in your DJ software. Replaces the track’s comment if you accept to overwrite its information on import.',
+  'Énergie, clé et voix dans le commentaire (ex. « E8 · 8B · Vocal »)': 'Energy, key and vocals in the comment (e.g. “E8 · 8B · Vocal”)',
+  'Exporter ces morceaux, dans cet ordre, comme une playlist pour ton logiciel DJ': 'Export these tracks, in this order, as a playlist for your DJ software',
+  'Exporter ce set…': 'Export this set…',
+  'Commentaire « E8 · 8B · Vocal »': 'Comment “E8 · 8B · Vocal”',
+  'Attribut Comments (option)': 'Comments attribute (option)',
+  'NODE Type 1, morceaux dans l’ordre': 'NODE Type 1, tracks in order',
+  'NODE PLAYLIST, morceaux dans l’ordre': 'NODE PLAYLIST, tracks in order',
 };
 
 export const EN_PATTERNS: [RegExp, Rep][] = [
+  // set export and comment tags (export dialog, src/core/export/index.ts)
+  [/^\s*Le set \((\d+) morceaux, dans l’ordre\) en playlist\s*:\s*$/, (_, n) => ` The set (${pl(n, 'track')}, in order) as playlist: `],
+  [/^Commentaire de chaque morceau : énergie, clé et voix \(ex\. « (.*) »\)$/, (_, ex) => `Comment of each track: energy, key and vocals (e.g. “${ex}”)`],
+  [/^Playlist « (.*) » : (\d+) morceau\(x\) dans l’ordre du set$/, (_, name, n) => `Playlist “${name}”: ${pl(n, 'track')} in set order`],
   // ---------------------------------------------------------------- compound texts that need care first
   // Mix In / Mix Out reasons + vocal suffix (mix.ts withVocals)
   [/^(.+?)(, aucune voix détectée|, voix possible \(indice faible\)|, voix nette — éviter de superposer avec un passage chanté)$/,

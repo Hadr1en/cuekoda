@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import type { AnalysisResult, Loop } from '../types';
 import { ENGINE_VERSION } from '../types';
-import type { ExportOptions } from './index';
+import { commentTag, type ExportOptions } from './index';
 
 export const esc = (s: string): string =>
   s
@@ -49,7 +49,7 @@ export function buildRekordboxXml(
       `    <TRACK TrackID="${id}" Name="${esc(t.title)}" Artist="${esc(t.artist)}" Composer="" Album="${esc(t.album)}" ` +
         `Grouping="" Genre="${esc(t.genre)}" Kind="${esc(t.kind)}" Size="${t.sizeBytes}" TotalTime="${Math.round(t.durationSec)}" ` +
         `DiscNumber="0" TrackNumber="0" Year="${esc(t.year)}" AverageBpm="${t.bpm.toFixed(2)}" DateAdded="${today}" ` +
-        `BitRate="${Math.round(t.bitrate / 1000)}" SampleRate="${t.sampleRate}" Comments="" PlayCount="0" Rating="0" ` +
+        `BitRate="${Math.round(t.bitrate / 1000)}" SampleRate="${t.sampleRate}" Comments="${opts.commentTags !== false ? esc(commentTag(t)) : ''}" PlayCount="0" Rating="0" ` +
         `Location="${esc(rekordboxLocation(t.path))}" Remixer="" Tonality="${esc(t.key.musical)}" Label="" Mix="">`,
     );
     if (t.tempoMap && t.tempoMap.length > 1) {

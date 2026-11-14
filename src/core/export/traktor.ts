@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import type { AnalysisResult } from '../types';
 import { traktorKeyIndex } from '../key';
 import { esc, exportedLoops } from './rekordbox';
-import type { ExportOptions } from './index';
+import { commentTag, type ExportOptions } from './index';
 
 /** Traktor paths look like DIR="/:Users/:me/:Music/:" with FILE and VOLUME separate. */
 export function traktorLocation(p: string, macVolume: string): { dir: string; file: string; volume: string } {
@@ -47,7 +47,7 @@ export function buildTraktorNml(
     );
     lines.push(`<ALBUM TITLE="${esc(t.album)}"></ALBUM>`);
     lines.push(
-      `<INFO BITRATE="${t.bitrate}" GENRE="${esc(t.genre)}" KEY="${esc(t.key.openKey)}" PLAYTIME="${Math.round(t.durationSec)}" ` +
+      `<INFO BITRATE="${t.bitrate}" GENRE="${esc(t.genre)}"${opts.commentTags !== false && commentTag(t) ? ` COMMENT="${esc(commentTag(t))}"` : ''} KEY="${esc(t.key.openKey)}" PLAYTIME="${Math.round(t.durationSec)}" ` +
         `PLAYTIME_FLOAT="${t.durationSec.toFixed(6)}" IMPORT_DATE="${date}" FLAGS="0"></INFO>`,
     );
     lines.push(`<TEMPO BPM="${t.bpm.toFixed(6)}" BPM_QUALITY="${(t.grid.confidence * 100).toFixed(6)}"></TEMPO>`);
@@ -73,7 +73,7 @@ export function buildTraktorNml(
   }
   lines.push('</COLLECTION>');
   lines.push('<PLAYLISTS><NODE TYPE="FOLDER" NAME="$ROOT"><SUBNODES COUNT="1">');
-  lines.push(`<NODE TYPE="PLAYLIST" NAME="CueKoda"><PLAYLIST ENTRIES="${tracks.length}" TYPE="LIST" UUID="cuekoda-${now.getTime()}">`);
+  lines.push(`<NODE TYPE="PLAYLIST" NAME="${esc(opts.playlistName || 'CueKoda')}"><PLAYLIST ENTRIES="${tracks.length}" TYPE="LIST" UUID="cuekoda-${now.getTime()}">`);
   for (const t of tracks) {
     const loc = traktorLocation(t.path, macVolume);
     lines.push(`<ENTRY><PRIMARYKEY TYPE="TRACK" KEY="${esc(`${loc.volume}${loc.dir}${loc.file}`)}"></PRIMARYKEY></ENTRY>`);

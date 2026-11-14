@@ -150,6 +150,7 @@ job**.
 - Each transition is **scored out of 100 and explained**. **Hard** transitions (clashing keys, tempo gap
   > 8%) are highlighted.
 - Move tracks up / down, listen to each transition (🎧), open a track, **copy the list**.
+- **Export this set…**: the list goes to your DJ software as a named playlist, in your order.
 
 ### 7. Library
 - Sortable, filterable list (title, artist, key, BPM) with Camelot key colours, energy, a cue thumbnail and
@@ -177,6 +178,13 @@ then follow the import steps.
 | **VirtualDJ** | rekordbox XML | depends on VirtualDJ | depends on VirtualDJ | ? | ? | ? | to be checked |
 | **djay Pro** | rekordbox XML | depends on djay | depends on djay | ? | ? | ? | to be checked |
 | **Serato DJ Pro** | — | — | — | — | — | — | unavailable |
+
+**Useful options**:
+- **"E8 · 8B · Vocal" comment** (on by default): energy, Camelot key and vocals written to the Comments field,
+  so you can sort and filter your collection right in your DJ software. "Vocal" or "Instru" is only written on
+  clear evidence.
+- **Export a set**: from "Mix order…", "Export this set…" creates a named playlist with the tracks in the order
+  you arranged.
 
 Serato stores its cues **inside the audio files themselves**. Writing them would modify your files, which
 CueKoda never does. Details and the checking procedure: [export matrix](docs/MATRICE_EXPORT.md) (French).

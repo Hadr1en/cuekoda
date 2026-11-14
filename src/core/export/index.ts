@@ -14,6 +14,27 @@ export interface ExportOptions {
   loops: 'accepted' | 'all' | 'none';
   /** macOS volume name of the music drive (Traktor paths) */
   macVolume?: string;
+  /** Write "E8 · 8B · Vocal" in the Comments field (default on), to sort / filter in the DJ software */
+  commentTags?: boolean;
+  /** Name of the exported playlist (tracks in the given order) — a set from the mix-order window */
+  playlistName?: string;
+}
+
+/**
+ * Short tag for the DJ software's Comments field: energy, Camelot key and vocals, e.g. "E8 · 8B · Vocal".
+ * Vocals are named only on clear evidence: "Vocal" with a clear sung passage, "Instru" when the detector
+ * was informative and found nothing at all; otherwise nothing (the detector is not validated).
+ */
+export function commentTag(t: AnalysisResult): string {
+  const parts: string[] = [];
+  if (t.energy) parts.push(`E${Math.round(t.energy.score)}`);
+  if (t.key.camelot) parts.push(t.key.camelot);
+  const v = t.vocals;
+  if (v && v.informative !== false) {
+    if (v.segments.some((s) => s.strength === 'strong')) parts.push('Vocal');
+    else if (!v.segments.length) parts.push('Instru');
+  }
+  return parts.join(' · ');
 }
 
 export type SupportLevel = 'yes' | 'partial' | 'no';
@@ -64,7 +85,7 @@ function viaRekordbox(o: Pick<ExportAdapter, 'id' | 'name' | 'tagline' | 'howToI
       { field: 'Couleurs, memory cues, boucles', support: 'partial', note: 'Selon la version de ' + o.name },
       { field: 'Sections / énergie / phrases', support: 'no', note: 'Pas de champ d’import' },
     ],
-    build: (tracks, opts) => buildRekordboxXml(tracks, opts),
+    build: (tracks, opts) => buildRekordboxXml(tracks, opts, opts.playlistName || 'CueKoda'),
   }];
 }
 
@@ -87,6 +108,8 @@ export const ADAPTERS: ExportAdapter[] = [
       { field: 'Couleurs des cues', support: 'partial', note: 'Red/Green/Blue — rekordbox peut ramener à sa palette' },
       { field: 'Memory cues', support: 'yes', note: 'Num -1 (option)' },
       { field: 'Loops', support: 'yes', note: 'Memory loops Type 4 Start/End' },
+      { field: 'Commentaire « E8 · 8B · Vocal »', support: 'yes', note: 'Attribut Comments (option)' },
+      { field: 'Playlist (set)', support: 'yes', note: 'NODE Type 1, morceaux dans l’ordre' },
       { field: 'Sections / énergie / phrases', support: 'no', note: 'Pas de champ d’import (analyse de phrases rekordbox propriétaire)' },
     ],
     howToImport: [
@@ -94,7 +117,7 @@ export const ADAPTERS: ExportAdapter[] = [
       'Afficher la vue « rekordbox xml » dans l’arborescence, puis glisser les morceaux dans la Collection.',
       'Si un morceau est déjà dans la Collection, rekordbox peut demander s’il faut écraser ses informations : vérifier avant de confirmer.',
     ],
-    build: (tracks, opts) => buildRekordboxXml(tracks, opts),
+    build: (tracks, opts) => buildRekordboxXml(tracks, opts, opts.playlistName || 'CueKoda'),
   },
   {
     id: 'traktor',
@@ -114,6 +137,8 @@ export const ADAPTERS: ExportAdapter[] = [
       { field: 'Couleurs des cues', support: 'no', note: 'Traktor colore les cues par type, pas par couleur libre' },
       { field: 'Memory cues', support: 'partial', note: 'Cues sans pad uniquement : CUE_V2 HOTCUE -1 (cue mémorisé)' },
       { field: 'Loops', support: 'yes', note: 'CUE_V2 TYPE 5 avec LEN (boucles mémorisées)' },
+      { field: 'Commentaire « E8 · 8B · Vocal »', support: 'yes', note: 'INFO COMMENT (option)' },
+      { field: 'Playlist (set)', support: 'yes', note: 'NODE PLAYLIST, morceaux dans l’ordre' },
       { field: 'Sections / énergie / phrases', support: 'no', note: 'Pas de champ correspondant' },
     ],
     howToImport: [
@@ -188,6 +213,8 @@ export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], 
   if (xml && opts.memoryCues) out.push(`${cues} memory cue(s) aux positions des hot cues`);
   if (memo) out.push(`${memo} memory cue(s) sans pad${xml ? '' : ' (cues mémorisés Traktor)'}`);
   if (adapter.via) out.push(`Fichier au format rekordbox XML, à indiquer dans ${adapter.name}`);
+  if (opts.commentTags !== false && tracks.length) out.push(`Commentaire de chaque morceau : énergie, clé et voix (ex. « ${commentTag(tracks[0]) || 'E8 · 8B · Vocal'} »)`);
+  if (opts.playlistName) out.push(`Playlist « ${opts.playlistName} » : ${tracks.length} morceau(x) dans l’ordre du set`);
   out.push(`${loops} boucle(s) (${opts.loops === 'accepted' ? 'validées uniquement' : opts.loops === 'all' ? 'toutes les suggestions' : 'aucune'})`);
   out.push('Non transférés : sections, énergie, phrases, suggestions Mix In/Out');
   return out;

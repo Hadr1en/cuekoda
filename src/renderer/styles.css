@@ -308,6 +308,7 @@
     }
   }
   .note.ok { color: var(--color-ok); }
+  .opts input.set-name { inline-size: min(320px, 60%); margin-inline-start: 4px; }
   table.order {
     td { vertical-align: middle; }
     td.why { font-size: 12px; max-inline-size: 46ch; }
