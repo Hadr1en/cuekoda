@@ -98,7 +98,7 @@ export function loadDataset(id: DatasetId, annotationsDir: string, audioDir: str
       if (fs.existsSync(segFile)) {
         ref.sections = fs.readFileSync(segFile, 'utf8').trim().split(/\r?\n/)
           .map((l) => l.trim().split(/\s+/))
-          .filter((p) => Number.isFinite(Number(p[0])))
+          .filter((p) => p.length > 1 && Number.isFinite(Number(p[0])) && p[1].toLowerCase() !== 'end')
           .map((p) => ({ type: 'section' as const, label: p.slice(1).join(' '), startSec: Number(p[0]) }));
       }
       refs.push(ref);

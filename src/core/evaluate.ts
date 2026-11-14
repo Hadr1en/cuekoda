@@ -132,12 +132,21 @@ const BEAT_TOL_SEC = 0.07;
 /** Beat times of a constant grid (or tempo map) over [0, dur). */
 function gridBeats(det: AnalysisResult): { beats: number[]; downbeats: number[] } {
   const beats: number[] = [], downbeats: number[] = [];
-  const P = 60 / det.bpm;
-  let t = det.grid.firstDownbeatSec - Math.floor(det.grid.firstDownbeatSec / P) * P;
-  const k0 = Math.round((det.grid.firstDownbeatSec - t) / P);
-  for (let k = 0; t < det.durationSec; k++, t += P) {
-    beats.push(t);
-    if ((k - k0) % 4 === 0) downbeats.push(t);
+  const markers = det.tempoMap?.length
+    ? det.tempoMap
+    : [{ startSec: det.grid.firstDownbeatSec, bpm: det.bpm, beatInBar: 1 }];
+  const epsilon = 1e-9;
+  for (const [index, marker] of markers.entries()) {
+    if (!Number.isFinite(marker.bpm) || marker.bpm <= 0 || !Number.isFinite(marker.startSec)) continue;
+    const period = 60 / marker.bpm;
+    const endSec = Math.min(det.durationSec, markers[index + 1]?.startSec ?? det.durationSec);
+    const firstBeat = Math.ceil(((index === 0 ? 0 : Math.max(0, marker.startSec)) - marker.startSec - epsilon) / period);
+    for (let beat = firstBeat; ; beat++) {
+      const time = marker.startSec + beat * period;
+      if (time >= endSec - epsilon) break;
+      beats.push(Math.max(0, time));
+      if ((marker.beatInBar - 1 + beat) % 4 === 0) downbeats.push(Math.max(0, time));
+    }
   }
   return { beats, downbeats };
 }
@@ -161,7 +170,9 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
     const octave = [0.5, 2, 1 / 3, 3, 2 / 3, 1.5].some((k) => Math.abs(det.bpm / ref.bpm! - k) < 0.02);
     out.bpm = { reference: ref.bpm, detected: det.bpm, errorPct: bpmErr, octaveError: Math.abs(bpmErr) > 2 && octave };
   }
-  if (ref.firstDownbeatSec !== undefined && ref.bpm) {
+  // Annotated beat times give a more meaningful comparison than extrapolating
+  // a constant 4/4 grid from the reference's median tempo.
+  if (!ref.beats?.length && ref.firstDownbeatSec !== undefined && ref.bpm) {
     // grid phase: distance between the detected downbeat and the nearest reference beat
     const rel = (det.grid.firstDownbeatSec - ref.firstDownbeatSec) / beat;
     const phase = (rel - Math.round(rel)) * beat * 1000;

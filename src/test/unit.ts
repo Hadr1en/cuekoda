@@ -757,12 +757,34 @@ test('datasets: key labels and GiantSteps / Harmonix loaders', () => {
   assert.equal(loadDataset('giantsteps-key', ann, audio).refs[0].keyCamelot, '4A');
   const beats = Array.from({ length: 16 }, (_, i) => `${(0.5 + i * 0.5).toFixed(3)} ${(i % 4) + 1} ${Math.floor(i / 4) + 1}`).join('\n');
   fs.writeFileSync(path.join(ann, 'beats_and_downbeats', '0042_song.txt'), beats);
-  fs.writeFileSync(path.join(ann, 'segments', '0042_song.txt'), '0.0 intro\n4.5 verse\n');
+  fs.writeFileSync(path.join(ann, 'segments', '0042_song.txt'), '0.0 intro\n4.5 verse\n8.0 end\n');
   fs.writeFileSync(path.join(audio, '0042_song.wav'), '');
   const hx = loadDataset('harmonix', ann, audio).refs[0];
   assert.equal(Math.round(hx.bpm!), 120);
   assert.deepEqual(hx.downbeats, [0.5, 2.5, 4.5, 6.5]);
   assert.equal(hx.sections!.length, 2);
+});
+
+test('evaluateTrack: beat F-measures follow tempo markers and their beat-in-bar', () => {
+  const det = track({
+    path: 'tempo-map.wav', durationSec: 6.25, bpm: 120,
+    grid: { bpm: 120, firstDownbeatSec: 0, confidence: 1 },
+    tempoMap: [
+      { startSec: 0.5, bpm: 120, beatInBar: 2 },
+      { startSec: 2.5, bpm: 80, beatInBar: 2 },
+    ],
+  });
+  const ref = {
+    ...referenceFrom(det),
+    beats: [0, 0.5, 1, 1.5, 2, 2.5, 3.25, 4, 4.75, 5.5],
+    downbeats: [0, 2, 4.75],
+  };
+  const result = evaluateTrack(det, ref);
+  assert.deepEqual(result.beats, { fMeasure: 1, downbeatF: 1 });
+  assert.equal(result.grid, undefined);
+  const constant = evaluateTrack({ ...det, tempoMap: undefined }, ref);
+  assert.ok(constant.beats!.fMeasure < 1);
+  assert.ok(constant.beats!.downbeatF < 1);
 });
 
 // ---------------------------------------------------------------- acoustic fingerprint (§15)
