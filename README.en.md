@@ -180,6 +180,10 @@ Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click
 Open **More › Compare re-analysis…** to listen to changed tracks before and after and restore the
 previous analysis for each track.
 
+**Crates** saves your selections as local, ordered lists. Add tracks from their context menu, reorder
+the crate, then filter the library to it or export it as a named playlist. Remove from crate keeps
+the track in your library. Export also accepts the current multi-selection.
+
 ### 8. Export to your DJ software
 <img src="docs/screenshots/en/export.png" alt="CueKoda export dialog" width="100%">
 

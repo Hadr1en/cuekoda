@@ -199,6 +199,7 @@
     display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-block-end: var(--ui-border);
     background: var(--color-panel);
     input[type='search'] { flex: 0 1 285px; min-inline-size: 90px; padding: 6px 10px; }
+    #lib-view { max-inline-size: 175px; min-inline-size: 0; }
     .lib-count { color: var(--color-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
     @media (max-width: 1080px) { &:has(#selection-count:not([hidden])) #lib-count { display: none; } }
   }
@@ -298,6 +299,17 @@
     padding: 8px 10px; margin-block: 6px; background: var(--color-panel); border: var(--ui-border); border-radius: var(--ui-radius);
     .hrow { flex-wrap: wrap; }
   }
+  .crate-create { margin-block: 10px; }
+  .crate-layout { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 3fr); gap: 12px; }
+  .crate-sidebar { display: grid; gap: 4px; align-content: start; }
+  .crate-sidebar button { overflow: hidden; text-overflow: ellipsis; text-align: start; }
+  .crate-sidebar [aria-pressed='true'] { background: var(--ui-selected-bg); }
+  .crate-content { min-inline-size: 0; }
+  .crate-content > .hrow { margin-block: 6px; flex-wrap: wrap; }
+  .crate-tracks { padding-inline-start: 2.1em; }
+  .crate-tracks li { padding-block: 4px; border-block-end: var(--ui-border); }
+  .crate-tracks li > span { display: inline-block; max-inline-size: calc(100% - 120px); vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crate-tracks li .hrow { float: inline-end; }
   .comparison-list {
     margin-block: 8px; display: grid; gap: 4px;
     button { display: flex; gap: 8px; justify-content: space-between; text-align: start; white-space: normal; }

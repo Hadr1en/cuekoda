@@ -67,6 +67,11 @@ drop ou vers la fin. Raccourcis dans ce panneau **1 / 2 / 3** pour écouter, **T
 Après une réanalyse, **Plus › Comparer la réanalyse…** liste les morceaux dont le BPM, la grille ou les
 cues ont changé. Vous pouvez écouter les deux analyses et rétablir la précédente pour un morceau.
 
+## Bacs de préparation
+Sélectionnez des morceaux et faites un clic droit › **Ajouter à un bac…**. Le bouton **Bacs…** permet
+ensuite de réordonner, filtrer et exporter chaque bac en playlist. Le bac conserve l’ordre choisi.
+Dans la bibliothèque filtrée sur un bac, **Suppr** retire uniquement l’appartenance au bac.
+
 ## Ordre de mix (suggestion)
 « Ordre de mix… » (au-dessus de la liste) propose un ordre pour les morceaux affichés (filtrez d'abord si
 besoin) selon un arc d'énergie (montée progressive, vagues ou libre) et la compatibilité tonalité / tempo.

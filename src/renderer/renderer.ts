@@ -1,3 +1,5 @@
+import type { PrepCrate } from '../core/crates';
+import { openCrates } from './crates';
 import { gridAudition, gridBeats, type GridBeat } from '../core/beatgrid';
 import { openComparison } from './comparison';
 import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
@@ -90,6 +92,8 @@ function overallConfidence(r: AnalysisResult) {
 }
 
 let libView: 'all' | 'review' | 'missing' = 'all';
+let activeCrate: string | undefined;
+let crateOrder = new Map<string, number>();
 
 /**
  * Why a track should be checked by ear before a gig (empty = nothing to check): low confidence on tempo,
@@ -111,6 +115,7 @@ function reviewReasons(rec: TrackRecord): string[] {
 }
 
 function matchesFilter(rec: TrackRecord) {
+  if (activeCrate && !crateOrder.has(rec.path)) return false;
   if (libView === 'review' && !reviewReasons(rec).length) return false;
   if (libView === 'missing' && !rec.missing) return false;
   if (!searchTerms.length) return true;
@@ -145,7 +150,7 @@ function sortValue(rec: TrackRecord): string | number {
     case 'cues': return r?.cues.length ?? 0;
     case 'conf': return r ? { high: 0, medium: 1, low: 2 }[overallConfidence(r)] : 3;
     case 'duration': return r?.durationSec ?? 0;
-    default: return rec.addedAt;
+    default: return crateOrder.get(rec.path) ?? rec.addedAt;
   }
 }
 
@@ -249,6 +254,10 @@ function selectedPaths() {
   return [...markedPaths].filter((path) => visibleIndex.has(path) && state.tracks.has(path));
 }
 
+function selectedInViewOrder() {
+  return selectedPaths().sort((a, b) => visibleIndex.get(a)! - visibleIndex.get(b)!);
+}
+
 function chooseTrack(path: string, e?: MouseEvent | KeyboardEvent, checkbox = false) {
   const toggle = checkbox || !!(e?.metaKey || e?.ctrlKey);
   const anchor = selectionAnchor === null ? undefined : visibleIndex.get(selectionAnchor);
@@ -280,7 +289,10 @@ function openTrackActions(path: string, x: number, y: number) {
   }, label);
   trackActions.replaceChildren(
     button('Ré-analyser', () => void reanalyzeSelected(), !selectedPaths().some((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)))),
-    button('Retirer de la bibliothèque', () => void removeSelected()),
+    button('Ajouter à un bac…', () => showCrates()),
+    button('Exporter la sélection…', () => openExport(state.selected, undefined, selectedInViewOrder()),
+      !selectedPaths().some((p) => state.tracks.get(p)?.status === 'done')),
+    button(activeCrate ? 'Retirer du bac' : 'Retirer de la bibliothèque', () => void removeSelected()),
     button('Afficher le fichier', () => void api.revealInFolder(path), markedPaths.size > 1 || !!state.tracks.get(path)?.missing),
     button('Tout sélectionner', () => markAllVisible(true)),
   );
@@ -583,11 +595,18 @@ function renderDetail() {
     r.overrides?.firstDownbeatSec !== undefined ? h('span', { class: 'pill' }, 'manuel') : '',
   );
   const ks = $<HTMLSelectElement>('key-select');
-  const alts = new Set((r.key.alternatives ?? []).map((a) => a.camelot));
+  const alternatives = new Set((r.key.alternatives ?? []).map((a) => a.camelot));
+  const candidateOrder = [r.key.camelot, ...alternatives];
+  const keys = allKeys().sort((a, b) => keyOrder(a) - keyOrder(b));
+  const option = (k: AnalysisResult['key']) =>
+    h('option', { value: k.musical, selected: k.camelot === r.key.camelot }, `${keyLabel(k)} · ${k.musical}`);
   ks.replaceChildren(
-    ...allKeys().sort((a, b) => keyOrder(a) - keyOrder(b)).map((k) =>
-      h('option', { value: k.musical, selected: k.camelot === r.key.camelot },
-        `${keyLabel(k)} · ${k.musical}${alts.has(k.camelot) ? ' (alternative plausible)' : ''}`)),
+    ...(alternatives.size ? [
+      h('optgroup', { label: tr('Tonalités proposées') },
+        ...candidateOrder.flatMap((c) => keys.filter((k) => k.camelot === c).map(option))),
+      h('optgroup', { label: tr('Autres tonalités') },
+        ...keys.filter((k) => !candidateOrder.includes(k.camelot)).map(option)),
+    ] : keys.map(option)),
   );
   if (r.overrides?.key) ks.append(h('option', { value: '' }, '↺ Revenir à la détection automatique'));
   $('key-conf').replaceChildren(
@@ -1476,7 +1495,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (mod && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
-  if (mod && e.key.toLowerCase() === 'e') { e.preventDefault(); if (doneResults().length) openExport(state.selected); return; }
+  if (mod && e.key.toLowerCase() === 'e') { e.preventDefault(); if (doneResults().length) exportCurrentView(); return; }
   if (mod && e.key.toLowerCase() === 'f') {
     e.preventDefault();
     search.focus();
@@ -1568,11 +1587,64 @@ for (const [id, direction] of [['btn-prev-track', -1], ['btn-next-track', 1]] as
 }
 
 search.addEventListener('input', updateSearch);
-viewSelect.addEventListener('change', () => { libView = viewSelect.value as typeof libView; renderLibrary(); });
+function updateCrateView() {
+  const crate = state.crates.find((item) => item.id === activeCrate);
+  activeCrate = crate?.id;
+  crateOrder = new Map(crate?.paths.map((path, i) => [path, i]));
+  const base = ['all', 'review', 'missing'] as const;
+  viewSelect.replaceChildren(
+    ...base.map((value, i) => h('option', { value }, ['Tous', 'À vérifier', 'Fichiers introuvables'][i])),
+    ...(state.crates.length ? [h('optgroup', { label: tr('Bacs de préparation') },
+      ...state.crates.map((item) => h('option', { value: `crate:${item.id}` }, document.createTextNode(item.name))),
+    )] : []),
+  );
+  viewSelect.value = activeCrate ? `crate:${activeCrate}` : libView;
+  setText($('btn-remove'), activeCrate ? 'Retirer du bac' : 'Retirer');
+  renderLibrary();
+}
+
+function applyCrates(crates: PrepCrate[]) {
+  state.crates = crates;
+  updateCrateView();
+}
+
+function showCrates() {
+  openCrates({
+    selected: selectedInViewOrder(),
+    active: activeCrate,
+    update: applyCrates,
+    show: (id) => {
+      activeCrate = id;
+      libView = 'all';
+      search.value = '';
+      searchTerms = [];
+      sortKey = '';
+      updateCrateView();
+      if (visibleRecords[0]) chooseTrack(visibleRecords[0].path);
+    },
+    export: (crate) => openExport(null, { ...crate, source: 'crate' }),
+  });
+}
+
+function exportCurrentView() {
+  const crate = state.crates.find((item) => item.id === activeCrate);
+  const paths = selectedInViewOrder();
+  openExport(state.selected, crate ? { ...crate, source: 'crate' } : undefined, paths.length > 1 ? paths : []);
+}
+
+viewSelect.addEventListener('change', () => {
+  const value = viewSelect.value;
+  activeCrate = value.startsWith('crate:') ? value.slice(6) : undefined;
+  libView = activeCrate ? 'all' : value as typeof libView;
+  if (activeCrate) sortKey = '';
+  updateCrateView();
+});
 $('clear-filters').addEventListener('click', () => {
   search.value = '';
-  viewSelect.value = libView = 'all';
-  updateSearch();
+  libView = 'all';
+  activeCrate = undefined;
+  searchTerms = [];
+  updateCrateView();
   search.focus();
 });
 $('btn-reviewed').addEventListener('click', async () => {
@@ -1631,6 +1703,13 @@ let removing = false;
 async function removeSelected() {
   const paths = selectedPaths();
   if (!paths.length || removing) return;
+  if (activeCrate) {
+    removing = true;
+    try { applyCrates((await api.updateCrates({ type: 'remove', id: activeCrate, paths })).crates); }
+    catch { toast('Impossible d’enregistrer le bac.'); }
+    finally { removing = false; }
+    return;
+  }
   const message = paths.length === 1
     ? 'Retirer ce morceau de la bibliothèque CueKoda ? Le fichier audio n’est pas supprimé.'
     : `Retirer ${paths.length} morceaux de la bibliothèque ? Les fichiers audio sont conservés.`;
@@ -1671,7 +1750,8 @@ $('btn-folder').addEventListener('click', async () => addPaths(await api.pick('f
 $('btn-pause').addEventListener('click', () => void (state.queue.paused ? api.resume() : api.pause()));
 $('btn-cancel').addEventListener('click', () => void api.cancel());
 $('btn-retry').addEventListener('click', () => void api.retryErrors());
-$('btn-export').addEventListener('click', () => openExport(state.selected));
+$('btn-export').addEventListener('click', exportCurrentView);
+$('btn-crates').addEventListener('click', showCrates);
 $('btn-dupes').addEventListener('click', openDuplicates);
 $('btn-settings').addEventListener('click', () => openSettings(() => { fillProfiles(); renderDetail(); }));
 $('profile').addEventListener('change', async (e) => {
@@ -1742,7 +1822,8 @@ async function boot() {
   applyTheme(s.settings.theme ?? 'dark');
   for (const t of s.tracks) state.tracks.set(t.path, t);
   fillProfiles();
-  renderLibrary();
+  applyCrates(s.crates ?? []);
+  api.onCrates(applyCrates);
   onQueue();
   const first = s.tracks.find((t) => t.result);
   if (first && visibleIndex.has(first.path)) chooseTrack(first.path);

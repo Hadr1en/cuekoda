@@ -1,3 +1,4 @@
+import { applyCrateAction, replaceCratePaths } from '../core/crates';
 import { analysisChanges, comparisonPoint } from '../core/analysisComparison';
 /**
  * Unit tests of the pure modules (no audio decoding):  npm run test:unit
@@ -16,7 +17,7 @@ import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles
 import { beatIndex, gridBeats, gridAudition, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
 import { estimateGrid } from '../core/rhythm';
-import { allKeys, formatKey, keyFromMusical } from '../core/key';
+import { allKeys, electronicKeyFromVotes, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
 import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
@@ -391,6 +392,39 @@ test('phrases: regular 16-bar grid detected, irregular track gives null', () => 
 });
 
 // ---------------------------------------------------------------- exports
+test('EDM key consensus reconciles enharmonic names and lowers confidence for a split vote', () => {
+  const vote = (tonic: string, scale: 'major' | 'minor', strength = 0.9) => ({ tonic, scale, strength });
+  const strong = electronicKeyFromVotes([vote('Db', 'minor'), vote('C#', 'minor'), vote('Db', 'minor')],
+    vote('C#', 'minor'), vote('Db', 'minor'));
+  assert.equal(strong.musical, 'C#m');
+  assert.equal(strong.level, 'high');
+
+  const split = electronicKeyFromVotes([vote('C', 'major'), vote('C', 'major'), vote('C', 'major')],
+    vote('C', 'major'), vote('G', 'minor'));
+  assert.equal(split.musical, 'C');
+  assert.equal(split.level, 'low');
+  assert.equal(split.alternatives?.[0].musical, 'Gm');
+
+  const relative = electronicKeyFromVotes([vote('C', 'major'), vote('A', 'minor'), vote('A', 'minor')],
+    vote('C', 'major'), vote('A', 'minor'));
+  assert.equal(relative.musical, 'C');
+  assert.equal(relative.alternatives?.[0].musical, 'Am');
+});
+
+test('preparation crates preserve playlist order, deduplicate paths and follow library moves', () => {
+  const known = (p: string) => p !== '/missing';
+  const create = applyCrateAction([], { type: 'create', name: ' Club ', paths: ['/b', '/a', '/b', '/missing'] }, known, () => '1');
+  assert.deepEqual(create.crates, [{ id: '1', name: 'Club', paths: ['/b', '/a'] }]);
+  const append = applyCrateAction(create.crates, { type: 'add', id: '1', paths: ['/a', '/c'] }, known, () => '2');
+  const move = applyCrateAction(append.crates, { type: 'move', id: '1', path: '/c', direction: -1 }, known, () => '2');
+  const renamed = replaceCratePaths(move.crates, new Set(['/a']), '/renamed');
+  assert.deepEqual(renamed[0].paths, ['/b', '/c', '/renamed']);
+  assert.equal(applyCrateAction(renamed, { type: 'create', name: 'club', paths: [] }, known, () => '2').error, 'Un bac porte déjà ce nom.');
+  const remove = applyCrateAction(renamed, { type: 'remove', id: '1', paths: ['/c'] }, known, () => '2');
+  assert.deepEqual(remove.crates[0].paths, ['/b', '/renamed']);
+  assert.deepEqual(replaceCratePaths(remove.crates, new Set(['/b']))[0].paths, ['/renamed']);
+});
+
 test('analysis comparison ignores regenerated cue IDs and detects material changes', () => {
   const before = track({
     path: '/m/a.mp3', cues: [cue({ id: 'a', timeSec: 3 })],

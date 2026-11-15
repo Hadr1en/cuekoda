@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { decodeAudio, mp3WithoutGaplessHeader } from './decode';
 import { analyseBands, decimate2 } from './dsp';
 import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo } from './rhythm';
-import { allKeys, keyFromMusical, keyFromTonic } from './key';
+import { allKeys, electronicKeyFromVotes, keyFromMusical, keyFromTonic, type KeyVote } from './key';
 import { camelotRelation } from './matching';
 import { analyzeStructure, buildSections, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
 import { computeEnergy } from './energy';
@@ -136,15 +136,24 @@ function detectKey(x: Float32Array, durSec: number): KeyResult {
 }
 
 /** Key of one excerpt (EDM profile) with its strength. */
-function keyOf(seg: Float32Array): { tonic: string; scale: 'major' | 'minor'; strength: number } {
+function keyOf(seg: Float32Array, profile = 'edma'): KeyVote {
   const e = essentia();
   const v = e.arrayToVector(seg);
   try {
-    const r = e.KeyExtractor(v, true, 4096, 4096, 12, 3500, 60, 25, 0.2, 'edma', SR_FULL);
+    const r = e.KeyExtractor(v, true, 4096, 4096, 12, 3500, 60, 25, 0.2, profile, SR_FULL);
     return { tonic: r.key as string, scale: r.scale === 'major' ? 'major' : 'minor', strength: r.strength as number };
   } finally {
     v.delete();
   }
+}
+
+/** EDM: combine the local votes with two profiles on the harmonically richer central passage. */
+export function detectElectronicKey(x: Float32Array, durSec: number): KeyResult {
+  const length = Math.min(50, durSec / 3);
+  const variants = [0.25, 0.5, 0.75].map((center) =>
+    keyOf(excerpt(x, SR_FULL, Math.max(0, durSec * center - length / 2), length)));
+  const middle = excerpt(x, SR_FULL, Math.max(0, durSec / 2 - 60), 120);
+  return electronicKeyFromVotes(variants, keyOf(middle, 'bgate'), keyOf(middle, 'edmm'));
 }
 
 /**
@@ -424,7 +433,9 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   if (manualKey) {
     key = { ...manualKey, level: 'high', ambiguous: false, alternatives: [] };
   } else {
-    key = detectKey(full, durSec);
+    key = profile.vocabulary === 'edm' || profile.id === 'techno'
+      ? detectElectronicKey(full, durSec)
+      : detectKey(full, durSec);
     if (key.ambiguous) {
       const alts = (key.alternatives ?? []).map((a) => a.camelot).join(', ');
       warnings.push(`Tonalité ambiguë${alts ? ` (aussi plausible : ${alts})` : ''}`);

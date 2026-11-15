@@ -10,6 +10,8 @@ const api: CueKodaApi = {
   pathsForFiles: (files) => files.map((f) => webUtils.getPathForFile(f)).filter(Boolean),
   pick: (kind) => ipcRenderer.invoke('pick', kind),
   addPaths: (paths) => ipcRenderer.invoke('add-paths', paths),
+  updateCrates: (action) => ipcRenderer.invoke('crates-update', action),
+  onCrates: on('crates'),
   reanalyze: (paths, force) => ipcRenderer.invoke('reanalyze', paths, force),
   analysisComparison: (p) => ipcRenderer.invoke('analysis-comparison', p),
   restoreAnalysis: (p) => ipcRenderer.invoke('restore-analysis', p),

@@ -70,3 +70,51 @@ export function allKeys(): KeyResult[] {
   for (const n of NAMES_MAJOR) out.push(keyFromMusical(n)!);
   return out.sort((a, b) => parseInt(a.camelot, 10) - parseInt(b.camelot, 10) || a.camelot.localeCompare(b.camelot));
 }
+
+export interface KeyVote {
+  tonic: string;
+  scale: 'major' | 'minor';
+  strength: number;
+}
+
+/** Combine votes for the same key, including enharmonic names, from three profile families. */
+export function electronicKeyFromVotes(segments: readonly KeyVote[], gate: KeyVote, minor: KeyVote): KeyResult {
+  const scores = new Map<string, { key: KeyResult; weight: number; families: Set<string> }>();
+  const strength = (vote: KeyVote) => Number.isFinite(vote.strength) ? Math.max(0.05, Math.min(1, vote.strength)) : 0;
+  const add = (vote: KeyVote, family: string, weight: number) => {
+    const key = keyFromTonic(vote.tonic, vote.scale, 0);
+    const value = strength(vote) * weight;
+    if (!key || value <= 0) return;
+    const entry = scores.get(key.camelot) ?? { key, weight: 0, families: new Set<string>() };
+    entry.families.add(family);
+    entry.weight += value;
+    scores.set(key.camelot, entry);
+  };
+  const segmentCount = Math.max(1, segments.length);
+  for (const vote of segments) add(vote, 'edma', 1 / segmentCount);
+  add(gate, 'bgate', 1);
+  const gateKey = keyFromTonic(gate.tonic, gate.scale, 0);
+  const minorKey = keyFromTonic(minor.tonic, minor.scale, 0);
+  // The EDM-minor profile is useful for the tonic but tends to choose the minor mode.
+  const relativeMinor = gate.scale === 'major' && minor.scale === 'minor' && gateKey && minorKey
+    && gateKey.camelot.slice(0, -1) === minorKey.camelot.slice(0, -1);
+  add(minor, 'edmm', relativeMinor ? 0.65 : 1.5);
+  const ranked = [...scores.values()].sort((a, b) => b.weight - a.weight);
+  const first = ranked[0];
+  if (!first) return { camelot: '', musical: '', openKey: '', confidence: 0, level: 'low', ambiguous: true };
+  const total = ranked.reduce((sum, entry) => sum + entry.weight, 0);
+  const share = first.weight / total;
+  const runnerUp = ranked[1]?.weight ?? 0;
+  const mean = segments.reduce((sum, vote) => sum + strength(vote), 0) / segmentCount;
+  const ambiguous = share < 0.55 || runnerUp / first.weight > 0.70;
+  const high = !ambiguous && first.families.size === 3 && share >= 0.8 && mean >= 0.85;
+  return {
+    ...first.key,
+    confidence: share * Math.min(1, mean / 0.6),
+    level: ambiguous ? 'low' : high ? 'high' : 'medium',
+    ambiguous,
+    alternatives: ranked.slice(1)
+      .filter(({ weight }) => weight / total >= 0.15).slice(0, 3)
+      .map(({ key, weight }) => ({ camelot: key.camelot, musical: key.musical, openKey: key.openKey, weight: weight / total })),
+  };
+}
