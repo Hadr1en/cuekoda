@@ -121,3 +121,23 @@ l’extraction de caractéristiques. [M-DJCUE](https://github.com/MZehren/M-DJCU
 repères de mix annotés et indique des versions audio de substitution pour une partie des titres.
 [EDM-CUE](https://huggingface.co/datasets/disco-eth/edm-cue) fournit des cues génériques et une
 grille par titre. Les fichiers `valid` et `test` téléchargés pour ce benchmark sont identiques.
+
+Les manifestes de repères chronométrés peuvent alimenter le même entraînement.
+L’export utilise exclusivement la partition `train`. Recalage et tolérance d’association
+tiennent compte de la précision temporelle propre à chaque corpus.
+
+```bash
+CUEKODA_VOCAL_MODEL=0 node dist/test/export-electro-cue-features.js --timed-marks ssme.json \
+  /chemin/vers/mp3s_soundcloud_cc_event_detection > ssme-features.jsonl
+cat electro-cue-features.jsonl ssme-features.jsonl > features-mixtes.jsonl
+python3 scripts/train-electro-cues.py features-mixtes.jsonl electro-cue-candidat.json --ssme-weight 0.25
+```
+
+Pour ajouter EDM-98, utiliser un manifeste avec `source: "EDM-98"` et les mêmes champs de
+piste, puis inclure son export dans le fichier mixte et régler `--edm98-weight`. La pondération
+par défaut des deux corpus supplémentaires est nulle. Évaluer les paramètres candidats
+sur les partitions réservées avant de remplacer les paramètres du moteur.
+
+Pour tester un seul type de repère et reprendre les paramètres actuels de l’autre,
+ajouter `--head breakdown --base-model src/core/electroCueModel.json` à la commande
+d’entraînement. Le type `drop` est également accepté.

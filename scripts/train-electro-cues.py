@@ -7,9 +7,9 @@ import numpy as np
 from sklearn.ensemble import HistGradientBoostingClassifier
 
 
-def train(features, targets):
-    positive_weight = np.sqrt(len(targets) / np.sum(targets))
-    weights = np.where(targets == 1, positive_weight, 1.0)
+def train(features, targets, weights):
+    positive = targets == 1
+    weights[positive] *= np.sqrt(weights.sum() / weights[positive].sum())
     classifier = HistGradientBoostingClassifier(
         max_iter=140,
         max_depth=3,
@@ -41,17 +41,34 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("features", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--ssme-weight", type=float, default=0.0)
+    parser.add_argument("--edm98-weight", type=float, default=0.0)
+    parser.add_argument("--head", choices=("drop", "breakdown"))
+    parser.add_argument("--base-model", type=Path)
     args = parser.parse_args()
+    if bool(args.head) != bool(args.base_model):
+        parser.error("--head and --base-model must be provided together")
+    prior = json.loads(args.base_model.read_text(encoding="utf-8")) if args.base_model else {}
+    source_weight = {"raveform": 1.0, "SSMe": args.ssme_weight, "EDM-98": args.edm98_weight}
+    if any(not np.isfinite(weight) or weight < 0 for weight in source_weight.values()):
+        parser.error("source weights must be finite nonnegative numbers")
+
+    def weight(row):
+        return source_weight[row.get("source", "raveform")]
+
     with args.features.open(encoding="utf-8") as file:
         records = [json.loads(line) for line in file if line.strip()]
     models = {}
     for label in ("drop", "breakdown"):
-        rows = [record for record in records if record["type"] == label]
+        if args.head and label != args.head:
+            models[label] = prior[label]
+            continue
+        rows = [record for record in records if record["type"] == label and weight(record) > 0]
         values = [row["target"] for row in rows]
         if set(values) != {0, 1}:
             parser.error(f"{label} requires both landmark and background examples")
         features = np.asarray([row["features"] for row in rows])
-        models[label] = train(features, np.asarray(values))
+        models[label] = train(features, np.asarray(values), np.asarray([weight(row) for row in rows]))
     with args.output.open("w", encoding="utf-8") as file:
         file.write("{\n")
         for index, (label, model) in enumerate(models.items()):

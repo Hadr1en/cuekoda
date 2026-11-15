@@ -51,8 +51,11 @@ def prepare(directory):
             skipped["missingExpertMarks"] += 1
             continue
 
+        checksum = hashlib.sha256()
         with audio.open("rb") as source:
-            digest = hashlib.file_digest(source, "sha256").hexdigest()
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                checksum.update(chunk)
+        digest = checksum.hexdigest()
         if digest in seen:
             skipped["duplicateAudio"] += 1
             continue
