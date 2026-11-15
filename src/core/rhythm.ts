@@ -72,7 +72,9 @@ export function chooseTempo(bands: Bands, rawBpm: number, min: number, max: numb
       .filter((c) => c !== selected && c.fit.bpm >= min && c.fit.bpm < max && c.fit.score >= selected.fit.score * 0.85)
       .map((c) => c.fit);
     const preferred = alternatives.length ? barPeriodicity(bands, [selected.fit, ...alternatives]) : undefined;
-    if (preferred) {
+    // Correct undercounted beats. A slower candidate can make a genuine three-beat
+    // measure look like four beats by subdividing it, as in the Ballroom waltzes.
+    if (preferred && preferred.bpm > selected.fit.bpm * 1.1) {
       return { bpm: preferred.bpm, note: `Tempo ${selected.center.toFixed(1)} remplacé par ${preferred.bpm.toFixed(1)} (motif rythmique récurrent)` };
     }
   }

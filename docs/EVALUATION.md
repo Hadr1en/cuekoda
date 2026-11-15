@@ -34,3 +34,26 @@ morceaux et des annotations partielles. Deux d'entre eux ont une grille annotée
 Sur les 13 morceaux de non-régression, quatre cues Vocal disparaissent et le Break de *This Dream of You*
 passe de 200,36 s à 140,36 s, avec la frontière de section déplacée de la mesure 106 à la mesure 74.
 La moyenne des scores d'énergie passe de 8,0 à 7,9 et l'écart-type de 0,30 à 0,37.
+
+## Corpus publics
+
+Les fichiers audio restent hors du dépôt. Passer le dossier audio original et le dossier des
+annotations à la commande suivante.
+
+```bash
+npm run eval -- --dataset ballroom --annotations /chemin/vers/BallroomAnnotations --audio /chemin/vers/BallroomData --json ballroom.json
+npm run eval -- --dataset brid --annotations /chemin/vers/Annotations --audio /chemin/vers/Data --json brid.json
+```
+
+- [Ballroom](https://github.com/CPJKU/BallroomAnnotations) fournit les annotations de temps et de
+  mesure et indique comment récupérer les extraits. Le BPM de référence est calculé à partir
+  de l'intervalle médian entre temps annotés.
+- [BRID](https://zenodo.org/records/14051323) fournit l'audio, les annotations de temps et les
+  BPM de référence. Les enregistrements d'ensemble annotés sont le corpus évaluable.
+- [GiantSteps Tempo](https://github.com/GiantSteps/giantsteps-tempo-dataset) utilise
+  `--dataset giantsteps-tempo` et le dossier `annotations_v2/tempo`. [GiantSteps Key](https://github.com/GiantSteps/giantsteps-key-dataset)
+  utilise `--dataset giantsteps-key` et le dossier `annotations/key`.
+
+Le JSON donne la couverture et les échecs par fichier. Pour comparer la grille sur des titres
+hors EDM, regrouper les résultats par `beats.referenceBeatsPerBar`. Le moteur de préparation
+calcule ses mesures en 4/4.

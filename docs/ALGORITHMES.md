@@ -20,8 +20,9 @@ doivent pas être lus comme des probabilités.
 3. **Validation** : score d'alignement de grille sur l'enveloppe d'attaques pour les ratios ×1, ×3/2, ×2/3,
    ×4/3, ×3/4. Un autre candidat peut l’emporter s’il s’aligne au moins 15 % mieux. Les profils EDM
    sans bornes explicites comparent aussi la récurrence des attaques à 2, 4 et 8 temps entre candidats
-   dont les pulsations s’alignent déjà. Ce critère favorise une mesure cohérente lorsque le motif
-   syncopé donne aussi une grille plausible en rapport 3:2.
+   dont les pulsations s’alignent déjà. Ce critère ne relève le BPM que si le candidat plus rapide
+   rend mieux compte du motif syncopé, par exemple lorsque le moteur sous-compte les temps en 3:2.
+   Les candidats plus lents peuvent convertir artificiellement une mesure à trois temps en quatre.
 4. Affinage au centième par régression robuste (Theil-Sen) des attaques mesurées dans le domaine temporel,
    puis arrondi à un tempo entier / demi-entier seulement si l'ajustement est aussi bon.
 5. **Stabilité** : tempo de chaque segment de 64 temps estimé **indépendamment** (alignement de grille à ±8 %
