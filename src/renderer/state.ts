@@ -1,4 +1,5 @@
 import type { UpdateStatus } from '../shared/update';
+import { formatKey } from '../core/key';
 import type { AnalysisResult } from '../core/types';
 import type { Profile } from '../core/profiles';
 import type { AdapterInfo, CueKodaApi, QueueState, Settings, TrackEdits, TrackRecord } from '../shared/api';
@@ -25,6 +26,9 @@ export const state = {
   appBuild: null as number | null,
   update: { state: 'idle' } as UpdateStatus,
 };
+
+export const keyLabel = (key: Pick<AnalysisResult['key'], 'camelot' | 'openKey'>): string =>
+  formatKey(key, state.settings?.keyNotation);
 
 export const doneResults = (): AnalysisResult[] =>
   [...state.tracks.values()].filter((r) => r.status === 'done' && r.result).map((r) => r.result!);

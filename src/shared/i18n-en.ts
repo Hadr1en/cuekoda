@@ -285,6 +285,9 @@ export const EN_EXACT: Record<string, string> = {
   'Alternatives tempo': 'Tempo alternatives',
   'Repère électro proposé après comparaison des changements sur plusieurs mesures':
     'Electronic music cue suggested from changes across several bars',
+  'Impossible d’enregistrer la notation de tonalité.': 'Could not save the key notation.',
+  'Notation de tonalité': 'Key notation',
+  'Choisir la notation de tonalité': 'Choose the key notation',
   'Ajustement de la grille': 'Grid fit',
   'Premier temps': 'First downbeat',
   'Alternatives tonalité': 'Key alternatives',
@@ -624,9 +627,10 @@ export const EN_EXACT: Record<string, string> = {
   'Nom de la playlist': 'Playlist name',
   'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.':
     'To sort and filter by energy in your DJ software. Replaces the track’s comment if you accept to overwrite its information on import.',
-  'Énergie, clé et voix dans le commentaire (ex. « E8 · 8B · Vocal »)': 'Energy, key and vocals in the comment (e.g. “E8 · 8B · Vocal”)',
+  'Énergie, clé et voix dans le commentaire': 'Energy, key and vocals in the comment',
   'Exporter ces morceaux, dans cet ordre, comme une playlist pour ton logiciel DJ': 'Export these tracks, in this order, as a playlist for your DJ software',
   'Exporter ce set…': 'Export this set…',
+  'Commentaire « E8 · 1d · Vocal »': 'Comment “E8 · 1d · Vocal”',
   'Commentaire « E8 · 8B · Vocal »': 'Comment “E8 · 8B · Vocal”',
   'Attribut Comments (option)': 'Comments attribute (option)',
   'NODE Type 1, morceaux dans l’ordre': 'NODE Type 1, tracks in order',

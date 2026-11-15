@@ -240,6 +240,10 @@ CueKoda est honnête sur ce qu'il sait faire :
 Le détail, fonction par fonction, est dans [l'état des fonctionnalités](docs/AUDIT_ET_PLAN.md) et le
 fonctionnement des algorithmes dans [ALGORITHMES.md](docs/ALGORITHMES.md).
 
+
+Le sélecteur de la bibliothèque permet de passer de Camelot à Open Key (Traktor).
+Par exemple, **5A** et **10m** désignent tous deux **do mineur**. La recherche accepte les deux codes.
+
 ## Raccourcis clavier
 | Touche | Action |
 |---|---|

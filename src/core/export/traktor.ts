@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { AnalysisResult } from '../types';
-import { traktorKeyIndex } from '../key';
+import { formatKey, traktorKeyIndex } from '../key';
 import { esc, exportedLoops } from './rekordbox';
 import { commentTag, type ExportOptions } from './index';
 
@@ -58,8 +58,9 @@ export function buildTraktorNml(
       `<LOCATION DIR="${esc(loc.dir)}" FILE="${esc(loc.file)}" VOLUME="${esc(loc.volume)}" VOLUMEID="${esc(loc.volume)}"></LOCATION>`,
     );
     lines.push(`<ALBUM TITLE="${esc(t.album)}"></ALBUM>`);
+    const comment = opts.commentTags !== false ? commentTag(t, 'openKey') : '';
     lines.push(
-      `<INFO BITRATE="${t.bitrate}" GENRE="${esc(t.genre)}"${opts.commentTags !== false && commentTag(t) ? ` COMMENT="${esc(commentTag(t))}"` : ''} KEY="${esc(t.key.openKey)}" PLAYTIME="${Math.round(t.durationSec)}" ` +
+      `<INFO BITRATE="${t.bitrate}" GENRE="${esc(t.genre)}"${comment ? ` COMMENT="${esc(comment)}"` : ''} KEY="${esc(formatKey(t.key, 'openKey'))}" PLAYTIME="${Math.round(t.durationSec)}" ` +
         `PLAYTIME_FLOAT="${t.durationSec.toFixed(6)}" IMPORT_DATE="${date}" FLAGS="0"></INFO>`,
     );
     lines.push(`<TEMPO BPM="${t.bpm.toFixed(6)}" BPM_QUALITY="${(t.grid.confidence * 100).toFixed(6)}"></TEMPO>`);
