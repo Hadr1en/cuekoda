@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { decodeAudio, mp3WithoutGaplessHeader } from './decode';
 import { analyseBands, decimate2 } from './dsp';
-import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset } from './rhythm';
+import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo } from './rhythm';
 import { allKeys, keyFromMusical, keyFromTonic } from './key';
 import { camelotRelation } from './matching';
 import { analyzeStructure, buildSections, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
@@ -290,6 +290,7 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const bands = analyseBands(x, SR_DSP);
   let rawBpm = 0;
   let bpmEst: number;
+  let halfTime: number | undefined;
   if (ov.bpm) {
     bpmEst = ov.bpm;
   } else {
@@ -299,6 +300,14 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     const tempo = chooseTempo(bands, rawBpm, minBpm, maxBpm, preferRepeatedBars);
     bpmEst = tempo.bpm;
     if (tempo.note) warnings.push(tempo.note);
+    if (preferRepeatedBars) {
+      const rechecked = recheckEdmTempo(bands, bpmEst);
+      if (rechecked.bpm !== bpmEst) {
+        warnings.push(`Tempo ${bpmEst.toFixed(1)} remplacé par ${rechecked.bpm.toFixed(1)} (pulsation plus rapide mieux alignée)`);
+      }
+      bpmEst = rechecked.bpm;
+      halfTime = rechecked.halfTime;
+    }
   }
   progress('grille', 0.5);
   const grid = estimateGrid(x, SR_DSP, bands, bpmEst, { fixedBpm: !!ov.bpm, fixedPhaseSec: ov.bpm ? ov.firstDownbeatSec : undefined });
@@ -309,14 +318,16 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   else if (grid.confidence < 0.4) warnings.push('Grille rythmique peu fiable — à vérifier');
   if (!ov.bpm && Math.abs(bpm - bpmEst) > 2.5) warnings.push(`BPM corrigé de ${bpmEst.toFixed(1)} à ${bpm.toFixed(2)}`);
   const folded = rawBpm ? foldBpm(rawBpm, minBpm, maxBpm) : bpm;
+  const alternativeBpm = halfTime !== undefined && Math.abs(halfTime / bpm - 0.5) < 0.015
+    ? Math.round(halfTime * 100) / 100 : undefined;
   const tempoLevel: Confidence = ov.bpm
     ? 'high'
-    : grid.variable || grid.confidence < 0.4
+    : alternativeBpm !== undefined || grid.variable || grid.confidence < 0.4
       ? 'low'
       : grid.confidence >= 0.7 && Math.abs(folded - bpm) < 1.5
         ? 'high'
         : 'medium';
-  const alternatives = [bpm / 2, bpm * 2, ...(rawBpm && Math.abs(folded - bpm) >= 1.5 ? [folded] : [])]
+  const alternatives = [alternativeBpm ?? bpm / 2, bpm * 2, ...(rawBpm && Math.abs(folded - bpm) >= 1.5 ? [folded] : [])]
     .filter((b) => b >= 50 && b <= 240)
     .map((b) => Math.round(b * 100) / 100);
   const tempo: TempoInfo = {
@@ -326,6 +337,7 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     localMin: grid.localMin,
     localMax: grid.localMax,
     alternatives,
+    ...(alternativeBpm ? { competingBpm: alternativeBpm } : {}),
     rawEstimate: rawBpm || bpm,
   };
 

@@ -23,6 +23,10 @@ doivent pas être lus comme des probabilités.
    dont les pulsations s’alignent déjà. Ce critère ne relève le BPM que si le candidat plus rapide
    rend mieux compte du motif syncopé, par exemple lorsque le moteur sous-compte les temps en 3:2.
    Les candidats plus lents peuvent convertir artificiellement une mesure à trois temps en quatre.
+   Un second contrôle propose des BPM d’après les pics de récurrence des attaques, jusqu’à 210 BPM.
+   Une correction vers un tempo plus rapide exige un meilleur alignement de grille et un accord
+   des attaques sur les temps et les mesures. Si la pulsation à demi-tempo revient sur plusieurs
+   parties du titre, elle est signalée comme alternative utilisable en un clic dans la revue.
 4. Affinage au centième par régression robuste (Theil-Sen) des attaques mesurées dans le domaine temporel,
    puis arrondi à un tempo entier / demi-entier seulement si l'ajustement est aussi bon.
 5. **Stabilité** : tempo de chaque segment de 64 temps estimé **indépendamment** (alignement de grille à ±8 %

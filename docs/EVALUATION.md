@@ -57,3 +57,17 @@ npm run eval -- --dataset brid --annotations /chemin/vers/Annotations --audio /c
 Le JSON donne la couverture et les échecs par fichier. Pour comparer la grille sur des titres
 hors EDM, regrouper les résultats par `beats.referenceBeatsPerBar`. Le moteur de préparation
 calcule ses mesures en 4/4.
+
+
+### Contrôles de tempo indépendants
+
+- [Freesound Loop Dataset](https://zenodo.org/records/3967852) fournit des boucles annotées par
+  des experts. Pour tester le tempo de manière reproductible, conserver les annotations 4/4
+  qui décrivent une boucle percussive bien découpée et écarter les conflits de BPM.
+- [Groove MIDI Dataset](https://magenta.withgoogle.com/datasets/groove) fournit l'audio de
+  performances jouées au métronome. Le sous-ensemble officiel de test permet de vérifier des
+  rythmes joués avec de petites variations autour du BPM indiqué dans `info.csv`.
+
+Le CLI accepte une liste JSON de références avec un chemin audio par entrée via `--refs`.
+Les mesures de tempo sur des boucles ou sur de la batterie seule n’évaluent pas le placement
+de cues sur des morceaux complets.

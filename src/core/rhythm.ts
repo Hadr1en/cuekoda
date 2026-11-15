@@ -85,6 +85,63 @@ export function chooseTempo(bands: Bands, rawBpm: number, min: number, max: numb
 }
 
 /**
+ * Rechecks an EDM estimate against periodicity peaks independently of the initial tempo family.
+ * A faster grid needs corroboration from beat alignment, the onset envelope and the bass band.
+ * Half-time readings remain available for review because both readings can fit the same breakbeat.
+ */
+export function recheckEdmTempo(bands: Bands, initialBpm: number): { bpm: number; halfTime?: number } {
+  if (!Number.isFinite(initialBpm) || initialBpm <= 0 || bands.frames < 8 * bands.frameRate) {
+    return { bpm: initialBpm };
+  }
+  const rate = bands.frameRate;
+  const window = Math.round(rate * 0.5);
+  const onsets = detrend(bands.onset, window);
+  const bass = detrend(bands.fluxLow, window);
+  const base = fitGridComb(bands, initialBpm, 3);
+  if (base.score <= 0) return { bpm: initialBpm };
+  const beat = (bpm: number) => 60 * rate / bpm;
+  const measureEvidence = (lag: number) =>
+    0.3 * pulseSimilarity(onsets, 2 * lag) + 0.5 * pulseSimilarity(onsets, 4 * lag) + 0.2 * pulseSimilarity(onsets, 8 * lag);
+  const beatEvidence = (lag: number) => (pulseSimilarity(onsets, lag) + pulseSimilarity(bass, lag)) / 2;
+
+  const baseLag = beat(base.bpm);
+  const strengths: { lag: number; score: number }[] = [];
+  for (let lag = 15; lag <= Math.ceil(beat(50)); lag++) {
+    strengths.push({ lag, score: (beatEvidence(lag) + beatEvidence(lag * 2)) / 2 });
+  }
+  const peaks = strengths.filter((p, i) => i > 0 && i < strengths.length - 1
+    && p.score >= strengths[i - 1].score && p.score > strengths[i + 1].score)
+    .sort((a, b) => b.score - a.score).slice(0, 7);
+  const fasterCenters = [base.bpm * 2, ...peaks.map(({ lag }) => 60 * rate / lag)];
+  const minFasterBpm = base.bpm * 1.06;
+  const minBeatEvidence = beatEvidence(baseLag) + 0.05;
+  const minMeasureEvidence = measureEvidence(baseLag) + 0.08;
+  let faster: CombFit | undefined;
+  for (const [index, center] of fasterCenters.entries()) {
+    if (center < 55 || center > 210 || center + 4 <= minFasterBpm) continue;
+    const fit = fitGridComb(bands, center, index === 0 ? 2 : 4);
+    if (fit.bpm > minFasterBpm && fit.bpm <= 210
+      && fit.score >= base.score * 1.05 && fit.score > (faster?.score ?? 0)
+      && measureEvidence(beat(fit.bpm)) >= minMeasureEvidence
+      && beatEvidence(beat(fit.bpm)) >= minBeatEvidence) {
+      faster = fit;
+    }
+  }
+  if (faster) return { bpm: faster.bpm };
+
+  if (base.bpm < 158 || base.bpm / 2 >= 92) return { bpm: initialBpm };
+  const half = fitGridComb(bands, base.bpm / 2, 2);
+  const halfLag = beat(half.bpm);
+  if (half.bpm >= 90 || half.score < base.score * 1.1
+    || pulseSimilarity(bass, halfLag) < pulseSimilarity(bass, baseLag) + 0.31
+    || pulseSimilarity(onsets, 4 * halfLag) < pulseSimilarity(onsets, 4 * baseLag)) return { bpm: initialBpm };
+  const third = bass.length / 3;
+  const stableSections = [0, 1, 2].filter((i) =>
+    pulseSimilarity(bass.subarray(Math.floor(i * third), Math.floor((i + 1) * third)), halfLag) >= 0.4);
+  return { bpm: initialBpm, halfTime: stableSections.length >= 2 ? half.bpm : undefined };
+}
+
+/**
  * Local tempo of consecutive 64-beat segments, each fitted independently within ±8 % of `bpm`.
  * Segments without a clear pulse (breakdowns) are skipped: score below half of the whole-track score.
  */

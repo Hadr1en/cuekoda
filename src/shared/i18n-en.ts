@@ -595,6 +595,9 @@ export const EN_EXACT: Record<string, string> = {
     'vocals detected in both the outgoing and incoming parts: avoid layering the two sung passages',
 
   // ================================================================ analyzer warnings, vocal notes, errors
+  'L’écoute permet de choisir entre les deux pulsations': 'Listen to choose between the two pulses',
+  'Recalculer le BPM et le premier temps sans les corrections de grille': 'Recalculate BPM and the first downbeat automatically',
+  'BPM et grille automatiques': 'Automatic BPM and beatgrid',
   'Grille rythmique peu fiable — à vérifier': 'Unreliable beatgrid — please check',
   'Premier temps (downbeat) incertain — vérifie la grille': 'Uncertain first downbeat — check the grid',
   'Structure peu marquée — peu de hot cues proposés': 'Weak structure — few hot cues suggested',
@@ -629,6 +632,8 @@ export const EN_EXACT: Record<string, string> = {
 };
 
 export const EN_PATTERNS: [RegExp, Rep][] = [
+  [/^Utiliser ([\d.,]+) BPM$/, (_, bpm) => `Use ${bpm} BPM`],
+  [/^Tempo ([\d.]+) remplacé par ([\d.]+) \(pulsation plus rapide mieux alignée\)$/, (_, a, b) => `Tempo ${a} replaced by ${b} (faster pulse better aligned)`],
   [/^Tempo ([\d.]+) remplacé par ([\d.]+) \(motif rythmique récurrent\)$/, (_, a, b) => `Tempo ${a} replaced by ${b} (recurring rhythmic pattern)`],
   [/^⚠ Fichiers introuvables écartés \((\d+)\) : (.+)$/, (_, n, tracks) => `⚠ Missing files excluded (${n}): ${tracks}`],
   [/^⚠ Morceaux sans analyse écartés : (\d+)$/, (_, n) => `⚠ Unanalyzed tracks excluded: ${n}`],
