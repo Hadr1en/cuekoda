@@ -10,7 +10,7 @@ import { computeEnergy } from './energy';
 import { computeFingerprint } from './fingerprint';
 import { buildTempoMap, type TempoMarker } from './tempomap';
 import { cueCandidates, selectCues } from './cues';
-import { refineElectroCues } from './electroCue';
+import { breakBetweenDrops, refineElectroCues } from './electroCue';
 import { suggestLoops } from './loops';
 import { suggestMix } from './mix';
 import { detectVocals } from './vocals';
@@ -343,6 +343,8 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     rawEstimate: rawBpm || bpm,
   };
 
+  const edmProfile = profile.id === 'edm' || profile.id === 'edm-fixed';
+
   // --- downbeat ----------------------------------------------------------------
   let firstDownbeatSec: number;
   let downbeatConfidence: Confidence;
@@ -353,7 +355,7 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     const probe = computeBarFeatures(bands, grid.firstBeatSec, barLen, durSec);
     const audible = firstAudibleBar(probe);
     const firstAudibleSec = grid.firstBeatSec + audible * barLen;
-    const db = pickDownbeatOffset(bands, bpm, grid.firstBeatSec, firstAudibleSec, durSec);
+    const db = pickDownbeatOffset(bands, bpm, grid.firstBeatSec, firstAudibleSec, durSec, edmProfile && !grid.variable);
     firstDownbeatSec = grid.firstBeatSec + db.offset * P;
     downbeatConfidence = db.confident ? 'high' : 'low';
     if (!db.confident) warnings.push('Premier temps (downbeat) incertain — vérifie la grille');
@@ -383,18 +385,26 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const g = { d0: firstDownbeatSec, barLen };
   const mix = suggestMix(structure, phrases, energy.curve, profile, g, vocals);
   const phraseOrigin = phrases.lengthBars ? phrases.originBar : structure.phraseOrigin;
-  const edmCues = (profile.id === 'edm' || profile.id === 'edm-fixed') && !grid.variable
+  const edmCues = edmProfile && !grid.variable
     && tempoLevel !== 'low';
   const { primary, alternate } = edmCues
     ? refineElectroCues(feats, structure, profile.id === 'edm')
     : { primary: structure.landmarks, alternate: undefined };
   let cues = selectCues(cueCandidates(primary, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
-  if (alternate) {
-    const alternateCues = selectCues(cueCandidates(alternate, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
-    // A new breakdown must preserve the positions of the other cues.
-    if (cues.every((cue) => cue.kind === 'break' || alternateCues.some(
+  const preserveOtherCues = (alternative: typeof cues) => {
+    if (cues.every((cue) => cue.kind === 'break' || alternative.some(
       (next) => next.kind === cue.kind && next.timeSec === cue.timeSec,
-    ))) cues = alternateCues;
+    ))) cues = alternative;
+  };
+  if (alternate) preserveOtherCues(selectCues(
+    cueCandidates(alternate, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds,
+  ));
+  if (edmCues && profile.id === 'edm') {
+    const betweenDrops = breakBetweenDrops(feats, structure, cues, profile.minCueSpacingBars);
+    if (betweenDrops) preserveOtherCues(selectCues([
+      ...cues.filter((cue) => cue.kind !== 'break'),
+      betweenDrops,
+    ], profile, g, opt.suppressKinds));
   }
   const loops = suggestLoops(structure, profile, g);
   if (cues.length <= 1) warnings.push('Structure peu marquée — peu de hot cues proposés');

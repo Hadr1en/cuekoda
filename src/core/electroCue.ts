@@ -1,6 +1,8 @@
 import { percentile, prefixSums, rangeMean } from './dsp';
 import weights from './electroCueModel.json';
 import multiCorpusBreak from './electroBreakModel.json';
+import type { CueCandidate } from './cues';
+import type { HotCue } from './types';
 import type { BarFeatures, Landmark, StructureAnalysis } from './structure';
 
 export function landmarkFeatures(f: BarFeatures, s: StructureAnalysis): number[][] {
@@ -124,4 +126,32 @@ export function refineElectroCues(
   const alternateBreaks = findBreaks(multiCorpusBreak);
   const same = alternateBreaks.length === breaks.length && alternateBreaks.every((cue, i) => cue.bar === breaks[i].bar);
   return same ? { primary } : { primary, alternate: sortedLandmarks(alternateBreaks) };
+}
+
+/** Reposition the existing Break pad when a sustained, high-scoring break separates two drops. */
+export function breakBetweenDrops(
+  f: BarFeatures, structure: StructureAnalysis, cues: HotCue[], spacing: number,
+): CueCandidate | undefined {
+  const drops = cues.filter((cue) => cue.kind === 'drop').sort((a, b) => a.bar - b.bar);
+  const current = cues.find((cue) => cue.kind === 'break');
+  if (!current || drops.length !== 2) return;
+  const first = drops[0].bar;
+  const second = drops[1].bar;
+  if ((current.bar > first && current.bar < second) || second - first < 8) return;
+
+  const features = landmarkFeatures(f, structure);
+  const low = prefixSums(f.lowDb);
+  let candidate = -1;
+  let best = 0.72;
+  for (let bar = first + 4; bar <= second - 4 && bar < features.length - 3; bar++) {
+    if (cues.some((cue) => cue.kind !== 'break' && Math.abs(cue.bar - bar) < spacing)) continue;
+    if (rangeMean(low, bar - 4, bar) - rangeMean(low, bar, bar + 4) < 2) continue;
+    const score = landmarkScore(multiCorpusBreak, features[bar]);
+    if (score > best) { candidate = bar; best = score; }
+  }
+  if (candidate < 0) return;
+  return {
+    role: 'break1', kind: 'break', bar: candidate, confidence: 'medium',
+    reason: 'Baisse d’énergie qui se prolonge entre les deux drops',
+  };
 }

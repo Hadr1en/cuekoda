@@ -454,6 +454,7 @@ export function pickDownbeatOffset(
   firstBeatSec: number,
   firstAudibleSec: number,
   durSec: number,
+  comparePhraseChanges = false,
 ): { offset: number; confident: boolean } {
   const P = 60 / bpm;
   const pL = prefixSums(bands.eLow);
@@ -534,6 +535,36 @@ export function pickDownbeatOffset(
   const combined = [0, 1, 2, 3].map(
     (o) => (sChange > 0 ? (1 - wEntry) * (score[o] / sChange) : 0) + (sEntry > 0 ? wEntry * (entry[o] / sEntry) : 0),
   );
+  if (comparePhraseChanges) {
+    // A short transient can mimic a section change. Require a sharp edge with different energy
+    // on both sides across two, four and eight beats, then pool evidence along the track.
+    const phrase = new Float64Array(D.length);
+    let strongest = 0;
+    for (let i = 8; i < nBeats - 8; i++) {
+      const t = firstBeatSec + i * P;
+      if (t < firstAudibleSec + 16 * P) continue;
+      let change = Infinity;
+      for (const span of [2, 4, 8]) {
+        let delta = 0;
+        for (const pre of [pL, pM, pH]) {
+          delta += Math.abs(lg(rangeMean(pre, firstIn(t), endIn(t + span * P))) - lg(rangeMean(pre, firstIn(t - span * P), endIn(t))));
+        }
+        change = Math.min(change, delta / 3);
+      }
+      phrase[i] = change * Math.min(1.5, D[i] / 3);
+      strongest = Math.max(strongest, phrase[i]);
+    }
+    const votes = [0, 0, 0, 0];
+    const floor = Math.max(0.23, 0.37 * strongest);
+    for (let i = 8; i < nBeats - 8; i++) {
+      if (phrase[i] < floor) continue;
+      if (phrase.subarray(i - 3, i + 4).every((value) => value <= phrase[i])) votes[i % 4] += phrase[i];
+    }
+    const totalVotes = total(votes);
+    if (totalVotes > 0) {
+      for (let i = 0; i < 4; i++) combined[i] = 0.75 * combined[i] + 0.25 * votes[i] / totalVotes;
+    }
+  }
   // Intros begin on a downbeat: the beat where the audio starts is the fallback answer.
   const first = Math.max(0, Math.ceil((firstAudibleSec - 0.15 * P - firstBeatSec) / P)) % 4;
   let best = 0;
