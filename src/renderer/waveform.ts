@@ -1,3 +1,4 @@
+import { beatIndex, gridBeats, nearestBeat, type GridBeat } from '../core/beatgrid';
 import type { AnalysisResult, HotCue, Loop, SectionType } from '../core/types';
 import { getLang, tr } from '../shared/i18n';
 import type { Peaks } from '../core/peaks';
@@ -9,6 +10,7 @@ export interface WaveCallbacks {
   cueMoved(cue: HotCue, timeSec: number, done: boolean): void;
   loopMoved(loop: Loop, startSec: number, done: boolean): void;
   cueSelected(cue: HotCue | null): void;
+  dragCancelled(): void;
   viewChanged(): void;
 }
 
@@ -34,6 +36,7 @@ const SECTION_TOKEN: Record<SectionType, string> = {
 export class WaveView {
   track: AnalysisResult | null = null;
   peaks: Peaks | null = null;
+  beats: GridBeat[] = [];
   start = 0;
   end = 1;
   selectedCueId: string | null = null;
@@ -53,13 +56,19 @@ export class WaveView {
     canvas.addEventListener('pointerdown', (e) => this.onDown(e));
     canvas.addEventListener('pointermove', (e) => this.onMove(e));
     canvas.addEventListener('pointerup', (e) => this.onUp(e));
-    canvas.addEventListener('pointercancel', () => (this.drag = null));
+    canvas.addEventListener('lostpointercapture', () => {
+      if (!this.drag) return;
+      this.cancelDrag();
+      this.draw();
+    });
     new ResizeObserver(() => this.draw()).observe(canvas);
   }
 
   set(track: AnalysisResult | null, keepView = false) {
+    if (track !== this.track) this.cancelDrag();
     const same = this.track?.path === track?.path;
     this.track = track;
+    this.beats = track ? gridBeats(track) : [];
     if (!same) this.peaks = null;
     if (!keepView || !same) {
       this.start = 0;
@@ -130,9 +139,17 @@ export class WaveView {
   }
   snap(t: number) {
     if (!this.track) return t;
+    if (this.track.tempoMap?.length) return this.beats[nearestBeat(this.beats, t)]?.timeSec ?? t;
     const b = this.beat();
     const d0 = this.track.grid.firstDownbeatSec;
     return Math.max(0, d0 + Math.round((t - d0) / b) * b);
+  }
+
+  stepBeats(t: number, count: number) {
+    if (!this.track?.tempoMap?.length || !this.beats.length) return t + count * this.beat();
+    const index = nearestBeat(this.beats, t);
+    const target = this.beats[Math.max(0, Math.min(this.beats.length - 1, index + count))];
+    return target.timeSec + (t - this.beats[index].timeSec);
   }
 
   // ---------------------------------------------------------------- interaction
@@ -223,6 +240,12 @@ export class WaveView {
     return Math.max(0, d0 + Math.round((t - d0) / bar) * bar);
   }
 
+  private cancelDrag() {
+    if (!this.drag) return;
+    this.drag = null;
+    this.cb.dragCancelled();
+  }
+
   private onUp(e: PointerEvent) {
     const d = this.drag;
     this.drag = null;
@@ -280,23 +303,40 @@ export class WaveView {
     const d0 = r.grid.firstDownbeatSec;
     const pxBeat = (beat / span) * w;
     const pxBar = pxBeat * 4;
-    const firstBar = Math.max(0, Math.floor((this.start - d0) / bar));
-    const lastBar = Math.ceil((this.end - d0) / bar);
-    const barStep = pxBar >= 10 ? 1 : pxBar >= 3 ? 4 : 8;
-    const phraseSet = new Set(r.phrases?.bars ?? []);
-    for (let b = firstBar; b <= lastBar; b++) {
-      const t = d0 + b * bar;
-      const x = Math.round(this.x(t, w)) + 0.5;
-      if (phraseSet.has(b)) {
-        ctx.fillStyle = token('--wave-phrase');
-        ctx.fillRect(x - 0.5, this.SEC_H, 1.5, hgt - this.SEC_H);
-      } else if (b % barStep === 0) {
-        ctx.fillStyle = b % (barStep * 4) === 0 ? token('--wave-grid-strong') : token('--wave-grid');
-        ctx.fillRect(x - 0.5, top, 1, bottom - top);
+    if (r.tempoMap?.length) {
+      let lastBarX = -Infinity;
+      for (let i = beatIndex(this.beats, this.start); i < this.beats.length; i++) {
+        const point = this.beats[i];
+        if (point.timeSec >= this.end) break;
+        const x = Math.round(this.x(point.timeSec, w));
+        if (point.downbeat && x - lastBarX >= 6) {
+          ctx.fillStyle = token('--wave-grid-strong');
+          ctx.fillRect(x, top, 1, bottom - top);
+          lastBarX = x;
+        } else if (!point.downbeat && pxBeat >= 8) {
+          ctx.fillStyle = token('--wave-grid');
+          ctx.fillRect(x, mid - amp * 0.15, 1, amp * 0.3);
+        }
       }
-      if (pxBeat >= 8) {
-        ctx.fillStyle = token('--wave-grid');
-        for (let k = 1; k < 4; k++) ctx.fillRect(Math.round(this.x(t + k * beat, w)), mid - amp * 0.15, 1, amp * 0.3);
+    } else {
+      const firstBar = Math.max(0, Math.floor((this.start - d0) / bar));
+      const lastBar = Math.ceil((this.end - d0) / bar);
+      const barStep = pxBar >= 10 ? 1 : pxBar >= 3 ? 4 : 8;
+      const phraseSet = new Set(r.phrases?.bars ?? []);
+      for (let b = firstBar; b <= lastBar; b++) {
+        const t = d0 + b * bar;
+        const x = Math.round(this.x(t, w)) + 0.5;
+        if (phraseSet.has(b)) {
+          ctx.fillStyle = token('--wave-phrase');
+          ctx.fillRect(x - 0.5, this.SEC_H, 1.5, hgt - this.SEC_H);
+        } else if (b % barStep === 0) {
+          ctx.fillStyle = b % (barStep * 4) === 0 ? token('--wave-grid-strong') : token('--wave-grid');
+          ctx.fillRect(x - 0.5, top, 1, bottom - top);
+        }
+        if (pxBeat >= 8) {
+          ctx.fillStyle = token('--wave-grid');
+          for (let k = 1; k < 4; k++) ctx.fillRect(Math.round(this.x(t + k * beat, w)), mid - amp * 0.15, 1, amp * 0.3);
+        }
       }
     }
 

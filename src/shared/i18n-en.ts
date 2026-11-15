@@ -74,7 +74,10 @@ export const EN_EXACT: Record<string, string> = {
   'Filtrer (titre, artiste, clé, BPM)…': 'Filter (title, artist, key, BPM)…',
   'Aucun morceau ne correspond': 'No matching tracks',
   'Effacer les filtres': 'Clear filters',
-  'Transport': 'Playback controls',
+  Transport: 'Playback controls',
+  Métronome: 'Metronome',
+  'Écouter la grille avec un clic accentué au premier temps': 'Hear the beatgrid with an accented downbeat',
+  'Métronome indisponible': 'Metronome unavailable',
   'Morceau précédent': 'Previous track',
   'Morceau suivant': 'Next track',
   'Filtrer la bibliothèque': 'Filter the library',
@@ -339,6 +342,8 @@ export const EN_EXACT: Record<string, string> = {
   'Sécurité : CueKoda écrit un nouveau fichier de collection ; un fichier existant est d’abord sauvegardé à côté (.backup-…). Vos fichiers audio et votre bibliothèque DJ ne sont jamais modifiés directement.':
     'Safety: CueKoda writes a new collection file; an existing file is first backed up next to it (.backup-…). Your audio files and your DJ library are never modified directly.',
   'Aucun morceau analysé à exporter': 'No analyzed track to export',
+  'Aucun morceau analysé et accessible à exporter': 'No analyzed and accessible tracks to export',
+  'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.': 'Available files have changed. Reopen the export preview.',
   // adapters (src/core/export/index.ts): formats, capabilities, import steps, summary
   'Tags Serato dans les fichiers audio (GEOB « Serato Markers2 »)': 'Serato tags in the audio files (GEOB “Serato Markers2”)',
   'BPM, grille, tonalité': 'BPM, grid, key',
@@ -365,6 +370,8 @@ export const EN_EXACT: Record<string, string> = {
   'Fichiers introuvables': 'Missing files',
   'Morceaux affichés': 'Tracks shown',
   '✓ Vérifié': '✓ Checked',
+  'Valider et passer au suivant': 'Mark checked and go to next track',
+  'Le morceau a changé pendant la correction. Réessayez.': 'The track changed while you were editing. Try again.',
   'Marquer vérifié': 'Mark as checked',
   'Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)': 'Mark this track as checked by ear (it leaves the “To review” list)',
   'Fichier introuvable à cet emplacement': 'File not found at this location',
@@ -620,6 +627,9 @@ export const EN_EXACT: Record<string, string> = {
 };
 
 export const EN_PATTERNS: [RegExp, Rep][] = [
+  [/^⚠ Fichiers introuvables écartés \((\d+)\) : (.+)$/, (_, n, tracks) => `⚠ Missing files excluded (${n}): ${tracks}`],
+  [/^⚠ Morceaux sans analyse écartés : (\d+)$/, (_, n) => `⚠ Unanalyzed tracks excluded: ${n}`],
+  [/^⚠ Tempo variable : Traktor ne reçoit qu’un tempo pour (\d+) morceau\(x\)$/, (_, n) => `⚠ Variable tempo: Traktor receives a single tempo for ${n} track(s)`],
   // set export and comment tags (export dialog, src/core/export/index.ts)
   [/^\s*Le set \((\d+) morceaux, dans l’ordre\) en playlist\s*:\s*$/, (_, n) => ` The set (${pl(n, 'track')}, in order) as playlist: `],
   [/^Commentaire de chaque morceau : énergie, clé et voix \(ex\. « (.*) »\)$/, (_, ex) => `Comment of each track: energy, key and vocals (e.g. “${ex}”)`],

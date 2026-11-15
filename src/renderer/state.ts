@@ -1,7 +1,7 @@
 import type { UpdateStatus } from '../shared/update';
 import type { AnalysisResult } from '../core/types';
 import type { Profile } from '../core/profiles';
-import type { AdapterInfo, CueKodaApi, QueueState, Settings, TrackRecord } from '../shared/api';
+import type { AdapterInfo, CueKodaApi, QueueState, Settings, TrackEdits, TrackRecord } from '../shared/api';
 
 declare global {
   interface Window {
@@ -35,40 +35,50 @@ export function applyTheme(theme: Settings['theme']) {
   document.documentElement.dataset.theme = theme;
 }
 
-// ---- undo / redo of track edits (cues, loops, sections) -----------------------------
-type Snapshot = { path: string; data: Pick<AnalysisResult, 'cues' | 'loops' | 'sections'> };
+// Completed edits are sent immediately, including undo/redo. Only fields changed by the gesture
+// cross the process boundary, so a newer analysis keeps its engine data and manual BPM/key overrides.
+export const snapshotEdits = ({ cues, loops, sections, vocals }: AnalysisResult): TrackEdits =>
+  structuredClone({ cues, loops, sections, vocals });
+
+export function changedEdits(before: TrackEdits, after: TrackEdits): Partial<TrackEdits> {
+  const changed = (key: keyof TrackEdits) => JSON.stringify(before[key]) !== JSON.stringify(after[key]);
+  return {
+    ...(changed('cues') ? { cues: after.cues } : {}),
+    ...(changed('loops') ? { loops: after.loops } : {}),
+    ...(changed('sections') ? { sections: after.sections } : {}),
+    ...(changed('vocals') ? { vocals: after.vocals } : {}),
+  };
+}
+
+type Snapshot = { path: string; fileHash?: string; before: TrackEdits; after: TrackEdits };
 const undoStack: Snapshot[] = [];
 const redoStack: Snapshot[] = [];
-const snap = (r: AnalysisResult): Snapshot => ({
-  path: r.path,
-  data: structuredClone({ cues: r.cues, loops: r.loops, sections: r.sections }),
-});
+
+function restore(from: Snapshot[], to: Snapshot[], side: 'before' | 'after') {
+  while (from.length) {
+    const entry = from.pop()!;
+    const r = state.tracks.get(entry.path)?.result;
+    if (!r || r.fileHash !== entry.fileHash) continue;
+    const previous = snapshotEdits(r);
+    const changed = changedEdits(entry.before, entry.after);
+    const target = entry[side];
+    for (const key of Object.keys(changed) as (keyof TrackEdits)[]) {
+      Object.assign(r, { [key]: structuredClone(target[key]) });
+    }
+    to.push(entry);
+    return { r, previous };
+  }
+  return null;
+}
 
 export const history = {
-  /** Call BEFORE mutating a track */
-  push(r: AnalysisResult) {
-    undoStack.push(snap(r));
+  push(r: AnalysisResult, before: TrackEdits) {
+    undoStack.push({ path: r.path, fileHash: r.fileHash, before, after: snapshotEdits(r) });
     if (undoStack.length > 200) undoStack.shift();
     redoStack.length = 0;
   },
-  undo(): string | null {
-    const s = undoStack.pop();
-    if (!s) return null;
-    const r = state.tracks.get(s.path)?.result;
-    if (!r) return null;
-    redoStack.push(snap(r));
-    Object.assign(r, s.data);
-    return s.path;
-  },
-  redo(): string | null {
-    const s = redoStack.pop();
-    if (!s) return null;
-    const r = state.tracks.get(s.path)?.result;
-    if (!r) return null;
-    undoStack.push(snap(r));
-    Object.assign(r, s.data);
-    return s.path;
-  },
+  undo: () => restore(undoStack, redoStack, 'before'),
+  redo: () => restore(redoStack, undoStack, 'after'),
   canUndo: () => undoStack.length > 0,
   canRedo: () => redoStack.length > 0,
 };

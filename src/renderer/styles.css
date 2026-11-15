@@ -256,6 +256,7 @@
     display: flex; flex-wrap: wrap; align-items: center; gap: 5px 10px; color: var(--color-muted);
     margin-block: 5px 8px; font-variant-numeric: tabular-nums;
   }
+  .review-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .d-artist { color: var(--color-text); font-weight: 500; }
   .d-warn { color: var(--color-warn); font-size: 12px; margin-block: 4px; }
   /* ---- analysis in progress: visible everywhere (row, detail, header) ---- */
@@ -343,6 +344,7 @@
   }
   .transport { display: flex; align-items: center; gap: 3px; }
   #btn-play { min-inline-size: 94px; }
+  #btn-metronome[aria-pressed='true'] { color: var(--color-accent); border-color: currentColor; }
   .time { display: flex; gap: 6px; align-items: baseline; font-variant-numeric: tabular-nums; }
   #time { min-inline-size: 52px; font-size: 15px; text-align: end; font-weight: 650; }
   #time-total { color: var(--color-muted); }

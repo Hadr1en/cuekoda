@@ -9,7 +9,7 @@ import { mergeWithPrevious } from '../core/merge';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { describe, emptyStats, recordDeleted, recordMoved, recordSuggested, suppressedKinds, type LearningStats } from '../core/learning';
 import { AUDIO_EXTENSIONS, type AnalysisResult, type CueKind, type Overrides } from '../core/types';
-import type { AdapterInfo, ExportResponse, ImportSummary, InitialState, Settings, TrackRecord } from '../shared/api';
+import type { AdapterInfo, ExportPreview, ExportResponse, ImportSummary, InitialState, Settings, TrackEdits, TrackRecord } from '../shared/api';
 import { applyImport, parseRekordboxXml, parseTraktorNml } from '../core/import/collection';
 import { AnalysisQueue, type WorkerLike } from './queue';
 import { backupIfExists, JsonStore, LibraryStore } from './store';
@@ -212,8 +212,21 @@ function macBootVolume(): string {
 const adapterInfo = (): AdapterInfo[] =>
   ADAPTERS.map(({ build: _b, extension: _e, ...a }) => a);
 
-function resultsFor(paths: string[]): AnalysisResult[] {
-  return paths.map((p) => records()[p]?.result).filter((r): r is AnalysisResult => !!r);
+async function checkExportTracks(paths: string[]) {
+  const checks = await Promise.all(paths.map(async (p) => {
+    const file = await fs.promises.stat(p).catch(() => null);
+    return { path: p, present: file?.isFile() ?? false };
+  }));
+  const tracks: AnalysisResult[] = [];
+  const missing: string[] = [];
+  let notAnalyzed = 0;
+  for (const { path: p, present } of checks) {
+    const result = records()[p]?.result;
+    if (!present) missing.push(path.basename(p));
+    else if (result) tracks.push(result);
+    else notAnalyzed++;
+  }
+  return { tracks, missing, notAnalyzed };
 }
 
 // --- IPC ----------------------------------------------------------------------------
@@ -285,11 +298,21 @@ function registerIpc() {
     enqueue(p);
   });
 
-  ipcMain.handle('save-track', (_e, result: AnalysisResult) => {
-    const r = records()[result.path];
-    if (!r) return;
-    r.result = result;
+  ipcMain.on('save-track-edits', (e, p: string, fileHash: string | undefined, edits: Partial<TrackEdits>) => {
+    const r = records()[p];
+    const result = r?.result;
+    if (!result || result.fileHash !== fileHash) {
+      e.returnValue = false;
+      return;
+    }
+    // Copy only editor-owned fields. Preserve engine data and overrides from any newer analysis.
+    if ('cues' in edits && edits.cues) result.cues = edits.cues;
+    if ('loops' in edits) result.loops = edits.loops;
+    if ('sections' in edits) result.sections = edits.sections;
+    if ('vocals' in edits) result.vocals = edits.vocals;
+    library.touch(p);
     library.save();
+    e.returnValue = true;
   });
 
   ipcMain.handle('remove', (_e, paths: string[]) => {
@@ -335,16 +358,23 @@ function registerIpc() {
     return describe(learningStore.data);
   });
 
-  ipcMain.handle('export-preview', (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions) => {
-    const a = ADAPTERS.find((x) => x.id === id);
-    return a ? exportSummary(a, resultsFor(paths), opts) : [];
+  ipcMain.handle('export-preview', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportPreview> => {
+    const adapter = ADAPTERS.find((x) => x.id === id);
+    if (!adapter) return { lines: [], readyPaths: [] };
+    if (adapter.status !== 'available') return { lines: adapter.howToImport, readyPaths: [] };
+    const { tracks, missing, notAnalyzed } = await checkExportTracks(paths);
+    const lines = exportSummary(adapter, tracks, opts);
+    if (missing.length) lines.unshift(`⚠ Fichiers introuvables écartés (${missing.length}) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
+    if (notAnalyzed) lines.unshift(`⚠ Morceaux sans analyse écartés : ${notAnalyzed}`);
+    return { lines, readyPaths: tracks.map((track) => track.path) };
   });
 
   ipcMain.handle('export', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse> => {
     const adapter = ADAPTERS.find((x) => x.id === id);
     if (!adapter?.build || adapter.status !== 'available') return { ok: false, error: `${adapter?.name ?? id} : export non disponible` };
-    const tracks = resultsFor(paths);
-    if (!win || !tracks.length) return { ok: false, error: 'Aucun morceau analysé à exporter' };
+    const { tracks } = await checkExportTracks(paths);
+    if (!win || !paths.length) return { ok: false, error: 'Aucun morceau analysé et accessible à exporter' };
+    if (tracks.length !== paths.length) return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
     const lang = resolveLang(settingsStore.data.language, app.getLocale());
     const r = await dialog.showSaveDialog(win, {
       title: lang === 'en' ? `Export for ${adapter.name}` : `Exporter pour ${adapter.name}`,
@@ -355,7 +385,11 @@ function registerIpc() {
     });
     if (r.canceled || !r.filePath) return { ok: false, canceled: true };
     try {
-      const body = adapter.build(tracks, { ...opts, macVolume: macBootVolume() });
+      const latest = await checkExportTracks(paths);
+      if (latest.tracks.length !== tracks.length || latest.tracks.some((track, index) => track.path !== tracks[index].path)) {
+        return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
+      }
+      const body = adapter.build(latest.tracks, { ...opts, macVolume: macBootVolume() });
       // Never silently overwrite: an existing file is copied aside first.
       const backup = backupIfExists(r.filePath);
       fs.writeFileSync(r.filePath, body, 'utf8');
@@ -499,6 +533,11 @@ const SMOKE_UI_SCRIPT = `(async () => {
     out.nextTrack = rows[1].getAttribute('aria-current') === 'true';
     $('btn-prev-track').click();
     out.previousTrack = rows[0].getAttribute('aria-current') === 'true';
+    $('btn-review-next').click();
+    await wait(50);
+    out.reviewNext = rows[1].getAttribute('aria-current') === 'true';
+    $('btn-prev-track').click();
+    out.reviewMarked = $('btn-reviewed').classList.contains('done');
   }
   const search = $('search');
   document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true }));
@@ -523,8 +562,12 @@ const SMOKE_UI_SCRIPT = `(async () => {
   const nm = pads()[0].querySelector('input.nm');
   nm.value = 'Smoke cue';
   nm.dispatchEvent(new Event('change'));
-  await wait(50);
+  const persistedState = await window.cuekoda.init();
+  out.editDeliveredWithoutDelay = persistedState.tracks.some((t) => t.result?.cues.some((c) => c.name === 'Smoke cue'));
   out.renamed = pads()[0].querySelector('input.nm').value === 'Smoke cue';
+  const trackPath = decodeURIComponent(new URL($('audio').src).pathname).replace(/^\\/([A-Za-z]:)/, '$1');
+  const verification = await window.cuekoda.exportPreview('rekordbox', [trackPath, trackPath + '.missing'], { memoryCues: true, loops: 'accepted' });
+  out.exportChecksMissing = verification.readyPaths.length === 1 && verification.lines.some((line) => line.includes('.missing'));
   const before = pads().length;
   btn(pads()[pads().length - 1], '✕').click();
   await wait(50);
@@ -556,6 +599,19 @@ const SMOKE_UI_SCRIPT = `(async () => {
   const audio = $('audio');
   audio.muted = true;
   out.audioSrc = audio.src.slice(0, 40);
+  const oscStart = OscillatorNode.prototype.start;
+  const gainFactory = AudioContext.prototype.createGain;
+  const clicks = [];
+  OscillatorNode.prototype.start = function (...args) {
+    clicks.push(this.frequency.value);
+    return oscStart.apply(this, args);
+  };
+  AudioContext.prototype.createGain = function () {
+    const gain = gainFactory.call(this);
+    const connect = gain.connect.bind(gain);
+    gain.connect = (target, ...args) => target === this.destination ? target : connect(target, ...args);
+    return gain;
+  };
   let waveformRedraws = 0;
   const clear = CanvasRenderingContext2D.prototype.clearRect;
   CanvasRenderingContext2D.prototype.clearRect = function (...args) {
@@ -564,6 +620,9 @@ const SMOKE_UI_SCRIPT = `(async () => {
   };
   try {
     $('zoom-fit').click();
+    $('btn-metronome').click();
+    await wait(100);
+    out.metronomeEnabled = $('btn-metronome').getAttribute('aria-pressed') === 'true';
     // never hang the smoke test on a play() promise that does not settle
     await Promise.race([audio.play(), wait(8000).then(() => { throw new Error('play() did not settle in 8 s'); })]);
     const beforePlayback = waveformRedraws;
@@ -577,6 +636,13 @@ const SMOKE_UI_SCRIPT = `(async () => {
     await wait(500);
     out.audioSeek = audio.currentTime >= 29.5;
     audio.pause();
+    const clicksAtPause = clicks.length;
+    await wait(100);
+    out.metronomeClicks = clicksAtPause;
+    out.metronomePaused = clicks.length === clicksAtPause;
+    $('btn-metronome').click();
+    await wait(25);
+    out.metronomeDisabled = $('btn-metronome').getAttribute('aria-pressed') === 'false';
     // transition preview A → B from the Mix tab
     $('t-mix').click();
     await wait(50);
@@ -597,6 +663,8 @@ const SMOKE_UI_SCRIPT = `(async () => {
     out.audioPlaying = false;
     out.audioError = String(e) + ' code=' + (audio.error ? audio.error.code + ' ' + audio.error.message : 'none');
   }
+  OscillatorNode.prototype.start = oscStart;
+  AudioContext.prototype.createGain = gainFactory;
   CanvasRenderingContext2D.prototype.clearRect = clear;
   return out;
 })()`;
@@ -726,7 +794,7 @@ function runSmoke() {
       await win!.webContents.executeJavaScript(`document.getElementById('dlg-export').close(); true`);
       await win!.webContents.executeJavaScript(`document.getElementById('dlg-order').close(); true`);
       if (captureOnly) return finish();
-      await new Promise((r) => setTimeout(r, 1000)); // edits are saved after a 300 ms debounce
+      await new Promise((r) => setTimeout(r, 1000)); // allow the batched disk write to finish
       const edited = Object.values(records()).find((r) => r.result?.cues.some((c) => c.name === 'Smoke cue'));
       report.uiEditPersisted = !!edited;
       report.learningDeletions = Object.values(learningStore.data.kinds).reduce((n, k) => n + (k?.deleted ?? 0), 0);

@@ -89,7 +89,10 @@
           <div class="d-titles">
             <h2 id="d-title" class="d-title"></h2>
             <div id="d-sub" class="d-sub"></div>
-            <button type="button" id="btn-reviewed" class="btn small ghost" title="Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)">✓ Vérifié</button>
+            <div class="review-actions">
+              <button type="button" id="btn-reviewed" class="btn small ghost" title="Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)">✓ Vérifié</button>
+              <button type="button" id="btn-review-next" class="btn small ghost" disabled>Valider et passer au suivant</button>
+            </div>
           </div>
           <div class="d-corrections">
             <div class="corr" role="group" aria-labelledby="lbl-bpm">
@@ -127,6 +130,7 @@
           <button type="button" class="btn small ghost" id="zoom-out" aria-label="Dézoomer">−</button>
           <button type="button" class="btn small ghost" id="zoom-in" aria-label="Zoomer">+</button>
           <button type="button" class="btn small ghost" id="zoom-fit">Tout</button>
+          <button type="button" id="btn-metronome" class="btn small ghost" aria-pressed="false" title="Écouter la grille avec un clic accentué au premier temps">Métronome</button>
           <span class="spacer"></span>
           <button type="button" id="btn-help" class="btn small ghost" aria-label="Raccourcis clavier" title="Raccourcis clavier">?</button>
           <button type="button" class="btn small ghost" id="btn-undo" title="Annuler (⌘Z)" disabled>↶ Annuler</button>

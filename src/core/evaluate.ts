@@ -1,3 +1,4 @@
+import { gridBeats } from './beatgrid';
 import { camelotRelation } from './matching';
 import type { AnalysisResult, CueKind, SectionType, VocalInfo } from './types';
 
@@ -129,28 +130,6 @@ export const EXACT_CUE_SEC = 0.04;
 /** Beat tracking tolerance (MIREX convention). */
 const BEAT_TOL_SEC = 0.07;
 
-/** Beat times of a constant grid (or tempo map) over [0, dur). */
-function gridBeats(det: AnalysisResult): { beats: number[]; downbeats: number[] } {
-  const beats: number[] = [], downbeats: number[] = [];
-  const markers = det.tempoMap?.length
-    ? det.tempoMap
-    : [{ startSec: det.grid.firstDownbeatSec, bpm: det.bpm, beatInBar: 1 }];
-  const epsilon = 1e-9;
-  for (const [index, marker] of markers.entries()) {
-    if (!Number.isFinite(marker.bpm) || marker.bpm <= 0 || !Number.isFinite(marker.startSec)) continue;
-    const period = 60 / marker.bpm;
-    const endSec = Math.min(det.durationSec, markers[index + 1]?.startSec ?? det.durationSec);
-    const firstBeat = Math.ceil(((index === 0 ? 0 : Math.max(0, marker.startSec)) - marker.startSec - epsilon) / period);
-    for (let beat = firstBeat; ; beat++) {
-      const time = marker.startSec + beat * period;
-      if (time >= endSec - epsilon) break;
-      beats.push(Math.max(0, time));
-      if ((marker.beatInBar - 1 + beat) % 4 === 0) downbeats.push(Math.max(0, time));
-    }
-  }
-  return { beats, downbeats };
-}
-
 const fMeasure = (ref: number[], det: number[], tol: number) => {
   if (!ref.length && !det.length) return 1;
   const m = matchTimes(ref, det, tol).length;
@@ -182,8 +161,8 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
   if (ref.beats?.length) {
     const g = gridBeats(det);
     out.beats = {
-      fMeasure: fMeasure(ref.beats, g.beats, BEAT_TOL_SEC),
-      downbeatF: ref.downbeats?.length ? fMeasure(ref.downbeats, g.downbeats, BEAT_TOL_SEC) : 0,
+      fMeasure: fMeasure(ref.beats, g.map((b) => b.timeSec), BEAT_TOL_SEC),
+      downbeatF: ref.downbeats?.length ? fMeasure(ref.downbeats, g.filter((b) => b.downbeat).map((b) => b.timeSec), BEAT_TOL_SEC) : 0,
     };
   }
   if (ref.keyCamelot) out.key = { reference: ref.keyCamelot, detected: det.key.camelot, score: keyScore(ref.keyCamelot, det.key.camelot) };

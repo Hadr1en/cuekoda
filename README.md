@@ -174,6 +174,9 @@ départ, **construire le set reste ton travail**.
 - **Références** : « Valider comme référence » enregistre un morceau que tu as vérifié à l'oreille. Ces
   références servent à mesurer la justesse du moteur (`npm run eval`).
 
+Le **métronome** permet de vérifier la grille à l’oreille, avec un clic accentué sur le temps 1.
+**Valider et passer au suivant** marque le morceau comme vérifié et ouvre la prochaine piste affichée.
+
 ### 8. Export vers ton logiciel DJ
 <img src="docs/screenshots/fr/export.png" alt="Fenêtre d'export : choix du logiciel DJ, ce qui est transféré, étapes d'import" width="100%">
 

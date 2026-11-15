@@ -91,6 +91,11 @@ export interface WatchEvent {
   level: 'info' | 'error';
 }
 
+export interface ExportPreview {
+  lines: string[];
+  readyPaths: string[];
+}
+
 export interface ExportResponse {
   ok: boolean;
   file?: string;
@@ -111,6 +116,8 @@ export interface AdapterInfo {
   capabilities: { field: string; support: 'yes' | 'partial' | 'no'; note: string }[];
   howToImport: string[];
 }
+
+export type TrackEdits = Pick<AnalysisResult, 'cues' | 'loops' | 'sections' | 'vocals'>;
 
 export interface InitialState {
   tracks: TrackRecord[];
@@ -143,8 +150,8 @@ export interface CueKodaApi {
   reanalyze(paths: string[], force?: boolean): Promise<void>;
   /** Manual BPM / downbeat / key correction → re-analysis with those values, edits kept */
   setOverrides(path: string, overrides: Overrides): Promise<void>;
-  /** Persist a track edited in the UI (cues, loops, sections…) */
-  saveTrack(result: AnalysisResult): Promise<void>;
+  /** Hand a completed edit to the library immediately. Disk writes are batched by the main process. */
+  saveTrackEdits(path: string, fileHash: string | undefined, edits: Partial<TrackEdits>): boolean;
   removeTracks(paths: string[]): Promise<void>;
   clear(): Promise<void>;
   pause(): Promise<void>;
@@ -154,7 +161,7 @@ export interface CueKodaApi {
   setSettings(patch: Partial<Settings>): Promise<Settings>;
   learningEvent(e: { type: 'deleted' | 'moved'; kind: string; beats?: number }): void;
   resetLearning(): Promise<string[]>;
-  exportPreview(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<string[]>;
+  exportPreview(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportPreview>;
   exportCollection(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse>;
   /** Reads a rekordbox XML / Traktor NML collection: the DJ's cues become locked cues (read-only on the file) */
   importCollection(): Promise<ImportSummary>;
