@@ -27,7 +27,7 @@
     setSettings: async (patch) => (settings = { ...settings, ...patch }),
     learningEvent: () => {},
     resetLearning: async () => [],
-    exportPreview: async (id, paths) => [`${paths.length} morceau(x) (aperçu simulé)`],
+    exportPreview: async (_id, paths) => ({ lines: [`${paths.length} morceau(x)`], readyPaths: paths }),
     exportCollection: async () => ({ ok: true, file: '/tmp/demo.xml' }),
     addWatchFolder: async () => settings,
     saveReference: async () => ({}),

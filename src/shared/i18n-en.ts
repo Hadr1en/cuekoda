@@ -83,7 +83,6 @@ export const EN_EXACT: Record<string, string> = {
   'Filtrer la bibliothèque': 'Filter the library',
   'Suggestion d’ordre de mix pour les morceaux affichés (à toi de décider)': 'Suggested mix order for the tracks shown (your call)',
   'Ordre de mix…': 'Mix order…',
-  'Ré-analyser les morceaux affichés (vos corrections sont conservées)': 'Re-analyze the tracks shown (your corrections are kept)',
   '↻ Ré-analyser': '↻ Re-analyze',
   'Retirer de la bibliothèque (les fichiers ne sont pas touchés)': 'Remove from the library (files are not touched)',
   Retirer: 'Remove',
@@ -210,8 +209,6 @@ export const EN_EXACT: Record<string, string> = {
   Voix: 'Vocals',
   'voix ?': 'vocals?',
   'Passages vocaux corrigés par vous : conservés lors des ré-analyses.': 'Vocal parts corrected by you: kept when re-analyzing.',
-  'Détection automatique non validée : corrige les passages (début / fin à la mesure près), ils seront conservés.':
-    'Unvalidated automatic detection: correct the parts (start / end to the bar), your edits will be kept.',
   '+ Passage vocal à la lecture': '+ Vocal part at the playhead',
   'Le passage vocal en cours s’arrête à la mesure de lecture': 'The current vocal part ends at the playhead bar',
   'Aucun passage vocal avant la position de lecture': 'No vocal part before the playhead',
@@ -259,8 +256,6 @@ export const EN_EXACT: Record<string, string> = {
   // ================================================================ tab: mix & compatibles
   'Créer un cue': 'Create a cue',
   'Aucune suggestion.': 'No suggestions.',
-  'Suggestions à valider : elles s’appuient sur la structure, les phrases, l’énergie, la percussion et la détection vocale (expérimentale).':
-    'Suggestions to review: they rely on structure, phrases, energy, percussion and vocal detection (experimental).',
   'Morceaux compatibles': 'Compatible tracks',
   'Écouter la transition : fin de ce morceau → début de l’autre, tempo calé, temps alignés, fondu de 16 mesures':
     'Listen to the transition: end of this track → start of the other, tempo matched, beats aligned, 16-bar crossfade',
@@ -295,7 +290,6 @@ export const EN_EXACT: Record<string, string> = {
   'Plage de loudness': 'Loudness range',
   'RMS / crête': 'RMS / peak',
   'Énergie estimée': 'Estimated energy',
-  'Voix (expérimental)': 'Vocals (experimental)',
   Moteur: 'Engine',
   'depuis le cache': 'from cache',
   'Afficher le fichier': 'Show file',
@@ -325,14 +319,30 @@ export const EN_EXACT: Record<string, string> = {
   // ================================================================ export dialog
   Fermer: 'Close',
   'Exporter vers…': 'Export to…',
-  'Choisis ton logiciel DJ : CueKoda écrit le fichier qu’il sait lire, puis te guide pour l’import.':
-    'Choose your DJ software: CueKoda writes the file it can read, then guides you through the import.',
+  "Plus": "More",
+  "Sélectionner": "Select",
+  "Sélectionner tous les morceaux affichés": "Select all visible tracks",
+  "Tout sélectionner": "Select all",
+  "Actions sur la sélection": "Selection actions",
+  "Retirer de la bibliothèque": "Remove from library",
+  "Ré-analyser les morceaux sélectionnés": "Re-analyze selected tracks",
+  "Export en cours…": "Export in progress…",
+  "Création du fichier de collection…": "Creating collection file…",
+  "Format d’export indisponible": "Export format unavailable",
+  "Maj + ↑ / ↓": "Shift + ↑ / ↓",
+  "Étendre la sélection dans la bibliothèque": "Extend the library selection",
+  "Retirer les morceaux sélectionnés dans la bibliothèque, ou supprimer le cue sélectionné": "Remove selected tracks in the library or delete the selected cue",
+  "Aucune voix détectée": "No vocals detected",
+  "Ajuste les passages vocaux à la mesure près. CueKoda conserve tes corrections.": "Adjust vocal sections to the bar. CueKoda keeps your edits.",
+  "Inclus dans le fichier rekordbox XML": "Included in the rekordbox XML file",
+  "POSITION_MARK 0–7 dans le fichier XML": "POSITION_MARK 0–7 in the XML file",
+  "Pads exportés à la suite sur les boutons 2–8 ; bouton 1 réservé à AutoGrid": "Pad cues fill buttons 2–8 in order; button 1 is reserved for AutoGrid",
+  "Cues sans pad et cues au-delà du bouton 8": "Padless cues and cues beyond button 8",
+  "Traktor peut remplacer les hot cues des morceaux déjà présents dans sa collection.": "Traktor can replace hot cues for tracks already in the collection.",
+  "Les options et libellés varient selon la version de VirtualDJ.": "Options and labels vary by VirtualDJ version.",
+  "La reprise des cues et de leurs couleurs dépend de la version de djay.": "Cue and color support depends on the djay version.",
   'Logiciel DJ': 'DJ software',
-  'import vérifié': 'import verified',
-  'non vérifié': 'not verified',
   indisponible: 'unavailable',
-  'Format documenté et XML valide, mais l’import n’a pas encore été vérifié dans le logiciel lui-même. Testez d’abord sur quelques morceaux.':
-    'Documented format and valid XML, but the import has not been verified in the software itself yet. Try a few tracks first.',
   Donnée: 'Data',
   Transfert: 'Transfer',
   Détail: 'Details',
@@ -342,15 +352,12 @@ export const EN_EXACT: Record<string, string> = {
   'toutes les suggestions': 'all suggestions',
   aucune: 'none',
   'Ce qui sera transféré': 'What will be transferred',
-  'Pourquoi ce n’est pas disponible': 'Why it is not available',
   'Import dans le logiciel': 'Importing into the software',
-  'Sécurité : CueKoda écrit un nouveau fichier de collection ; un fichier existant est d’abord sauvegardé à côté (.backup-…). Vos fichiers audio et votre bibliothèque DJ ne sont jamais modifiés directement.':
-    'Safety: CueKoda writes a new collection file; an existing file is first backed up next to it (.backup-…). Your audio files and your DJ library are never modified directly.',
+  'CueKoda sauvegarde le fichier de destination s’il existe déjà.': 'CueKoda backs up the destination file if it already exists.',
   'Aucun morceau analysé à exporter': 'No analyzed track to export',
   'Aucun morceau analysé et accessible à exporter': 'No analyzed and accessible tracks to export',
   'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.': 'Available files have changed. Reopen the export preview.',
   // adapters (src/core/export/index.ts): formats, capabilities, import steps, summary
-  'Tags Serato dans les fichiers audio (GEOB « Serato Markers2 »)': 'Serato tags in the audio files (GEOB “Serato Markers2”)',
   'BPM, grille, tonalité': 'BPM, grid, key',
   'Hot cues, noms': 'Hot cues, names',
   'Couleurs, memory cues, boucles': 'Colors, memory cues, loops',
@@ -397,14 +404,9 @@ export const EN_EXACT: Record<string, string> = {
   'pads fixes (A Intro, B Build 1, C Drop 1, D Break, E Build 2, F Drop 2, G Outro, H Mix Out)': 'fixed pads (A Intro, B Build 1, C Drop 1, D Break, E Build 2, F Drop 2, G Outro, H Mix Out)',
   'EDM — pads fixes': 'EDM — fixed pads',
   'Changement de tonalité': 'Key change',
-  'Pads A–G → hotcues 2–8 (le 1 reste à la grille Traktor) ; pad H en cue mémorisé':
-    'Pads A–G → hotcues 2–8 (hotcue 1 stays the Traktor grid marker); pad H as a stored cue',
   'Traktor colore les cues par type, pas par couleur libre': 'Traktor colors cues by type, not freely',
-  'Cues sans pad uniquement : CUE_V2 HOTCUE -1 (cue mémorisé)': 'Cues without a pad only: CUE_V2 HOTCUE -1 (stored cue)',
   'CUE_V2 TYPE 5 avec LEN (boucles mémorisées)': 'CUE_V2 TYPE 5 with LEN (stored loops)',
   'Pas de champ correspondant': 'No matching field',
-  'Toutes données': 'All data',
-  'Serato stocke cues, grille et BPM dans les tags des fichiers audio': 'Serato stores cues, grid and BPM in the audio files’ tags',
   'rekordbox › Préférences › Avancé › Base de données › rekordbox xml : sélectionner le fichier exporté.':
     'rekordbox › Preferences › Advanced › Database › rekordbox xml: select the exported file.',
   'Afficher la vue « rekordbox xml » dans l’arborescence, puis glisser les morceaux dans la Collection.':
@@ -415,8 +417,6 @@ export const EN_EXACT: Record<string, string> = {
     'Back up collection.nml first (Traktor also does it in its Backup folder).',
   'Traktor › Browser › clic droit sur Track Collection › Import Another Collection : choisir le fichier exporté.':
     'Traktor › Browser › right-click Track Collection › Import Another Collection: choose the exported file.',
-  'Les hot cues existants des morceaux déjà présents peuvent être remplacés : vérifier sur un morceau test.':
-    'Existing hot cues of tracks already in the collection may be replaced: check on a test track.',
   'Engine DJ Desktop › Préférences › Library : activer la bibliothèque rekordbox et indiquer le fichier XML exporté par CueKoda.':
     'Engine DJ Desktop › Preferences › Library: enable the rekordbox library and point it to the XML file exported by CueKoda.',
   'Les morceaux apparaissent sous « rekordbox » dans la colonne de gauche : les importer (glisser) dans la Collection Engine DJ.':
@@ -428,18 +428,10 @@ export const EN_EXACT: Record<string, string> = {
     'VirtualDJ › Settings › Options: enter the path of the rekordbox XML file (“rekordboxXml” option / third-party libraries).',
   'Le dossier « rekordbox » du navigateur VirtualDJ affiche alors les morceaux exportés avec leurs cues.':
     'The “rekordbox” folder of the VirtualDJ browser then shows the exported tracks with their cues.',
-  'Les options et libellés diffèrent selon la version de VirtualDJ : testez sur quelques morceaux.':
-    'Options and labels differ between VirtualDJ versions: try a few tracks first.',
   'djay Pro › Réglages › Bibliothèque : activer l’intégration rekordbox et choisir le fichier XML exporté par CueKoda.':
     'djay Pro › Settings › Library: enable the rekordbox integration and choose the XML file exported by CueKoda.',
   'Les morceaux apparaissent sous « rekordbox » dans la bibliothèque de djay, avec leurs cues.':
     'The tracks appear under “rekordbox” in the djay library, with their cues.',
-  'Selon la version, djay peut ne reprendre qu’une partie des cues ou des couleurs : vérifiez sur un morceau test.':
-    'Depending on the version, djay may import only some of the cues or colors: check on a test track.',
-  'Écrire ces tags modifierait vos fichiers audio sources : CueKoda ne le fait pas.':
-    'Writing these tags would modify your source audio files: CueKoda does not do that.',
-  'Alternative : exporter vers rekordbox, puis convertir la bibliothèque avec un outil tiers (ex. Lexicon, Rekord Buddy) ou la fonction d’import de bibliothèques tierces de Serato si votre version la propose — non vérifié par CueKoda.':
-    'Alternative: export to rekordbox, then convert the library with a third-party tool (e.g. Lexicon, Rekord Buddy) or Serato’s third-party library import if your version has it — not verified by CueKoda.',
   'Non transférés : sections, énergie, phrases, suggestions Mix In/Out': 'Not transferred: sections, energy, phrases, Mix In/Out suggestions',
 
   // ================================================================ duplicates dialog
@@ -726,10 +718,8 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^fondu (\d+) mesures$/, (_, n) => `${n}-bar crossfade`],
 
   // ---------------------------------------------------------------- info tab
-  [/^aucune voix détectée(?: — ([\s\S]+))? \(heuristique non validée : des voix peuvent être manquées\)$/,
-    (_, note) => `no vocals detected${note ? ` — ${tl(note)}` : ''} (unvalidated heuristic: vocals may be missed)`],
-  [/^(\d+) passage\(s\), (\d+) % du morceau, (\d+) net\(s\) : ([\s\S]*) \(heuristique non validée\)$/,
-    (_, n, p, k, parts) => `${pl(n, 'part')}, ${p}% of the track, ${k} clear: ${parts.replace(/ \(faible\)/g, ' (faint)')} (unvalidated heuristic)`],
+  [/^(\d+) passage\(s\), (\d+) % du morceau, (\d+) net\(s\) : ([\s\S]*)$/,
+    (_, n, p, k, parts) => `${pl(n, 'part')}, ${p}% of the track, ${k} clear: ${parts.replace(/ \(faible\)/g, ' (faint)')}`],
   [/^(.+) Mo$/, '$1 MB'],
   [/^(.+) BPM \(Essentia brut (.+)\)$/, '$1 BPM (Essentia raw $2)'],
   [/^(\d+) % des attaques retenues alignées à ±12 ms$/, '$1% of selected attacks aligned within ±12 ms'],
@@ -741,18 +731,15 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^Références exportées : (.+)$/s, 'References exported: $1'],
 
   // ---------------------------------------------------------------- export dialog, adapters, summary
-  [/^via (.+) XML · non vérifié$/, 'via $1 XML · not verified'],
+  [/^(\d+) sélectionnés?$/, '$1 selected'],
+  [/^Retirer (\d+) morceaux de la bibliothèque \? Les fichiers audio sont conservés\.$/, 'Remove $1 tracks from the library? The audio files will be kept.'],
   [/^Format : (.+)$/, (_, f) => `Format: ${tl(f)}`],
   [/^rekordbox XML \(lu par (.+)\)$/, 'rekordbox XML (read by $1)'],
-  [/^(.+) sait lire une collection rekordbox XML, mais cet import n’a pas encore été vérifié avec CueKoda\. Testez d’abord sur quelques morceaux\.$/,
-    '$1 can read a rekordbox XML collection, but this import has not been verified with CueKoda yet. Try a few tracks first.'],
-  [/^Écrits comme pour rekordbox ; repris selon ce que (.+) lit de ce fichier$/, 'Written as for rekordbox; imported depending on what $1 reads from this file'],
-  [/^POSITION_MARK 0–7 ; reprise à vérifier dans (.+)$/, 'POSITION_MARK 0–7; check the import in $1'],
   [/^Selon la version de (.+)$/, 'Depends on the $1 version'],
   [/^(\s*)Tous les morceaux analysés \((\d+)\)$/, '$1All analyzed tracks ($2)'],
   [/^Exporté : (.+?)(?: \(ancien fichier sauvegardé : (.+)\))?$/s, (_, f, b) => `Exported: ${f}${b ? ` (previous file backed up: ${b})` : ''}`],
   [/^Erreur d’export : ([\s\S]*)$/, (_, e) => `Export error: ${tl(e)}`],
-  [/^Exporter (\d+) morceau\(x\)…$/, (_, n) => `Export ${pl(n, 'track')}…`],
+  [/^Exporter (\d+) morceau(?:x|\(x\))?…$/, (_, n) => `Export ${pl(n, 'track')}…`],
   [/^Exporter pour (.+)$/, 'Export for $1'],
   [/^(.+) : export non disponible$/, '$1: export not available'],
   [/^(\d+) morceau\(x\) : BPM et grille \(premier temps\) pour chacun$/, (_, n) => `${pl(n, 'track')}: BPM and grid (first downbeat) for each`],
@@ -808,8 +795,8 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
     (_, n) => `No energy drop at the end of the track: section change ${pl(n, 'bar')} after the last drop`],
 
   // ---------------------------------------------------------------- cue / mix / loop reasons (cues.ts, mix.ts, loops.ts)
-  [/^Entrée de voix détectée \((\d+) mesures(, indice faible)?\) — détection heuristique non validée$/,
-    (_, n, weak) => `Vocal entry detected (${pl(n, 'bar')}${weak ? ', weak evidence' : ''}) — unvalidated heuristic detection`],
+  [/^Entrée de voix détectée \((\d+) mesures(, indice faible)?\)$/,
+    (_, n, weak) => `Vocal entry detected (${pl(n, 'bar')}${weak ? ', weak evidence' : ''})`],
   [/^Début de l’intro — (\d+) mesures (rythmiques|sans kick régulier) avant le premier changement$/,
     (_, n, k) => `Start of the intro — ${pl(n, k === 'rythmiques' ? 'rhythmic bar' : 'bar')}${k === 'rythmiques' ? '' : ' without a steady kick'} before the first change`],
   [/^Entrée plus tardive : (\d+) mesures avant le premier changement, début de phrase$/,

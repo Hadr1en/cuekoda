@@ -1,26 +1,23 @@
 # Matrice de compatibilité des exports
 
-Légende : ✓ transféré · ≈ partiel · ✗ non transféré. Le mapping des cues Traktor est testé sur le NML
-généré. Engine DJ, VirtualDJ et djay Pro lisent le même fichier rekordbox XML.
-Un essai sur quelques morceaux reste conseillé avant une prestation.
+Légende · ✓ transféré · ≈ partiel · ✗ non transféré.
 
 L'export se fait depuis un seul bouton « Exporter… » : on choisit le logiciel, CueKoda écrit le fichier
 qu'il sait lire et affiche les étapes d'import.
 
-| Donnée | rekordbox (XML) | Traktor Pro (NML) | Serato DJ Pro |
+| Donnée | rekordbox (XML) | Traktor Pro (NML) |
 |---|---|---|---|
-| Statut | **Import vérifié** | **Import vérifié** | **Non disponible** |
-| BPM | ✓ | ✓ | ✗ |
-| Beatgrid | ✓ un marqueur, ou un par plage de tempo si le tempo change | ≈ marqueur AutoGrid (un seul tempo) | ✗ |
-| Tonalité | ✓ (notation musicale) | ✓ (index Traktor + Open Key) | ✗ |
-| Hot cues | ✓ pads A–H → `Num=0–7` | ≈ pads A–G → boutons 2–8 (`HOTCUE=1–7`). Bouton 1 (`HOTCUE=0`) réservé à AutoGrid | ✗ |
-| Noms des cues | ✓ | ✓ | ✗ |
-| Couleurs des cues | ≈ RGB (rekordbox peut les ramener à sa palette) | ✗ (couleur imposée par le type) | ✗ |
-| Memory cues | ✓ (option pour toutes les cues, et toujours pour les cues sans pad) | ✓ pad H et cues sans pad (`CUE_V2 HOTCUE="-1"`) | ✗ |
-| Boucles | ✓ memory loops (Type 4) | ✓ boucles mémorisées (TYPE 5) | ✗ |
-| Commentaire « E8 · 8B · Vocal » (option) | ✓ attribut Comments | ✓ INFO COMMENT | ✗ |
-| Playlist (set dans l'ordre, nommée) | ✓ NODE Type 1 | ✓ NODE PLAYLIST | ✗ |
-| Sections / énergie / phrases / Mix In-Out | ✗ (énergie seulement via le commentaire) | ✗ (idem) | ✗ |
+| BPM | ✓ | ✓ |
+| Beatgrid | ✓ un marqueur, ou un par plage de tempo si le tempo change | ≈ marqueur AutoGrid (un seul tempo) |
+| Tonalité | ✓ (notation musicale) | ✓ (index Traktor + Open Key) |
+| Hot cues | ✓ pads A–H → `Num=0–7` | ≈ cues de pad regroupés sur les boutons 2–8. Bouton 1 réservé à AutoGrid |
+| Noms des cues | ✓ | ✓ |
+| Couleurs des cues | ≈ RGB (rekordbox peut les ramener à sa palette) | ✗ (couleur imposée par le type) |
+| Memory cues | ✓ (option pour toutes les cues, et toujours pour les cues sans pad) | ✓ cues sans pad et cues au-delà du bouton 8 (`CUE_V2 HOTCUE="-1"`) |
+| Boucles | ✓ memory loops (Type 4) | ✓ boucles mémorisées (TYPE 5, HOTCUE -1) |
+| Commentaire « E8 · 8B · Vocal » (option) | ✓ attribut Comments | ✓ INFO COMMENT |
+| Playlist (set dans l'ordre, nommée) | ✓ NODE Type 1 | ✓ NODE PLAYLIST |
+| Sections / énergie / phrases / Mix In-Out | ✗ (énergie seulement via le commentaire) | ✗ (idem) |
 
 Dans Traktor, un fichier sous `/Volumes/X/…` est exporté avec `VOLUME="X"` et un chemin relatif à ce volume.
 Au premier temps, CueKoda exporte le repère AutoGrid seul et le signale dans l’aperçu.
@@ -37,21 +34,14 @@ Dans le sens Traktor → CueKoda, les boutons 2–8 correspondent aux pads A–G
 plutôt qu'AutoGrid, il est repris sur le pad H s'il est libre, ou comme cue mémorisé. AutoGrid sert de repère
 de grille. La collection source est lue sans être modifiée.
 
-## Engine DJ, VirtualDJ, djay Pro (via rekordbox XML, non vérifiés)
+## Engine DJ, VirtualDJ, djay Pro (via rekordbox XML)
 | Logiciel | Ce que CueKoda écrit | Import (libellés variables selon la version) |
 |---|---|---|
 | Engine DJ (Denon DJ, Numark, Rane) | rekordbox XML | Préférences › Library : activer la bibliothèque rekordbox, indiquer le fichier ; glisser les morceaux dans la Collection. Engine DJ lit aussi une collection Traktor (NML). |
 | VirtualDJ | rekordbox XML | Paramètres › Options : chemin du fichier rekordbox XML ; dossier « rekordbox » du navigateur. |
 | djay Pro | rekordbox XML | Réglages › Bibliothèque : intégration rekordbox, choisir le fichier. |
 
-Ce qui est repris (cues, couleurs, memory cues, boucles, grille) dépend de ce que chaque logiciel lit dans ce
-fichier : à vérifier sur un morceau test, puis à signaler pour passer la ligne en « vérifié ».
-
-## Pourquoi pas Serato ?
-Serato stocke cues, grille et BPM **dans les tags des fichiers audio** (objets GEOB « Serato Markers2 »).
-Les écrire modifierait les fichiers sources, ce que CueKoda s'interdit. Pistes : exporter vers rekordbox puis
-convertir avec un outil tiers (Lexicon, Rekord Buddy…) ou la fonction d'import de bibliothèques tierces de
-Serato si votre version la propose — non vérifié par CueKoda.
+Chacun de ces logiciels choisit les données qu’il lit dans le fichier rekordbox XML.
 
 ## Sécurité
 - CueKoda n'écrit **jamais** dans une base propriétaire (rekordbox `master.db`, `collection.nml` de Traktor)

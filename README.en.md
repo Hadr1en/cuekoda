@@ -36,7 +36,6 @@ trance…) but also works for open-format sets.
     [Structure and vocals](#3-structure-and-vocals) · [Loops](#4-loops) · [Mixing and transitions](#5-mixing-and-transitions) ·
     [Mix order](#6-suggested-mix-order) · [Library](#7-library) · [Export](#8-export-to-your-dj-software) ·
     [Settings, updates, language](#9-settings-updates-and-language)
-- [Reliability and limits](#reliability-and-limits)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Privacy and safety](#privacy-and-safety)
 - [For developers](#for-developers)
@@ -48,8 +47,6 @@ trance…) but also works for open-format sets.
   adjusted: all of it survives re-analysis.
 - **Nothing leaves your computer.** Analysis is 100% local. Audio files are never uploaded, modified, moved
   or deleted.
-- **No false precision.** Anything unverified is labelled as such: an export "not checked yet", vocal
-  detection "experimental", a key "ambiguous", a downbeat "uncertain".
 
 ## Download and install
 Installers are rebuilt on every code update and published in the
@@ -92,7 +89,7 @@ and install it manually.
 | **Loudness** | Integrated LUFS, loudness range, true peak, RMS, peak (ffmpeg `ebur128`). |
 | **Energy** | 1–10 score and a per-bar curve (loudness normalised by integrated LUFS, attack density, low end, brightness). |
 | **Structure** | Intro, build-up, drop, breakdown, outro, 8 / 16 / 32-bar phrases (only when they are regular). **Drops** are found from energy tiers and placed on the bass entry. |
-| **Vocals** | Experimental local detection (MusiCNN model + heuristic): clear or faint vocal parts. |
+| **Vocals** | Local detection (MusiCNN model + heuristic): clear or faint vocal parts. |
 | **Fingerprint** | Per-bar chroma fingerprint, used to spot duplicates and versions of the same track. |
 
 The analysis queue can be paused, cancelled and retried, and respects a CPU limit. A broken file never
@@ -175,20 +172,21 @@ job**.
 Use the **metronome** to check the grid by ear, with an accented downbeat.
 **Mark checked and go to next track** checks off the current track and opens the next track in the list.
 
+Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click the selection to re-analyze or remove it.
+
 ### 8. Export to your DJ software
-<img src="docs/screenshots/en/export.png" alt="Export window: pick the DJ software, what is transferred, import steps" width="100%">
+<img src="docs/screenshots/en/export.png" alt="CueKoda export dialog" width="100%">
 
 A single **"Export…"** button. Pick your software, see what will and will not be transferred, save the file,
 then follow the import steps.
 
-| Software | File written | BPM / grid / key | Hot cues, names | Colours | Memory cues | Loops | Import |
-|---|---|---|---|---|---|---|---|
-| **rekordbox** | rekordbox XML | ✓ (multi-tempo grid) | ✓ | ✓ | ✓ | ✓ | ✅ checked |
-| **Traktor Pro** | Traktor NML | ✓ (single tempo) | ✓ | — (colour by type) | ✓ (padless cues) | ✓ | ✅ checked |
-| **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | depends on Engine DJ | depends on Engine DJ | ? | ? | ? | to be checked |
-| **VirtualDJ** | rekordbox XML | depends on VirtualDJ | depends on VirtualDJ | ? | ? | ? | to be checked |
-| **djay Pro** | rekordbox XML | depends on djay | depends on djay | ? | ? | ? | to be checked |
-| **Serato DJ Pro** | — | — | — | — | — | — | unavailable |
+| Software | File written | BPM / grid / key | Hot cues, names | Colours | Memory cues | Loops |
+|---|---|---|---|---|---|---|
+| **rekordbox** | rekordbox XML | ✓ (multi-tempo grid) | ✓ | ✓ | ✓ | ✓ |
+| **Traktor Pro** | Traktor NML | ✓ (single tempo) | ✓ | — (colour by type) | ✓ (padless cues) | ✓ |
+| **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | depends on Engine DJ | depends on Engine DJ | ? | ? | ? |
+| **VirtualDJ** | rekordbox XML | depends on VirtualDJ | depends on VirtualDJ | ? | ? | ? |
+| **djay Pro** | rekordbox XML | depends on djay | depends on djay | ? | ? | ? |
 
 **Useful options**:
 - **"E8 · 8B · Vocal" comment** (on by default): energy, Camelot key and vocals written to the Comments field,
@@ -197,12 +195,8 @@ then follow the import steps.
 - **Export a set**: from "Mix order…", "Export this set…" creates a named playlist with the tracks in the order
   you arranged.
 
-Serato stores its cues **inside the audio files themselves**. Writing them would modify your files, which
-CueKoda never does. Details and the checking procedure: [export matrix](docs/MATRICE_EXPORT.md) (French).
-
-In Traktor, AutoGrid occupies button 1. Pads A–G map to buttons 2–8, and pad H becomes a stored cue.
-AutoGrid is the sole marker at the first downbeat. Accept the loops you want in CueKoda before exporting
-with the default “accepted only” option.
+In Traktor, AutoGrid occupies button 1. CueKoda fills buttons 2–8 in pad order, skipping cues
+at the first downbeat. Approved loops are stored separately. Accept the loops you want before exporting.
 
 Use **“Import collection…”** to bring a rekordbox XML or Traktor NML collection into CueKoda. Imported
 cues are locked and suggestions fill free pads. You can also adopt the BPM and first grid marker.
@@ -223,21 +217,6 @@ Export safety: CueKoda writes a **new collection file** and never touches your D
 - **Theme**: dark (default), light or system. Also: number of parallel analyses, watched folders, learning,
   profiles.
 
-## Reliability and limits
-CueKoda is upfront about what it can do:
-- The [evaluation report](docs/EVALUATION.md) measures cue accuracy on three EDM tracks corrected by ear.
-- **Still to confirm** — The new Traktor mapping, import offsets by audio format, Engine DJ, VirtualDJ
-  and djay Pro imports, Windows updates and energy calibration.
-- **Experimental**: vocal detection (some vocals may be missed). Verse / chorus is only suggested on strong
-  evidence.
-- **Not done yet**: stem separation.
-- **Variable tempo**: markers are exported to rekordbox, but cues and sections use the average grid, and
-  Traktor receives a single tempo.
-
-Feature-by-feature status: [feature status](docs/AUDIT_ET_PLAN.md); how the algorithms work:
-[ALGORITHMES.md](docs/ALGORITHMES.md) (both in French).
-
-
 Use the library selector to switch between Camelot and Open Key (Traktor).
 For example, **5A** and **10m** both mean **C minor**. Search accepts both codes.
 
@@ -251,7 +230,9 @@ For example, **5A** and **10m** both mean **C minor**. Search accepts both codes
 | Shift + 1 … 8 | Set hot cue A … H at the playhead |
 | C / M | Add a cue (first free pad, else memory cue) / a memory cue |
 | , / . | Move the selected cue by one beat (Shift: one bar) |
-| Delete | Delete the selected cue |
+| Ctrl / ⌘ + A | Select all visible tracks |
+| Shift + ↑ / ↓ | Extend track selection |
+| Delete | Remove selected tracks in the library, or delete a cue in the editor |
 | L | 16-beat loop at the playhead |
 | + / − / 0 | Zoom in / out / whole track |
 | ⌘Z / ⇧⌘Z | Undo / redo |

@@ -185,6 +185,8 @@ function updateWindowsTitleBar() {
   if (process.platform === 'win32') win?.setTitleBarOverlay(windowsTitleBarOverlay());
 }
 
+let exportInProgress = false;
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1360,
@@ -207,6 +209,7 @@ function createWindow() {
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.on('close', (event) => { if (exportInProgress) event.preventDefault(); });
   win.on('closed', () => (win = null));
 }
 
@@ -375,7 +378,6 @@ function registerIpc() {
   ipcMain.handle('export-preview', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportPreview> => {
     const adapter = ADAPTERS.find((x) => x.id === id);
     if (!adapter) return { lines: [], readyPaths: [] };
-    if (adapter.status !== 'available') return { lines: adapter.howToImport, readyPaths: [] };
     const { tracks, missing, notAnalyzed } = await checkExportTracks(paths);
     const lines = exportSummary(adapter, tracks, opts);
     if (missing.length) lines.unshift(`⚠ Fichiers introuvables écartés (${missing.length}) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
@@ -385,35 +387,44 @@ function registerIpc() {
 
   ipcMain.handle('export', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse> => {
     const adapter = ADAPTERS.find((x) => x.id === id);
-    if (!adapter?.build || adapter.status !== 'available') return { ok: false, error: `${adapter?.name ?? id} : export non disponible` };
-    const { tracks } = await checkExportTracks(paths);
+    if (!adapter) return { ok: false, error: 'Format d’export indisponible' };
     if (!win || !paths.length) return { ok: false, error: 'Aucun morceau analysé et accessible à exporter' };
-    if (tracks.length !== paths.length) return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
-    const lang = resolveLang(settingsStore.data.language, app.getLocale());
-    const r = await dialog.showSaveDialog(win, {
-      title: lang === 'en' ? `Export for ${adapter.name}` : `Exporter pour ${adapter.name}`,
-      // a set is saved under its own name (letters, digits, spaces, dashes only)
-      defaultPath: path.join(app.getPath('documents'),
-        `${opts.playlistName ? opts.playlistName.replace(/[^\p{L}\p{N} _-]+/gu, '').trim() || 'CueKoda-set' : `CueKoda-${adapter.id}`}.${adapter.extension}`),
-      filters: [{ name: adapter.formatName, extensions: [adapter.extension] }],
-    });
-    if (r.canceled || !r.filePath) return { ok: false, canceled: true };
+    if (exportInProgress) return { ok: false, error: 'Export en cours…' };
+    const owner = win;
+    exportInProgress = true;
     try {
+      const { tracks } = await checkExportTracks(paths);
+      if (tracks.length !== paths.length) return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
+      const r = await dialog.showSaveDialog(owner, {
+        title: uiText(`Exporter pour ${adapter.name}`),
+        defaultPath: path.join(app.getPath('documents'),
+          `${opts.playlistName ? opts.playlistName.replace(/[^\p{L}\p{N} _-]+/gu, '').trim() || 'CueKoda-set' : `CueKoda-${adapter.id}`}.${adapter.extension}`),
+        filters: [{ name: adapter.formatName, extensions: [adapter.extension] }],
+      });
+      if (r.canceled || !r.filePath) return { ok: false, canceled: true };
       const latest = await checkExportTracks(paths);
       if (latest.tracks.length !== tracks.length || latest.tracks.some((track, index) => track.path !== tracks[index].path)) {
         return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
       }
       const body = adapter.build(latest.tracks, { ...opts, macVolume: macBootVolume() });
-      // Never silently overwrite: an existing file is copied aside first.
-      const backup = backupIfExists(r.filePath);
-      fs.writeFileSync(r.filePath, body, 'utf8');
-      // remember the options, not the one-off set name
+      const tempDir = await fs.promises.mkdtemp(path.join(path.dirname(r.filePath), '.cuekoda-export-'));
+      let backup: string | undefined;
+      try {
+        const tempFile = path.join(tempDir, 'collection');
+        await fs.promises.writeFile(tempFile, body, 'utf8');
+        backup = backupIfExists(r.filePath);
+        await fs.promises.rename(tempFile, r.filePath);
+      } finally {
+        await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
       const { playlistName: _set, macVolume: _vol, ...keep } = opts;
       settingsStore.data.exportOptions = keep;
       settingsStore.save();
       return { ok: true, file: r.filePath, backup };
     } catch (e) {
       return { ok: false, error: (e as Error).message };
+    } finally {
+      exportInProgress = false;
     }
   });
 
@@ -714,9 +725,16 @@ async function smokeWindowsTitleBar(window: BrowserWindow) {
       const area = navigator.windowControlsOverlay?.getTitlebarAreaRect();
       if (!navigator.windowControlsOverlay?.visible || !area || area.height <= 0) return false;
       const toolbar = document.querySelector('.bar');
-      const contentEnd = Math.max(...[...toolbar.querySelectorAll('button:not([hidden]), select')].map((e) => e.getBoundingClientRect().right));
+      document.querySelector('#queue').hidden = false;
+      const aligned = (selector) => {
+        const rects = [...document.querySelectorAll(selector)]
+          .map((button) => button.getBoundingClientRect()).filter((rect) => rect.width);
+        return rects.length >= 3 && rects.every((rect) => Math.abs(rect.top - rects[0].top) < 2);
+      };
+      const contentEnd = Math.max(...[...toolbar.querySelectorAll('.actions > button')].map((button) => button.getBoundingClientRect().right));
       return document.documentElement.hasAttribute('data-window-overlay')
-        && area.right < innerWidth && contentEnd <= area.right;
+        && area.right < innerWidth && contentEnd <= area.right
+        && aligned('.actions > button') && aligned('.lib-tools > button');
     })()`);
     if (!await readGeometry()) throw new Error('Caption controls overlap the default toolbar');
     window.setSize(980, 660);
@@ -824,7 +842,7 @@ function runSmoke() {
         await wait(400);
         const d = document.getElementById('dlg-export');
         return { exportOpen: d.open, targets: [...d.querySelectorAll('.target b')].map((b) => b.textContent),
-          verified: [...d.querySelectorAll('.target .pill.ok')].length };
+          choices: d.querySelectorAll('.target input').length };
       })()`);
       await shot('export');
       report.order = await win!.webContents.executeJavaScript(`(async () => {
@@ -933,7 +951,8 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (exportInProgress) { event.preventDefault(); return; }
   library?.flush();
   settingsStore?.flush();
   learningStore?.flush();

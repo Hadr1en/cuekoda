@@ -1,5 +1,6 @@
 import { percentile, prefixSums, rangeMean } from './dsp';
 import weights from './electroCueModel.json';
+import multiCorpusBreak from './electroBreakModel.json';
 import type { BarFeatures, Landmark, StructureAnalysis } from './structure';
 
 export function landmarkFeatures(f: BarFeatures, s: StructureAnalysis): number[][] {
@@ -87,9 +88,11 @@ function recheckKind(
   return { cues, ranked };
 }
 
-/** Reranks EDM cue candidates inside the existing pad budget. */
-export function refineElectroCues(f: BarFeatures, s: StructureAnalysis): Landmark[] {
-  if (f.nBars - s.origin < 16) return s.landmarks;
+/** Reranks EDM cues and optionally offers a second breakdown using the same track features. */
+export function refineElectroCues(
+  f: BarFeatures, s: StructureAnalysis, compareBreakModels: boolean,
+): { primary: Landmark[]; alternate?: Landmark[] } {
+  if (f.nBars - s.origin < 16) return { primary: s.landmarks };
   const features = landmarkFeatures(f, s);
   const existingDrops = s.landmarks.filter(({ role }) => role === 'drop1' || role === 'drop2');
   const existingBreak = s.landmarks.filter(({ role }) => role === 'break1');
@@ -101,15 +104,24 @@ export function refineElectroCues(f: BarFeatures, s: StructureAnalysis): Landmar
     .sort((a, b) => a.bar - b.bar)
     .map((cue, index): Landmark => ({ ...cue, role: existingDrops[index].role }));
 
-  const breakScores = features.map((row) => landmarkScore(weights.breakdown, row));
-  // A model suggestion must leave the other landmark's dedicated pad available.
+  // Keep the drop positions available and require stronger evidence to add a new break.
   const dropBars = new Set(drops.map((cue) => cue.bar));
-  // A weak score increase is not enough to displace an existing break.
-  const breaks = recheckKind(existingBreak, breakScores, s.origin, 0.6, dropBars);
-  const missingBreak = breaks.ranked[0];
-  if (breaks.cues.length === 0 && missingBreak && missingBreak.score >= 0.8) {
-    breaks.cues.push({ role: 'break1', bar: missingBreak.bar, confidence: 'medium', reason: cueReason });
-  }
+  const findBreaks = (model: CueModel) => {
+    const scores = features.map((row) => landmarkScore(model, row));
+    const breaks = recheckKind(existingBreak, scores, s.origin, 0.6, dropBars);
+    const missing = breaks.ranked[0];
+    if (breaks.cues.length === 0 && missing && missing.score >= 0.8) {
+      breaks.cues.push({ role: 'break1', bar: missing.bar, confidence: 'medium', reason: cueReason });
+    }
+    return breaks.cues;
+  };
+  const sortedLandmarks = (breaks: Landmark[]) =>
+    [...unchanged, ...drops, ...breaks].sort((a, b) => a.bar - b.bar);
 
-  return [...unchanged, ...drops, ...breaks.cues].sort((a, b) => a.bar - b.bar);
+  const breaks = findBreaks(weights.breakdown);
+  const primary = sortedLandmarks(breaks);
+  if (!compareBreakModels) return { primary };
+  const alternateBreaks = findBreaks(multiCorpusBreak);
+  const same = alternateBreaks.length === breaks.length && alternateBreaks.every((cue, i) => cue.bar === breaks[i].bar);
+  return same ? { primary } : { primary, alternate: sortedLandmarks(alternateBreaks) };
 }

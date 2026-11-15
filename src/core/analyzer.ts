@@ -385,8 +385,17 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const phraseOrigin = phrases.lengthBars ? phrases.originBar : structure.phraseOrigin;
   const edmCues = (profile.id === 'edm' || profile.id === 'edm-fixed') && !grid.variable
     && tempoLevel !== 'low';
-  const cueLandmarks = edmCues ? refineElectroCues(feats, structure) : structure.landmarks;
-  const cues = selectCues(cueCandidates(cueLandmarks, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
+  const { primary, alternate } = edmCues
+    ? refineElectroCues(feats, structure, profile.id === 'edm')
+    : { primary: structure.landmarks, alternate: undefined };
+  let cues = selectCues(cueCandidates(primary, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
+  if (alternate) {
+    const alternateCues = selectCues(cueCandidates(alternate, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
+    // A new breakdown must preserve the positions of the other cues.
+    if (cues.every((cue) => cue.kind === 'break' || alternateCues.some(
+      (next) => next.kind === cue.kind && next.timeSec === cue.timeSec,
+    ))) cues = alternateCues;
+  }
   const loops = suggestLoops(structure, profile, g);
   if (cues.length <= 1) warnings.push('Structure peu marquée — peu de hot cues proposés');
   if (process.env.CUEKODA_DEBUG) {

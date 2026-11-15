@@ -126,7 +126,8 @@
 
     .brand { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 15px; letter-spacing: .3px; white-space: nowrap; }
     .logo { inline-size: 24px; block-size: 24px; flex: none; }
-    .actions { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+    [popovertarget] { anchor-name: --main-more; }
+    .actions { display: flex; align-items: center; gap: 8px; flex: 1; min-inline-size: 0; }
   }
   [data-window-overlay] .bar {
     /* Keep the renderer content clear of Windows' own caption buttons. */
@@ -153,10 +154,25 @@
     &.small { padding: 3px 8px; font-size: 12px; }
   }
 
+  .action-popover {
+    margin: 0; padding: 6px; border: var(--ui-border); border-radius: var(--ui-radius);
+    background: var(--color-panel); color: var(--color-text); box-shadow: 0 12px 28px #0007;
+    min-inline-size: 165px; app-region: no-drag;
+    &:popover-open { display: grid; gap: 4px; }
+    .btn, .field { text-align: start; }
+    .field { padding: 4px 8px; }
+  }
+  #main-more { position-anchor: --main-more; inset: auto; top: calc(anchor(bottom) + 6px); left: anchor(left); }
+  #track-actions { position: fixed; inset: auto; }
+  .c-select { inline-size: 30px; text-align: center; input { vertical-align: middle; cursor: pointer; } }
+  .export-working { display: flex; align-items: center; gap: 12px; }
+  .export-working progress { inline-size: 120px; }
   .queue {
     display: flex; align-items: center; gap: 8px; color: var(--color-muted); font-variant-numeric: tabular-nums;
+    padding: 5px 14px; background: var(--color-panel); border-block-end: var(--ui-border);
+    #queue-label { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     progress {
-      appearance: none; border: 0 solid; overflow: clip; inline-size: 120px; block-size: 6px;
+      flex: none; appearance: none; border: 0 solid; overflow: clip; inline-size: 120px; block-size: 6px;
       border-radius: 1e5px; background: var(--color-raised);
     }
   }
@@ -168,10 +184,11 @@
   #library { flex: 1 1 35%; min-block-size: 150px; display: flex; flex-direction: column; }
   main:has(#detail:not([hidden])) #library { flex: 0 1 auto; max-block-size: 38%; }
   .lib-tools {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 9px 14px; border-block-end: var(--ui-border);
+    display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-block-end: var(--ui-border);
     background: var(--color-panel);
-    input[type='search'] { inline-size: min(345px, 35vw); padding: 6px 10px; }
+    input[type='search'] { flex: 0 1 285px; min-inline-size: 90px; padding: 6px 10px; }
     .lib-count { color: var(--color-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    @media (max-width: 1080px) { &:has(#selection-count:not([hidden])) #lib-count { display: none; } }
   }
   #list-wrap { flex: 1 1 auto; overflow: auto; position: relative; overscroll-behavior: contain; }
 
@@ -199,8 +216,8 @@
   tr.row {
     cursor: default;
     &:hover { background: var(--ui-row-hover-bg); }
+    &.marked { background: var(--ui-selected-bg); }
     &[aria-current='true'] {
-      background: var(--ui-selected-bg);
       td:first-child { box-shadow: inset 3px 0 var(--color-accent); }
     }
   }
@@ -317,15 +334,13 @@
   }
   .memo, .vocals-edit { margin-block-start: 14px; }
   .targets {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-block: 8px 4px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(123px, 1fr)); gap: 8px; margin-block: 8px 4px;
     .target {
       display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
       border: var(--ui-border); background: var(--color-raised); font-size: 12px;
       b { font-size: 14px; }
       input { position: absolute; opacity: 0; pointer-events: none; }
-      .pill { align-self: flex-start; margin-block-start: 4px; }
       &.on { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent) inset; }
-      &.off { opacity: .65; }
       &:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
     }
   }
