@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { assertAudioRevision, hashAudioRevision } from '../core/hash';
 import { camelotRelation, matchTracks, tempoGapPct } from '../core/matching';
 import { baseTitle, findDuplicates } from '../core/duplicates';
 import { emptyStats, recordDeleted, recordSuggested, suppressedKinds } from '../core/learning';
@@ -399,6 +400,11 @@ test('EDM key consensus reconciles enharmonic names and lowers confidence for a 
   assert.equal(strong.musical, 'C#m');
   assert.equal(strong.level, 'high');
 
+  const localDisagreement = electronicKeyFromVotes([vote('C#', 'minor'), vote('Db', 'minor'), vote('F', 'minor')],
+    vote('C#', 'minor'), vote('Db', 'minor'));
+  assert.equal(localDisagreement.musical, 'C#m');
+  assert.equal(localDisagreement.level, 'medium');
+
   const split = electronicKeyFromVotes([vote('C', 'major'), vote('C', 'major'), vote('C', 'major')],
     vote('C', 'major'), vote('G', 'minor'));
   assert.equal(split.musical, 'C');
@@ -409,6 +415,22 @@ test('EDM key consensus reconciles enharmonic names and lowers confidence for a 
     vote('C', 'major'), vote('A', 'minor'));
   assert.equal(relative.musical, 'C');
   assert.equal(relative.alternatives?.[0].musical, 'Am');
+});
+
+test('audio revision rejects a file replaced after hashing', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-revision-'));
+  const file = path.join(dir, 'example.wav');
+  try {
+    fs.writeFileSync(file, 'same byte count');
+    const revision = await hashAudioRevision(file);
+    await assertAudioRevision(file, revision);
+    const replacement = path.join(dir, 'replacement.wav');
+    fs.writeFileSync(replacement, 'new byte count!');
+    fs.renameSync(replacement, file);
+    await assert.rejects(assertAudioRevision(file, revision), /audio a changé/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('preparation crates preserve playlist order, deduplicate paths and follow library moves', () => {

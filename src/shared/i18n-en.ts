@@ -404,6 +404,7 @@ export const EN_EXACT: Record<string, string> = {
   'Supprimer ce bac de préparation ?': 'Delete this preparation crate?',
   'Exporter la sélection…': 'Export selection…',
   ' Morceaux sélectionnés': ' Selected tracks',
+  'Le fichier audio a changé pendant l’analyse. Relancez l’analyse.': 'The audio file changed during analysis. Run the analysis again.',
   'Logiciel DJ': 'DJ software',
   indisponible: 'unavailable',
   Donnée: 'Data',
