@@ -261,6 +261,8 @@ export function attackEnvelope(x: Float32Array, sr: number): Float32Array {
   return d;
 }
 
+const GRID_TOLERANCE_SEC = 0.012;
+
 interface Measure {
   k: number[];
   off: number[];
@@ -298,7 +300,6 @@ interface RobustFit {
   intercept: number;
   slope: number;
   mad: number;
-  inlierFrac: number;
   used: number;
 }
 
@@ -311,7 +312,7 @@ function strongIdx(m: Measure): number[] {
 
 function robustFit(m: Measure, fitSlope: boolean): RobustFit {
   const idx = strongIdx(m);
-  if (idx.length < 8) return { intercept: 0, slope: 0, mad: 1, inlierFrac: 0, used: idx.length };
+  if (idx.length < 8) return { intercept: 0, slope: 0, mad: 1, used: idx.length };
   let slope = 0;
   if (fitSlope && idx.length >= 32) {
     // Theil-Sen estimator on a subsample
@@ -330,9 +331,7 @@ function robustFit(m: Measure, fitSlope: boolean): RobustFit {
   const intercept = median(adj);
   const res = adj.map((v) => Math.abs(v - intercept));
   const mad = median(res);
-  let inl = 0;
-  for (const r of res) if (r <= 0.012) inl++;
-  return { intercept, slope, mad, inlierFrac: inl / res.length, used: idx.length };
+  return { intercept, slope, mad, used: idx.length };
 }
 
 export interface GridResult {
@@ -400,17 +399,28 @@ export function estimateGrid(
     }
 
     // snap to round tempos if equally good
-    const fitted = { bpm, phase, mad: fit.mad };
+    const strong = strongIdx(m);
+    const beatSpan = strong.length > 1 ? m.k[strong[strong.length - 1]] - m.k[strong[0]] : 0;
+    const periodSec = 60 / bpm;
     const candidates = new Set<number>([Math.round(bpm), Math.round(bpm * 2) / 2]);
     for (const c of candidates) {
       if (Math.abs(c - bpm) > 0.04) continue;
       const mc = measureOffsets(d, sr, c, phase, durSec, 0.02);
       const fc = robustFit(mc, false);
-      if (fc.used >= 8 && fc.mad <= fitted.mad * 1.25 + 0.0007) {
-        bpm = c;
-        phase += fc.intercept;
-        break;
+      if (fc.used < 8 || fc.mad > fit.mad * 1.25 + 0.0007) continue;
+      const addedDrift = beatSpan * Math.abs(60 / c - periodSec);
+      if (addedDrift > GRID_TOLERANCE_SEC / 2) {
+        // A small median error can hide drift if only a few attacks line up.
+        // Compare the number of aligned attacks over the full audible grid.
+        const fitted = measureOffsets(d, sr, bpm, phase, durSec, 0.02);
+        const rounded = measureOffsets(d, sr, c, phase + fc.intercept, durSec, 0.02);
+        const alignedCount = (m: Measure) =>
+          strongIdx(m).filter((i) => Math.abs(m.off[i]) <= GRID_TOLERANCE_SEC).length;
+        if (alignedCount(rounded) < alignedCount(fitted) + fitted.k.length * 0.05) continue;
       }
+      bpm = c;
+      phase += fc.intercept;
+      break;
     }
   }
 
@@ -418,8 +428,9 @@ export function estimateGrid(
   const P = 60 / bpm;
   phase = ((phase % P) + P) % P;
   const mf = measureOffsets(d, sr, bpm, phase, durSec, 0.02);
-  const ff = robustFit(mf, false);
-  const confidence = ff.used >= 16 ? ff.inlierFrac : 0;
+  const anchors = strongIdx(mf);
+  const aligned = anchors.filter((i) => Math.abs(mf.off[i]) <= GRID_TOLERANCE_SEC);
+  const confidence = anchors.length >= 16 ? aligned.length / anchors.length : 0;
 
   // Tempo stability: tempo of each ~64-beat segment estimated on its own (grid fit within ±8 % of the
   // global tempo), so a tempo step is seen even when the global grid drifts far away from the beats.
