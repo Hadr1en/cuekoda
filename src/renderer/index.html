@@ -25,6 +25,7 @@
             Profil
             <select id="profile"></select>
           </label>
+          <button type="button" id="btn-comparison" class="btn ghost">Comparer la réanalyse…</button>
           <button type="button" id="btn-dupes" class="btn ghost" title="Doublons et versions liées">Doublons</button>
           <button type="button" id="btn-retry" class="btn small" hidden>↻ Relancer les erreurs</button>
         </div>
@@ -100,6 +101,7 @@
             <h2 id="d-title" class="d-title"></h2>
             <div id="d-sub" class="d-sub"></div>
             <div class="review-actions">
+              <button type="button" id="btn-quick-review" class="btn small ghost" aria-expanded="false" aria-controls="quick-review">Contrôle express</button>
               <button type="button" id="btn-reviewed" class="btn small ghost" title="Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)">✓ Vérifié</button>
               <button type="button" id="btn-review-next" class="btn small ghost" disabled>Valider et passer au suivant</button>
             </div>
@@ -128,6 +130,19 @@
             </div>
           </div>
         </div>
+        <section id="quick-review" class="quick-review" aria-label="Contrôle express" tabindex="-1" hidden>
+          <div class="hrow" role="group" aria-label="Extraits de quatre mesures">
+            <button type="button" id="review-intro" class="btn small" aria-keyshortcuts="1">1 · Début</button>
+            <button type="button" id="review-drop" class="btn small" aria-keyshortcuts="2">2 · Premier drop</button>
+            <button type="button" id="review-tail" class="btn small" aria-keyshortcuts="3">3 · Fin</button>
+            <button type="button" id="review-stop" class="btn small ghost" hidden>Arrêter</button>
+          </div>
+          <div class="hrow" role="group" aria-label="Correction de grille">
+            <button type="button" id="review-shift" class="btn small ghost">+1 temps</button>
+            <button type="button" id="review-set" class="btn small ghost" aria-keyshortcuts="T">Temps 1 ici</button>
+            <button type="button" id="review-accept" class="btn small primary" aria-keyshortcuts="V">Valider et passer au suivant</button>
+          </div>
+        </section>
         <div id="d-warn" class="d-warn"></div>
         <div id="d-busy" class="d-busy" role="status" aria-live="polite" hidden></div>
 
@@ -171,6 +186,7 @@
       </section>
     </main>
 
+    <dialog id="dlg-comparison" aria-labelledby="dlg-comparison-title" class="dlg wide"></dialog>
     <dialog id="dlg-export" aria-labelledby="dlg-export-title" class="dlg"></dialog>
     <dialog id="dlg-settings" aria-labelledby="dlg-settings-title" class="dlg wide"></dialog>
     <dialog id="dlg-dupes" aria-labelledby="dlg-dupes-title" class="dlg wide"></dialog>

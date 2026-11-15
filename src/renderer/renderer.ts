@@ -1,3 +1,5 @@
+import { gridAudition, gridBeats, type GridBeat } from '../core/beatgrid';
+import { openComparison } from './comparison';
 import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
 import { allKeys, formatKey } from '../core/key';
 import { CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
@@ -233,7 +235,7 @@ function syncTrackSelection() {
   $('selection-count').hidden = count === 0;
   setText($('selection-count'), `${count} sélectionné${count > 1 ? 's' : ''}`);
   $<HTMLButtonElement>('btn-remove').disabled = count === 0;
-  $<HTMLButtonElement>('btn-reanalyze').disabled = ![...markedPaths].some((p) => !state.tracks.get(p)?.missing);
+  $<HTMLButtonElement>('btn-reanalyze').disabled = ![...markedPaths].some((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)));
 }
 
 function replaceTrackSelection(next: Set<string>) {
@@ -277,7 +279,7 @@ function openTrackActions(path: string, x: number, y: number) {
     type: 'button', class: 'btn ghost', disabled, onclick: () => { trackActions.hidePopover(); action(); },
   }, label);
   trackActions.replaceChildren(
-    button('Ré-analyser', () => void reanalyzeSelected(), !selectedPaths().some((p) => !state.tracks.get(p)?.missing)),
+    button('Ré-analyser', () => void reanalyzeSelected(), !selectedPaths().some((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)))),
     button('Retirer de la bibliothèque', () => void removeSelected()),
     button('Afficher le fichier', () => void api.revealInFolder(path), markedPaths.size > 1 || !!state.tracks.get(path)?.missing),
     button('Tout sélectionner', () => markAllVisible(true)),
@@ -446,6 +448,7 @@ let audioPath = '';
 
 function select(path: string | null) {
   const prev = state.selected;
+  if (prev !== path) stopAudition();
   state.selected = path;
   if (prev) rowEls.get(prev)?.removeAttribute('aria-current');
   if (path) rowEls.get(path)?.setAttribute('aria-current', 'true');
@@ -482,6 +485,7 @@ function select(path: string | null) {
 }
 
 function jump(t: number) {
+  if (audition) stopAudition();
   const r = current();
   audio.currentTime = Math.max(0, Math.min(r?.durationSec ?? t, t));
   updatePlayheads();
@@ -1146,6 +1150,9 @@ function renderInfo(r: AnalysisResult) {
   const row = (k: string, v: string | number | undefined | null) => h('tr', {}, h('th', { scope: 'row' }, k), h('td', {}, v === undefined || v === null || v === '' ? '—' : String(v)));
   const L = r.loudness;
   $('tab-info').replaceChildren(
+    state.tracks.get(r.path)?.comparison
+      ? h('button', { type: 'button', class: 'btn small', onclick: () => showComparison(r.path) }, 'Comparer la réanalyse…')
+      : '',
     h('div', { class: 'cols' },
       h('section', {}, h('h3', {}, 'Métadonnées du fichier'),
         h('table', { class: 'caps kv' }, h('tbody', {},
@@ -1176,7 +1183,7 @@ function renderInfo(r: AnalysisResult) {
     ),
     h('div', { class: 'hrow' },
       h('button', { type: 'button', class: 'btn small ghost', onclick: () => api.revealInFolder(r.path) }, 'Afficher le fichier'),
-      h('button', { type: 'button', class: 'btn small ghost', onclick: () => void api.reanalyze([r.path], true) }, 'Ré-analyser sans cache (corrections conservées)'),
+      h('button', { type: 'button', class: 'btn small ghost', onclick: async () => { latestComparison = await api.reanalyze([r.path], true); } }, 'Ré-analyser sans cache (corrections conservées)'),
     ),
     referenceBlock(r),
   );
@@ -1230,8 +1237,9 @@ for (const t of ['cues', 'loops', 'sections', 'mix', 'info']) $(`t-${t}`).addEve
 
 // corrections → re-analysis with overrides (edits kept)
 function override(ov: Parameters<typeof api.setOverrides>[1], label: string) {
+  stopAudition();
   const r = current();
-  if (!r) return;
+  if (!r || isBusy(state.tracks.get(r.path))) return;
   void api.setOverrides(r.path, ov);
   toast(`${label} — ré-analyse en cours (vos cues sont conservés)`);
 }
@@ -1298,18 +1306,109 @@ function togglePlay() {
   } else audio.pause();
 }
 $('btn-play').addEventListener('click', togglePlay);
-const toggleMetronome = metronome(audio, () => wave.beats, () => !!tx);
-$('btn-metronome').addEventListener('click', async () => {
+let metronomeWanted = false;
+let audition: { end: number; beats: readonly GridBeat[]; source: 'review' | 'comparison' } | undefined;
+let auditionRequest = 0;
+const setClickTrack = metronome(audio, () => audition?.beats ?? wave.beats, () => !!tx);
+
+function stopAudition(source?: 'review' | 'comparison') {
+  if (source && audition?.source !== source) return;
+  auditionRequest++;
+  if (!audition) return;
+  audition = undefined;
+  $('review-stop').hidden = true;
+  audio.pause();
+  void setClickTrack(metronomeWanted);
+}
+
+async function playAudition(beats: readonly GridBeat[], durationSec: number, around: number, source: 'review' | 'comparison') {
+  stopAudition();
+  tx?.stop();
+  loopPlay = null;
+  const { start, end } = gridAudition(beats, durationSec, around);
+  const request = ++auditionRequest;
+  audio.pause();
+  audio.currentTime = start;
+  audition = { end, beats, source };
+  $('review-stop').hidden = source !== 'review';
   try {
-    const enabled = await toggleMetronome();
-    $('btn-metronome').setAttribute('aria-pressed', String(enabled));
+    await Promise.all([setClickTrack(true), audio.play()]);
   } catch {
+    if (request === auditionRequest) {
+      stopAudition();
+      toast('Écoute indisponible');
+    }
+  }
+}
+
+$('btn-metronome').addEventListener('click', async () => {
+  metronomeWanted = !metronomeWanted;
+  try {
+    await setClickTrack(metronomeWanted || !!audition);
+    $('btn-metronome').setAttribute('aria-pressed', String(metronomeWanted));
+  } catch {
+    metronomeWanted = false;
     $('btn-metronome').setAttribute('aria-pressed', 'false');
     toast('Métronome indisponible');
   }
 });
+audio.addEventListener('ended', () => stopAudition());
+audio.addEventListener('timeupdate', () => {
+  if (audition && audio.currentTime >= audition.end) stopAudition();
+});
+
+const reviewPanel = $('quick-review');
+function firstDrop(r: AnalysisResult) {
+  const drops = r.cues.filter(({ kind }) => kind === 'drop').map(({ timeSec }) => timeSec);
+  return drops.length ? Math.min(...drops) : r.sections?.find(({ type }) => type === 'drop')?.startSec;
+}
+function playReview(where: 'intro' | 'drop' | 'tail') {
+  const r = current();
+  if (!r || state.tracks.get(r.path)?.missing) return;
+  const around = where === 'intro' ? r.cues.find((c) => c.kind === 'intro')?.timeSec ?? r.grid.firstDownbeatSec
+    : where === 'tail' ? r.durationSec - 16 * 60 / r.bpm : firstDrop(r);
+  if (around !== undefined) void playAudition(wave.beats, r.durationSec, around, 'review');
+}
+$('btn-quick-review').addEventListener('click', () => {
+  reviewPanel.hidden = !reviewPanel.hidden;
+  $('btn-quick-review').setAttribute('aria-expanded', String(!reviewPanel.hidden));
+  if (reviewPanel.hidden) stopAudition('review');
+  else reviewPanel.focus();
+});
+for (const where of ['intro', 'drop', 'tail'] as const) $('review-' + where).addEventListener('click', () => playReview(where));
+$('review-stop').addEventListener('click', () => { stopAudition('review'); reviewPanel.focus(); });
+$('review-shift').addEventListener('click', () => $('grid-beat').click());
+$('review-set').addEventListener('click', () => $('grid-here').click());
+$('review-accept').addEventListener('click', () => void validateAndNext());
+reviewPanel.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const actions: Record<string, string> = { '1': 'review-intro', '2': 'review-drop', '3': 'review-tail',
+    t: 'review-set', v: 'review-accept', ']': 'grid-plus', '[': 'grid-minus' };
+  const action = actions[e.key.toLowerCase()];
+  if (action) { e.preventDefault(); e.stopPropagation(); $(action).click(); }
+  if (e.key === 'Escape') { e.stopPropagation(); $('btn-quick-review').click(); $('btn-quick-review').focus(); }
+});
+
+let latestComparison: number | undefined;
+let refreshComparison: (() => void) | undefined;
+function showComparison(path?: string) {
+  stopAudition();
+  refreshComparison = openComparison({
+    path,
+    batch: path ? undefined : latestComparison,
+    listen: (trackPath, point, at) => {
+      if (state.tracks.get(trackPath)?.missing) return toast('Fichier introuvable à cet emplacement');
+      select(trackPath);
+      void playAudition(gridBeats(point), point.durationSec, at, 'comparison');
+    },
+    stop: () => stopAudition('comparison'),
+  });
+}
+$('btn-comparison').addEventListener('click', () => showComparison());
+
 let raf = 0;
 function loop() {
+  if (audition && audio.currentTime >= audition.end) stopAudition();
   if (loopPlay && current()) {
     const end = loopPlay.startSec + loopPlay.beats * beatOf(current()!);
     if (audio.currentTime >= end) audio.currentTime = loopPlay.startSec;
@@ -1452,7 +1551,13 @@ function updateTransport() {
   const next = adjacentTrack(1);
   $<HTMLButtonElement>('btn-next-track').disabled = !next;
   const selected = state.selected ? state.tracks.get(state.selected) : undefined;
-  $<HTMLButtonElement>('btn-review-next').disabled = !next || selected?.status !== 'done' || !!selected.missing;
+  const canReview = selected?.status === 'done' && !!selected.result && !selected.missing;
+  $<HTMLButtonElement>('btn-review-next').disabled = !canReview;
+  $<HTMLButtonElement>('review-accept').disabled = !canReview;
+  $<HTMLButtonElement>('review-shift').disabled = !canReview;
+  $<HTMLButtonElement>('review-set').disabled = !canReview;
+  $<HTMLButtonElement>('review-drop').disabled = !selected?.result || firstDrop(selected.result) === undefined;
+  for (const id of ['btn-review-next', 'review-accept']) setText($(id), next ? 'Valider et passer au suivant' : 'Valider le morceau');
 }
 
 for (const [id, direction] of [['btn-prev-track', -1], ['btn-next-track', 1]] as const) {
@@ -1475,14 +1580,17 @@ $('btn-reviewed').addEventListener('click', async () => {
   if (!rec) return;
   await api.setReviewed([rec.path], !rec.reviewedAt);
 });
-$('btn-review-next').addEventListener('click', async () => {
+async function validateAndNext() {
   const path = state.selected;
   const next = adjacentTrack(1);
   const rec = path ? state.tracks.get(path) : undefined;
-  if (!path || !next || rec?.status !== 'done' || rec.missing) return;
+  if (!path || rec?.status !== 'done' || rec.missing) return;
+  stopAudition('review');
   await api.setReviewed([path], true);
-  if (state.selected === path && state.tracks.has(next)) select(next);
-});
+  if (next && state.selected === path && state.tracks.has(next)) select(next);
+  if (!reviewPanel.hidden) reviewPanel.focus();
+}
+$('btn-review-next').addEventListener('click', () => void validateAndNext());
 $('btn-import').addEventListener('click', async () => {
   const s = await api.importCollection();
   if (s.canceled) return;
@@ -1513,10 +1621,10 @@ $('btn-order').addEventListener('click', () => {
 selectAll.addEventListener('change', () => markAllVisible(selectAll.checked));
 
 async function reanalyzeSelected() {
-  const paths = selectedPaths().filter((p) => !state.tracks.get(p)?.missing);
+  const paths = selectedPaths().filter((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)));
   if (!paths.length) return;
   if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Vos cues modifiés ou verrouillés sont conservés.`))) return;
-  await api.reanalyze(paths, true);
+  latestComparison = await api.reanalyze(paths, true);
 }
 
 let removing = false;
@@ -1650,7 +1758,7 @@ async function boot() {
     if (prev?.status !== merged.status || prev?.missing !== merged.missing || record.result !== undefined) {
       updateGlobalButtons();
       updateTransport();
-      if (prev?.missing !== merged.missing && markedPaths.has(path)) syncTrackSelection();
+      if ((prev?.missing !== merged.missing || prev?.status !== merged.status) && markedPaths.has(path)) syncTrackSelection();
     }
     onQueue(); // the header names the track being analysed and its stage
     if (record.result && path === state.selected) {
@@ -1670,6 +1778,7 @@ async function boot() {
   });
   api.onQueue((q) => { state.queue = q; onQueue(); });
   api.onSummary((sum) => {
+    refreshComparison?.();
     const parts = [`${sum.done} analysé(s)`];
     if (sum.cached) parts.push(`${sum.cached} depuis le cache`);
     if (sum.errors) parts.push(`${sum.errors} erreur(s)`);

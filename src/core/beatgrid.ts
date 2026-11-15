@@ -50,3 +50,18 @@ export function nearestBeat(beats: readonly GridBeat[], timeSec: number): number
   if (!after) return next - 1;
   return timeSec - before.timeSec < after.timeSec - timeSec ? next - 1 : next;
 }
+
+/** Starts an audition at a nearby measure boundary, with room for four measures where possible. */
+export function gridAudition(beats: readonly GridBeat[], durationSec: number, aroundSec: number) {
+  const fullClipBeats = 16;
+  let best = -1;
+  let delta = Infinity;
+  for (let i = 0; i < beats.length; i++) {
+    if (!beats[i].downbeat || (best >= 0 && i + fullClipBeats > beats.length)) continue;
+    const distance = Math.abs(beats[i].timeSec - aroundSec);
+    if (distance < delta) { best = i; delta = distance; }
+  }
+  if (best < 0) return { start: 0, end: Math.min(durationSec, beats[fullClipBeats]?.timeSec ?? durationSec) };
+  const start = Math.max(0, beats[best].timeSec - 0.045);
+  return { start, end: Math.min(durationSec, beats[best + fullClipBeats]?.timeSec ?? durationSec) };
+}

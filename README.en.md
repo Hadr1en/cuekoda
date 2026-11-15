@@ -172,7 +172,13 @@ job**.
 Use the **metronome** to check the grid by ear, with an accented downbeat.
 **Mark checked and go to next track** checks off the current track and opens the next track in the list.
 
+**Quick check** plays four bars with the metronome at the beginning, first drop or end.
+With the panel focused, use **1 / 2 / 3** to listen, **T** to set the downbeat and **V** to mark the track
+checked and move on.
+
 Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click the selection to re-analyze or remove it.
+Open **More › Compare re-analysis…** to listen to changed tracks before and after and restore the
+previous analysis for each track.
 
 ### 8. Export to your DJ software
 <img src="docs/screenshots/en/export.png" alt="CueKoda export dialog" width="100%">
@@ -196,7 +202,8 @@ then follow the import steps.
   you arranged.
 
 In Traktor, AutoGrid occupies button 1. CueKoda fills buttons 2–8 in pad order, skipping cues
-at the first downbeat. Approved loops are stored separately. Accept the loops you want before exporting.
+at the first downbeat. The Traktor button preview shows all eight buttons and the stored markers for the
+current export options. Approve the loops you want before exporting.
 
 Use **“Import collection…”** to bring a rekordbox XML or Traktor NML collection into CueKoda. Imported
 cues are locked and suggestions fill free pads. You can also adopt the BPM and first grid marker.

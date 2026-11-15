@@ -172,9 +172,13 @@ départ, **construire le set reste ton travail**.
   références servent à mesurer la justesse du moteur (`npm run eval`).
 
 Le **métronome** permet de vérifier la grille à l’oreille, avec un clic accentué sur le temps 1.
-**Valider et passer au suivant** marque le morceau comme vérifié et ouvre la prochaine piste affichée.
+**Contrôle express** permet d’écouter quatre mesures au métronome au début, au premier drop et à la fin.
+Quand cette vue a le focus, utilise **1 / 2 / 3** pour écouter, **T** pour placer le temps 1 et **V**
+pour valider et passer à la prochaine piste affichée.
 
 Sélectionne les morceaux avec les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
+Dans **Plus › Comparer la réanalyse…**, retrouve les BPM, grilles ou cues modifiés. Écoute l’avant et
+l’après, puis rétablis l’analyse précédente par morceau depuis la comparaison.
 
 ### 8. Export vers ton logiciel DJ
 <img src="docs/screenshots/fr/export.png" alt="Fenêtre d’export de CueKoda" width="100%">
@@ -198,7 +202,8 @@ pas, enregistre le fichier, suis les étapes d'import.
   morceaux dans l'ordre que tu as arrangé.
 
 Dans Traktor, AutoGrid occupe le bouton 1. CueKoda remplit les boutons 2 à 8 dans l’ordre des pads
-et écarte les cues superposés à AutoGrid. Valide les boucles avant l’export pour les retrouver parmi les repères mémorisés.
+et écarte les cues superposés à AutoGrid. L’aperçu des boutons Traktor affiche le nom et la position
+des huit boutons et les repères mémorisés selon les options d’export. Valide les boucles souhaitées avant l’export.
 
 Pour reprendre une collection dans CueKoda, clique sur **« Importer collection… »** et choisis un XML
 rekordbox ou un NML Traktor. Tes cues importés sont verrouillés. Les suggestions remplissent les pads libres.

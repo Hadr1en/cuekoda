@@ -8,7 +8,7 @@ import { CUE_KIND_LABEL, DEFAULT_COLORS, sanitizeProfile, type Profile } from '.
 import { findDuplicates } from '../core/duplicates';
 import type { AdapterInfo } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, keyLabel, state } from './state';
-import { $, camelotColor, h, hexOf, rgbOf, toast } from './util';
+import { $, camelotColor, fmtTime, h, hexOf, rgbOf, toast } from './util';
 import { tr } from '../shared/i18n';
 
 const closeBtn = (dlg: HTMLDialogElement) =>
@@ -17,6 +17,67 @@ const closeBtn = (dlg: HTMLDialogElement) =>
 // ================================================================= export
 const SUPPORT_TEXT = { yes: '✓', partial: '≈', no: '✗' } as const;
 
+function traktorInspector(
+  paths: string[], opts: ExportOptions, inspectedPath: string | null, onChoose: (path: string) => void, expanded: boolean,
+) {
+  const tracks = paths.map((path) => state.tracks.get(path)?.result).filter((r): r is AnalysisResult => !!r);
+  const search = h('input', { type: 'search', placeholder: 'Rechercher un morceau', 'aria-label': 'Rechercher un morceau' });
+  const picker = h('select', { 'aria-label': 'Morceau à prévisualiser' });
+  const content = h('div', { class: 'traktor-markers', 'aria-live': 'polite' });
+  let current = tracks.find((track) => track.path === inspectedPath) ?? tracks[0];
+  let request = 0;
+  const display = async () => {
+    const id = ++request;
+    if (!current) { content.replaceChildren(); return; }
+    const plan = await api.traktorPlan(current.path, opts.loops);
+    if (id !== request) return;
+    if (!plan) { content.replaceChildren(); return; }
+    const markers = (entries: typeof plan.stored) => h('ul', { class: 'summary' },
+      ...entries.map(({ name, timeSec }) => h('li', {}, name, h('span', { class: 'muted' }, ` · ${fmtTime(timeSec)}`))),
+    );
+    content.replaceChildren(
+      h('ol', { class: 'traktor-pads', 'aria-label': 'Boutons Traktor' }, ...plan.pads.map((marker, i) =>
+        h('li', { class: marker ? 'filled' : '' },
+          h('b', {}, String(i + 1)),
+          h('span', { title: marker?.name }, marker?.name ?? '—'),
+          marker ? h('small', { class: 'muted' }, fmtTime(marker.timeSec)) : null,
+        ),
+      )),
+      ...(plan.stored.length ? [h('h4', {}, 'Cues mémorisés'), markers(plan.stored)] : []),
+      h('h4', {}, 'Boucles mémorisées'),
+      plan.loops.length ? h('ul', { class: 'summary' }, ...plan.loops.map((loop) =>
+        h('li', {}, loop.name, h('span', { class: 'muted' }, ` · ${fmtTime(loop.timeSec)} · ${loop.beats} temps`)),
+      )) : h('p', { class: 'muted' }, 'Aucune boucle à exporter'),
+    );
+  };
+  const filter = () => {
+    const term = search.value.trim().toLowerCase();
+    const options = tracks.filter((track) => `${track.title} ${track.artist} ${track.fileName}`.toLowerCase().includes(term)).slice(0, 50);
+    if (!term && current && !options.includes(current)) options.unshift(current);
+    if (!current || !options.includes(current)) current = options[0];
+    picker.replaceChildren(...options.map((track) => h('option', { value: track.path, selected: track === current },
+      [track.title || track.fileName, track.artist].filter(Boolean).join(' — '),
+    )));
+    picker.disabled = !options.length;
+    if (current) onChoose(current.path);
+    void display();
+  };
+  search.addEventListener('input', filter);
+  picker.addEventListener('change', () => {
+    current = tracks.find((track) => track.path === picker.value) ?? tracks[0];
+    if (current) onChoose(current.path);
+    void display();
+  });
+  const details = h('details', { class: 'traktor-inspector', open: expanded },
+    h('summary', {}, 'Aperçu des boutons Traktor'),
+    h('div', { class: 'hrow' }, tracks.length > 1 ? search : null, picker),
+    content,
+  );
+  details.addEventListener('toggle', () => { if (details.open) filter(); });
+  if (expanded) filter();
+  return details;
+}
+
 /** set: tracks in the order of the mix-order window, exported as one named playlist */
 export function openExport(currentPath: string | null, set?: { name: string; paths: string[] }) {
   const dlg = $<HTMLDialogElement>('dlg-export');
@@ -24,6 +85,8 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
   let target: AdapterInfo['id'] = 'rekordbox';
   let scope: 'all' | 'current' | 'set' = set ? 'set' : 'all';
   let setName = set?.name ?? '';
+  let inspectedPath = currentPath;
+  let inspectorOpen = false;
   const opts: ExportOptions = { ...state.settings.exportOptions };
 
   let previewRequest = 0;
@@ -37,6 +100,10 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
     const exportOptions = { ...opts };
     const preview = await api.exportPreview(adapter.id, paths, exportOptions);
     if (request !== previewRequest) return;
+    const inspector = adapter.id === 'traktor' && preview.readyPaths.length
+      ? traktorInspector(preview.readyPaths, exportOptions, inspectedPath, (p) => { inspectedPath = p; }, inspectorOpen)
+      : null;
+    inspector?.addEventListener('toggle', () => { inspectorOpen = inspector.open; });
     const parts: (Node | null)[] = [
       h('h2', { id: 'dlg-export-title' }, set ? 'Exporter le set vers…' : 'Exporter vers…'),
       h(
@@ -73,6 +140,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
           h('select', { onchange: (e: Event) => { opts.loops = (e.target as HTMLSelectElement).value as ExportOptions['loops']; void render(); } },
             ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))),
       ),
+      inspector,
       h('h3', {}, 'Ce qui sera transféré'),
       h('ul', { class: 'summary' }, ...preview.lines.map((l) => h('li', { class: l.startsWith('⚠') ? 'note warn' : '' }, l))),
       h('h3', {}, 'Import dans le logiciel'),
@@ -150,6 +218,9 @@ export function openDuplicates() {
 export function openHelp() {
   const dlg = $<HTMLDialogElement>('dlg-help');
   const rows: [string, string][] = [
+    ['1 / 2 / 3', 'Contrôle express · Écouter le début, le premier drop ou la fin'],
+    ['T / V', 'Contrôle express · Placer le temps 1 ou valider et avancer'],
+    ['[ / ]', 'Contrôle express · Décaler la grille de 10 ms'],
     ['Espace', 'Lecture / pause'],
     ['← / →', 'Reculer / avancer d’une mesure (Maj : un temps)'],
     ['↑ / ↓', 'Morceau précédent / suivant'],
