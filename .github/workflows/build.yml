@@ -8,10 +8,12 @@ name: Installeurs
 on:
   push:
     branches: [main]
-    # documentation and screenshots alone do not need new installers
+    # Documentation and the Pages site do not need new installers
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'site/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CueKoda prépare tes morceaux pour le DJing : analyse locale, hot cues et export rekordbox ou Traktor. Disponible sur Windows et macOS.">
+  <meta name="theme-color" content="#101014">
+  <title>CueKoda — Préparation musicale pour DJ</title>
+  <link rel="icon" href="media/icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#contenu">Aller au contenu</a>
+  <header class="top">
+    <nav class="wrap nav" aria-label="Navigation principale">
+      <a class="brand" href="./"><img src="media/icon.png" alt="" width="34" height="34">CueKoda</a>
+      <div class="nav-links"><a href="#fonctionnalites">Fonctionnalités</a><a href="#guide">Guide</a><a href="#telecharger">Télécharger</a><a href="https://github.com/Hadr1en/cuekoda">GitHub ↗</a></div>
+    </nav>
+  </header>
+  <main id="contenu">
+    <section class="hero wrap" aria-labelledby="titre">
+      <p class="eyebrow"><span></span> APPLICATION DE PRÉPARATION DJ</p>
+      <h1 id="titre">Prépare tes tracks.<br><em>Construis ton set.</em></h1>
+      <p class="intro">Analyse ton audio, place tes hot cues et prépare tes transitions. Puis retrouve tes repères dans rekordbox ou Traktor.</p>
+      <div class="actions"><a class="button primary" href="#telecharger">Télécharger CueKoda <span aria-hidden="true">↓</span></a><a class="button ghost" href="#guide">Découvrir le guide <span aria-hidden="true">↗</span></a></div>
+      <p class="hero-meta">Windows et macOS <span aria-hidden="true">·</span> Analyse locale <span aria-hidden="true">·</span> Code ouvert</p>
+      <figure class="hero-shot">
+        <a href="media/detail.png"><img src="media/detail.png" alt="Dans CueKoda, la bibliothèque surplombe la forme d’onde annotée, la courbe d’énergie et les huit pads de hot cues." fetchpriority="high"></a>
+        <figcaption><span>Bibliothèque et détail d’un morceau</span><a href="media/detail.png">Agrandir ↗</a></figcaption>
+      </figure>
+    </section>
+
+    <section class="wrap section" id="fonctionnalites">
+      <p class="eyebrow">FONCTIONNALITÉS</p>
+      <h2>De la bibliothèque au set</h2>
+      <div class="feature-grid">
+        <article><span class="accent">Analyse</span><h3>Lis la structure du morceau</h3><p>BPM, grille, temps 1, tonalité Camelot et courbe d’énergie. Visualise intros, drops et breaks, et repère ce qui mérite une écoute grâce aux indices de confiance.</p></article>
+        <article><span class="accent">Repères</span><h3>Travaille sur la forme d’onde</h3><p>Ajuste les hot cues, memory cues et boucles. Déplace, renomme ou verrouille tes repères. Tes corrections sont conservées lors des réanalyses.</p></article>
+        <article><span class="accent">Transitions</span><h3>Écoute tes enchaînements</h3><p>Compare les morceaux par tempo, tonalité et énergie, écoute un aperçu de transition, puis ajuste la proposition d’ordre de mix.</p></article>
+      </div>
+      <div class="gallery">
+        <figure><a href="media/mix.png"><img src="media/mix.png" alt="Onglet Mix avec repères Mix In et Mix Out, morceaux compatibles et commande d’écoute." loading="lazy"></a><figcaption>Mix et morceaux compatibles</figcaption></figure>
+        <figure><a href="media/export.png"><img src="media/export.png" alt="Dialogue d’export avec le choix du logiciel DJ et les données transférées." loading="lazy"></a><figcaption>Aperçu d’export et instructions</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="wrap section" id="guide">
+      <p class="eyebrow">GUIDE DE DÉMARRAGE</p>
+      <h2>Ton premier export</h2>
+      <ol class="steps">
+        <li><strong>Importe.</strong> Glisse des fichiers ou un dossier. CueKoda lit notamment les formats MP3, WAV, AIFF, FLAC et M4A.</li>
+        <li><strong>Vérifie.</strong> Ouvre un morceau, écoute le temps 1 au métronome, puis ajuste ses cues et valide tes boucles.</li>
+        <li><strong>Exporte.</strong> Clique sur « Exporter… », choisis ton logiciel DJ, puis suis les étapes d’import affichées.</li>
+      </ol>
+      <div class="compat">
+        <div><h3>rekordbox</h3><p>Export XML importé avec succès. Grilles multi-tempo, hot cues, memory cues et boucles.</p></div>
+        <div><h3>Traktor Pro</h3><p>Export NML importé avec succès. Le mapping actuel des pads reste à valider dans Traktor Pro.</p></div>
+        <div><h3>Engine DJ, VirtualDJ et djay Pro</h3><p>Export via le format rekordbox XML. Les imports dans ces logiciels restent à vérifier.</p></div>
+      </div>
+      <div class="text-links"><a href="https://github.com/Hadr1en/cuekoda/blob/main/docs/GUIDE_UTILISATEUR.md">Guide complet ↗</a><a href="https://github.com/Hadr1en/cuekoda/blob/main/docs/MATRICE_EXPORT.md">Matrice d’import et d’export ↗</a><a lang="en" href="https://github.com/Hadr1en/cuekoda/blob/main/README.en.md">English documentation ↗</a></div>
+    </section>
+
+    <section class="wrap section" id="telecharger">
+      <p class="eyebrow">TÉLÉCHARGER</p>
+      <h2>Installe CueKoda</h2>
+      <!-- RELEASE -->
+      <div class="install">
+        <div><h3>Sur Windows</h3><p>Lance le fichier <code>.exe</code> et suis l’assistant. L’installeur est non signé. Si SmartScreen affiche un avertissement et que tu as vérifié la provenance, choisis « Informations complémentaires », puis « Exécuter quand même ».</p></div>
+        <div><h3>Sur macOS</h3><p>Ouvre le <code>.dmg</code>, glisse CueKoda dans Applications et lance-le. Si macOS bloque ce premier lancement et que tu as vérifié la provenance, ouvre Réglages Système › Confidentialité et sécurité › « Ouvrir quand même ».</p></div>
+      </div>
+    </section>
+
+    <section class="wrap section faq" id="faq">
+      <p class="eyebrow">FAQ</p>
+      <h2>Questions fréquentes</h2>
+      <details><summary>Mes morceaux sont-ils envoyés en ligne ?</summary><p>L’analyse tourne sur ton ordinateur. CueKoda lit tes fichiers audio et enregistre ses annotations séparément. La vérification des mises à jour contacte GitHub.</p></details>
+      <details><summary>Comment mettre CueKoda à jour ?</summary><p>Dans Réglages › Mises à jour, vérifie la disponibilité d’un nouveau build. L’installation se lance sur ton clic, après vérification de la taille et de l’empreinte SHA-256. Tu peux aussi réinstaller depuis la dernière Release GitHub.</p></details>
+      <details><summary>Puis-je repartir d’une collection existante ?</summary><p>Oui. « Importer collection… » lit un XML rekordbox ou un NML Traktor. Les cues importés sont verrouillés et les nouvelles propositions utilisent les pads libres.</p></details>
+      <details><summary>Et Serato DJ Pro ?</summary><p>L’export Serato est indisponible. Serato stocke les repères dans les tags audio et CueKoda préserve les fichiers sources.</p></details>
+      <details><summary>La détection vocale et le tempo variable sont-ils pris en charge ?</summary><p>La détection vocale est expérimentale et se corrige dans l’onglet Structure. Pour un tempo variable, rekordbox reçoit les marqueurs de tempo. Les suggestions de cues restent calculées sur la grille moyenne.</p></details>
+    </section>
+  </main>
+  <footer><div class="wrap footer"><a class="brand" href="./"><img src="media/icon.png" alt="" width="30" height="30">CueKoda</a><div class="text-links"><a href="https://github.com/Hadr1en/cuekoda">Code source ↗</a><a href="https://github.com/Hadr1en/cuekoda/issues">Signaler un problème ↗</a><a href="https://github.com/Hadr1en/cuekoda/blob/main/LICENSE">Licence AGPL-3.0 ↗</a></div></div></footer>
+</body>
+</html>

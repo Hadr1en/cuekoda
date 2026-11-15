@@ -1,0 +1,60 @@
+name: Site GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'docs/screenshots/fr/**'
+      - 'assets/logo/png/cuekoda-icone-128.png'
+      - '.github/workflows/pages.yml'
+  workflow_run:
+    workflows: [Installeurs]
+    branches: [main]
+    types: [completed]
+  release:
+    types: [published, edited, unpublished, deleted]
+  schedule:
+    - cron: '43 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: cuekoda-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Construire le site et lire la dernière Release stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node site/build.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
