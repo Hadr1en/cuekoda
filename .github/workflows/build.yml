@@ -108,6 +108,12 @@ jobs:
       - name: Binaires ffmpeg (macOS arm64 / x64, Windows x64)
         run: node scripts/fetch-ffmpeg.mjs
       - run: npm run build
+      - name: Vérifier la fenêtre Windows
+        if: runner.os == 'Windows'
+        timeout-minutes: 2
+        env:
+          CUEKODA_SMOKE_WINDOW: '1'
+        run: npx electron .
       - name: electron-builder
         # bash on every OS: PowerShell would split "-c.extraMetadata…" into two arguments
         shell: bash

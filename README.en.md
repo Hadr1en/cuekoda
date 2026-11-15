@@ -237,6 +237,10 @@ CueKoda is upfront about what it can do:
 Feature-by-feature status: [feature status](docs/AUDIT_ET_PLAN.md); how the algorithms work:
 [ALGORITHMES.md](docs/ALGORITHMES.md) (both in French).
 
+
+Use the library selector to switch between Camelot and Open Key (Traktor).
+For example, **5A** and **10m** both mean **C minor**. Search accepts both codes.
+
 ## Keyboard shortcuts
 | Key | Action |
 |---|---|

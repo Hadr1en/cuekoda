@@ -7,7 +7,7 @@ import { pairScore, tempoGapPct } from '../core/matching';
 import { CUE_KIND_LABEL, DEFAULT_COLORS, sanitizeProfile, type Profile } from '../core/profiles';
 import { findDuplicates } from '../core/duplicates';
 import type { AdapterInfo } from '../shared/api';
-import { allProfiles, api, applyTheme, doneResults, state } from './state';
+import { allProfiles, api, applyTheme, doneResults, keyLabel, state } from './state';
 import { $, camelotColor, h, hexOf, rgbOf, toast } from './util';
 import { tr } from '../shared/i18n';
 
@@ -75,7 +75,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
               : null,
             h('label', { title: 'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.' },
               h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
-              ' Énergie, clé et voix dans le commentaire (ex. « E8 · 8B · Vocal »)'),
+              ' Énergie, clé et voix dans le commentaire'),
             h('label', {}, 'Boucles : ',
               h('select', { onchange: (e: Event) => { opts.loops = (e.target as HTMLSelectElement).value as ExportOptions['loops']; void render(); } },
                 ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))),
@@ -390,7 +390,7 @@ export function openSetOrder(o: {
         h('td', { class: 'c-num' }, String(i + 1)),
         h('td', {}, h('div', {}, t.title), h('div', { class: 'muted' }, t.artist)),
         h('td', { class: 'c-num' }, t.bpm.toFixed(t.bpm % 1 ? 1 : 0)),
-        h('td', {}, h('span', { class: 'key', style: { background: camelotColor(t.key.camelot) } }, t.key.camelot)),
+        h('td', {}, h('span', { class: 'key', style: { background: camelotColor(t.key.camelot) } }, keyLabel(t.key))),
         h('td', { class: 'c-num' }, t.energy ? t.energy.score.toFixed(1) : '—'),
         h('td', { class: 'why' }, link
           ? h('span', {}, h('b', {}, `${link.score} `), weak ? h('span', { class: 'pill warn' }, 'difficile') : '', ' ',
@@ -421,7 +421,7 @@ export function openSetOrder(o: {
             ...o.tracks.map((t) => h('option', { value: t.path, selected: t.path === start }, t.title)))),
         h('span', { class: 'muted' }, `Note moyenne des transitions : ${mean}/100`),
         h('button', { type: 'button', class: 'btn small ghost', onclick: () => {
-          const text = order.map((p, i) => { const t = byPath.get(p)!; return `${i + 1}. ${t.artist ? `${t.artist} – ` : ''}${t.title} (${t.bpm.toFixed(1)} BPM, ${t.key.camelot})`; }).join('\n');
+          const text = order.map((p, i) => { const t = byPath.get(p)!; return `${i + 1}. ${t.artist ? `${t.artist} – ` : ''}${t.title} (${t.bpm.toFixed(1)} BPM, ${keyLabel(t.key)})`; }).join('\n');
           void navigator.clipboard.writeText(text).then(() => toast('Liste copiée'));
         } }, 'Copier la liste'),
         h('button', { type: 'button', class: 'btn small primary', title: 'Exporter ces morceaux, dans cet ordre, comme une playlist pour ton logiciel DJ',

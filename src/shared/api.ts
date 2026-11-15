@@ -1,3 +1,4 @@
+import type { KeyNotation } from '../core/key';
 import type { AnalysisResult, Overrides } from '../core/types';
 import type { Profile } from '../core/profiles';
 import type { ExportOptions, ExportTargetId } from '../core/export/index';
@@ -79,6 +80,7 @@ export interface Settings {
   exportOptions: ExportOptions;
   /** Dark by default (DJ use); 'system' follows the OS */
   theme: 'dark' | 'light' | 'system';
+  keyNotation?: KeyNotation;
   /** Check GitHub for a new CueKoda build at start-up (only GitHub is contacted; installing needs a click) */
   autoUpdateCheck: boolean;
   /** Interface language ('system' follows the OS locale) */

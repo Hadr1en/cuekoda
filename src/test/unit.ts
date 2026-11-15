@@ -15,7 +15,7 @@ import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles
 import { beatIndex, gridBeats, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
 import { estimateGrid } from '../core/rhythm';
-import { allKeys, keyFromMusical } from '../core/key';
+import { allKeys, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation } from '../core/export/traktor';
 import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
@@ -116,6 +116,12 @@ test('24 keys, Camelot mapping', () => {
   assert.equal(keyFromMusical('C')!.camelot, '8B');
   assert.equal(keyFromMusical('F#m')!.camelot, '11A');
   assert.equal(keyFromMusical('C')!.openKey, '1d');
+  const cm = keyFromMusical('Cm')!;
+  assert.equal(formatKey(cm), '5A');
+  assert.equal(formatKey(cm, 'openKey'), '10m');
+  assert.equal(formatKey({ camelot: '5A', openKey: '' }, 'openKey'), '10m');
+  assert.equal(formatKey({ camelot: '', openKey: '' }, 'openKey'), '');
+  assert.equal(new Set(keys.map((key) => formatKey(key, 'openKey'))).size, 24);
 });
 
 // ---------------------------------------------------------------- matching
@@ -362,7 +368,7 @@ test('export: comment tags (energy, key, vocals) and the set as an ordered, name
   const noTags = buildRekordboxXml(set, { ...opts, commentTags: false });
   assert.match(noTags, /Comments=""/);
   const nml = buildTraktorNml(set, opts, 'Macintosh HD');
-  assert.match(nml, /COMMENT="E8 · 8B · Instru"/);
+  assert.match(nml, /COMMENT="E8 · 1d · Instru"/);
   assert.match(nml, /<NODE TYPE="PLAYLIST" NAME="Set &amp; Co">/);
   const order = [...nml.matchAll(/PRIMARYKEY TYPE="TRACK" KEY="[^"]*\/:(\w+)\.mp3"/g)].map((m) => m[1]);
   assert.deepEqual(order, ['ins', 'voc', 'uns']);
@@ -402,6 +408,14 @@ test('rekordbox export: hot cues, memory cues option, loops with End', () => {
   const noMem = buildRekordboxXml([t], { memoryCues: false, loops: 'none' });
   assert.ok(!noMem.includes('Type="0" Start="10.000" Num="-1"'));
   assert.ok(!noMem.includes('Type="4"'));
+});
+
+test('Traktor exports a matching musical key and Open Key comment', () => {
+  const t = track({ path: '/m/a.mp3', key: keyFromMusical('Cm')! });
+  const nml = buildTraktorNml([t]);
+  assert.match(nml, /<INFO [^>]*COMMENT="[^"]*10m[^"]*" KEY="10m"/);
+  assert.match(nml, /<MUSICAL_KEY VALUE="12">/);
+  assert.match(buildRekordboxXml([t]), /Comments="[^"]*5A[^"]*"/);
 });
 
 test('traktor export: hot cue index, loop LEN, no colours', () => {

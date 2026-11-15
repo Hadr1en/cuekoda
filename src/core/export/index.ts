@@ -2,6 +2,7 @@ import type { AnalysisResult } from '../types';
 import { buildRekordboxXml, exportedLoops } from './rekordbox';
 import { buildTraktorNml } from './traktor';
 import { duplicateCueIds } from '../cues';
+import { formatKey, type KeyNotation } from '../key';
 
 /**
  * Export engine: one adapter per DJ software, independent from the analysis engine.
@@ -22,14 +23,15 @@ export interface ExportOptions {
 }
 
 /**
- * Short tag for the DJ software's Comments field: energy, Camelot key and vocals, e.g. "E8 · 8B · Vocal".
+ * Short tag for the DJ software's Comments field: energy, key and vocals, e.g. "E8 · 8B · Vocal".
  * Vocals are named only on clear evidence: "Vocal" with a clear sung passage, "Instru" when the detector
  * was informative and found nothing at all; otherwise nothing (the detector is not validated).
  */
-export function commentTag(t: AnalysisResult): string {
+export function commentTag(t: AnalysisResult, notation: KeyNotation = 'camelot'): string {
   const parts: string[] = [];
   if (t.energy) parts.push(`E${Math.round(t.energy.score)}`);
-  if (t.key.camelot) parts.push(t.key.camelot);
+  const key = formatKey(t.key, notation);
+  if (key) parts.push(key);
   const v = t.vocals;
   if (v && v.informative !== false) {
     if (v.segments.some((s) => s.strength === 'strong')) parts.push('Vocal');
@@ -138,7 +140,7 @@ export const ADAPTERS: ExportAdapter[] = [
       { field: 'Couleurs des cues', support: 'no', note: 'Traktor colore les cues par type, pas par couleur libre' },
       { field: 'Memory cues', support: 'partial', note: 'Cues sans pad uniquement : CUE_V2 HOTCUE -1 (cue mémorisé)' },
       { field: 'Loops', support: 'yes', note: 'CUE_V2 TYPE 5 avec LEN (boucles mémorisées)' },
-      { field: 'Commentaire « E8 · 8B · Vocal »', support: 'yes', note: 'INFO COMMENT (option)' },
+      { field: 'Commentaire « E8 · 1d · Vocal »', support: 'yes', note: 'INFO COMMENT (option)' },
       { field: 'Playlist (set)', support: 'yes', note: 'NODE PLAYLIST, morceaux dans l’ordre' },
       { field: 'Sections / énergie / phrases', support: 'no', note: 'Pas de champ correspondant' },
     ],
@@ -217,7 +219,11 @@ export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], 
   if (memo) out.push(`${memo} memory cue(s) sans pad${xml ? '' : ' (cues mémorisés Traktor)'}`);
   if (variable && !xml) out.push(`⚠ Tempo variable : Traktor ne reçoit qu’un tempo pour ${variable} morceau(x)`);
   if (adapter.via) out.push(`Fichier au format rekordbox XML, à indiquer dans ${adapter.name}`);
-  if (opts.commentTags !== false && tracks.length) out.push(`Commentaire de chaque morceau : énergie, clé et voix (ex. « ${commentTag(tracks[0]) || 'E8 · 8B · Vocal'} »)`);
+  if (opts.commentTags !== false && tracks.length) {
+    const openKey = adapter.id === 'traktor';
+    const example = commentTag(tracks[0], openKey ? 'openKey' : 'camelot') || (openKey ? 'E8 · 1d · Vocal' : 'E8 · 8B · Vocal');
+    out.push(`Commentaire de chaque morceau : énergie, clé et voix (ex. « ${example} »)`);
+  }
   if (opts.playlistName) out.push(`Playlist « ${opts.playlistName} » : ${tracks.length} morceau(x) dans l’ordre du set`);
   out.push(`${loops} boucle(s) (${opts.loops === 'accepted' ? 'validées uniquement' : opts.loops === 'all' ? 'toutes les suggestions' : 'aucune'})`);
   const dupTracks = tracks.map((t) => ({ t, n: duplicateCueIds(t.cues).size })).filter((x) => x.n > 0);

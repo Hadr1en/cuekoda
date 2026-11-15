@@ -1,5 +1,5 @@
 import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
-import { allKeys } from '../core/key';
+import { allKeys, formatKey } from '../core/key';
 import { CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
 import { cueAt, duplicateCueIds } from '../core/cues';
 import { SECTION_LABEL } from '../core/structure';
@@ -7,13 +7,20 @@ import { matchTracks } from '../core/matching';
 import { resolveLang, setLang, tr } from '../shared/i18n';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
 import type { TrackEdits, TrackRecord } from '../shared/api';
-import { allProfiles, api, applyTheme, changedEdits, doneResults, history, snapshotEdits, state } from './state';
+import { allProfiles, api, applyTheme, changedEdits, doneResults, history, keyLabel, snapshotEdits, state } from './state';
 import { metronome } from './metronome';
 import { WaveView, drawOverview } from './waveform';
 import { openDuplicates, openExport, openHelp, openSetOrder, openSettings, renderUpdateBadge } from './dialogs';
 import {
   $, announce, camelotColor, setText, translateDom, clearTokenCache, confBadge, fmtBpm, fmtDur, fmtTime, h, hexOf, initToast, LETTERS, rgb, rgbOf, toast, toFileUrl, worst,
 } from './util';
+
+const windowOverlay = (navigator as Navigator & { windowControlsOverlay?: EventTarget & { visible: boolean } }).windowControlsOverlay;
+if (windowOverlay) {
+  const syncOverlay = () => document.documentElement.toggleAttribute('data-window-overlay', windowOverlay.visible);
+  windowOverlay.addEventListener('geometrychange', syncOverlay);
+  syncOverlay();
+}
 
 const audio = $<HTMLAudioElement>('audio');
 const rowEls = new Map<string, HTMLTableRowElement>();
@@ -102,8 +109,23 @@ function matchesFilter(rec: TrackRecord) {
   if (libView === 'missing' && !rec.missing) return false;
   if (!searchTerms.length) return true;
   const r = rec.result;
-  const hay = searchText([rec.fileName, r?.title, r?.artist, r?.key.camelot, r?.key.musical, r ? fmtBpm(r.bpm) : ''].join(' '));
+  const hay = searchText([rec.fileName, r?.title, r?.artist, r?.key.camelot, r?.key.musical,
+    r ? formatKey(r.key, 'openKey') : '', r ? fmtBpm(r.bpm) : ''].join(' '));
   return searchTerms.every((word) => hay.includes(word));
+}
+
+function keyOrder(key: AnalysisResult['key']) {
+  const code = keyLabel(key);
+  return code ? Number.parseInt(code, 10) * 2 + (/[Bd]$/.test(code) ? 1 : 0) : 99;
+}
+
+function keyBadge(key: AnalysisResult['key'], showAmbiguity = false) {
+  const code = keyLabel(key);
+  if (!code) return '—';
+  const title = [key.musical, key.camelot, formatKey(key, 'openKey'), key.ambiguous ? tr('ambiguë') : '']
+    .filter(Boolean).join(' · ');
+  return h('span', { class: 'key', style: { background: camelotColor(key.camelot) }, title },
+    code + (showAmbiguity && key.ambiguous ? '?' : ''));
 }
 
 function sortValue(rec: TrackRecord): string | number {
@@ -112,7 +134,7 @@ function sortValue(rec: TrackRecord): string | number {
     case 'title': return (r?.title ?? rec.fileName).toLowerCase();
     case 'artist': return (r?.artist ?? '').toLowerCase();
     case 'bpm': return r?.bpm ?? 0;
-    case 'key': return r?.key.camelot ? parseInt(r.key.camelot, 10) * 2 + (r.key.camelot.endsWith('B') ? 1 : 0) : 99;
+    case 'key': return r ? keyOrder(r.key) : 99;
     case 'energy': return r?.energy?.score ?? 0;
     case 'cues': return r?.cues.length ?? 0;
     case 'conf': return r ? { high: 0, medium: 1, low: 2 }[overallConfidence(r)] : 3;
@@ -220,9 +242,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
       td(h('span', {}, r.title, reanalysing && isBusy(rec) ? busyLine(rec, true) : '')),
       td(r.artist, 'muted'),
       td(h('span', {}, fmtBpm(r.bpm), r.tempo ? confBadge(r.tempo.confidence, true) : ''), 'c-num'),
-      td(r.key.camelot
-        ? h('span', { class: 'key', style: { background: camelotColor(r.key.camelot) }, title: `${r.key.musical} · Open Key ${r.key.openKey}${r.key.ambiguous ? ' · ambiguë' : ''}` }, r.key.camelot + (r.key.ambiguous ? '?' : ''))
-        : '—', 'c-key'),
+      td(keyBadge(r.key, true), 'c-key'),
       td(r.energy
         ? h('span', { class: 'meter', title: `Énergie estimée ${r.energy.score}/10` }, h('span', { style: { inlineSize: `${r.energy.score * 10}%` } }), h('b', {}, r.energy.score.toFixed(1)))
         : '—', 'c-energy'),
@@ -417,7 +437,7 @@ function renderDetail() {
   $('d-sub').replaceChildren(
     ...(r.artist ? [h('span', { class: 'd-artist' }, document.createTextNode(r.artist))] : []),
     h('span', {}, `${fmtBpm(r.bpm)} BPM`),
-    r.key.camelot ? h('span', { class: 'key', style: { background: camelotColor(r.key.camelot) }, title: r.key.musical }, r.key.camelot) : '',
+    r.key.camelot ? keyBadge(r.key) : '',
     r.energy ? h('span', {}, `${tr('énergie')} ${r.energy.score}/10`) : '',
     h('span', {}, profile),
   );
@@ -459,9 +479,9 @@ function renderDetail() {
   const ks = $<HTMLSelectElement>('key-select');
   const alts = new Set((r.key.alternatives ?? []).map((a) => a.camelot));
   ks.replaceChildren(
-    ...allKeys().map((k) =>
+    ...allKeys().sort((a, b) => keyOrder(a) - keyOrder(b)).map((k) =>
       h('option', { value: k.musical, selected: k.camelot === r.key.camelot },
-        `${k.camelot} · ${k.musical}${alts.has(k.camelot) ? ' (alternative plausible)' : ''}`)),
+        `${keyLabel(k)} · ${k.musical}${alts.has(k.camelot) ? ' (alternative plausible)' : ''}`)),
   );
   if (r.overrides?.key) ks.append(h('option', { value: '' }, '↺ Revenir à la détection automatique'));
   $('key-conf').replaceChildren(
@@ -1045,9 +1065,9 @@ function renderInfo(r: AnalysisResult) {
           row('Alternatives tempo', r.tempo?.alternatives.join(' · ')),
           row('Ajustement de la grille', `${Math.round(r.grid.confidence * 100)} % des attaques retenues alignées à ±12 ms`),
           row('Premier temps', `${r.grid.firstDownbeatSec.toFixed(3)} s`),
-          row('Tonalité', `${r.key.musical} · ${r.key.camelot} · ${r.key.openKey}${r.key.ambiguous ? ' (ambiguë)' : ''}`),
-          row('Alternatives tonalité', (r.key.alternatives ?? []).map((a) => `${a.camelot} (${Math.round(a.weight * 100)} %)`).join(' · ')),
-          row('Changement de tonalité', (r.key.changes ?? []).map((c) => `${c.camelot} (${fmtTime(c.startSec)} → ${fmtTime(c.endSec)})`).join(' · ') || undefined),
+          row('Tonalité', `${r.key.musical} · ${r.key.camelot} · ${formatKey(r.key, 'openKey')}${r.key.ambiguous ? ' (ambiguë)' : ''}`),
+          row('Alternatives tonalité', (r.key.alternatives ?? []).map((a) => `${keyLabel(a)} (${Math.round(a.weight * 100)} %)`).join(' · ')),
+          row('Changement de tonalité', (r.key.changes ?? []).map((c) => `${keyLabel(c)} (${fmtTime(c.startSec)} → ${fmtTime(c.endSec)})`).join(' · ') || undefined),
           row('Loudness intégrée', L?.integratedLufs != null ? `${L.integratedLufs.toFixed(1)} LUFS` : undefined),
           row('Plage de loudness', L?.loudnessRangeLu != null ? `${L.loudnessRangeLu.toFixed(1)} LU` : undefined),
           row('True peak', L?.truePeakDbtp != null ? `${L.truePeakDbtp.toFixed(1)} dBTP` : undefined),
@@ -1417,6 +1437,26 @@ function fillProfiles() {
   $('profile').replaceChildren(...allProfiles().map((p) => h('option', { value: p.id, selected: p.id === state.settings.profileId }, p.name)));
 }
 
+const keyNotation = $<HTMLSelectElement>('key-notation');
+keyNotation.addEventListener('change', async () => {
+  const notation = keyNotation.value === 'openKey' ? 'openKey' : 'camelot';
+  keyNotation.disabled = true;
+  try {
+    state.settings = await api.setSettings({ keyNotation: notation });
+    for (const [path, row] of rowEls) {
+      const track = state.tracks.get(path);
+      if (track) renderRow(track, row);
+    }
+    renderLibrary();
+    renderDetail();
+  } catch {
+    keyNotation.value = state.settings.keyNotation ?? 'camelot';
+    toast('Impossible d’enregistrer la notation de tonalité.');
+  } finally {
+    keyNotation.disabled = false;
+  }
+});
+
 // drag & drop
 let dragDepth = 0;
 document.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; $('dropmask').hidden = false; });
@@ -1434,6 +1474,7 @@ async function boot() {
   initToast();
   const s = await api.init();
   state.settings = s.settings;
+  keyNotation.value = s.settings.keyNotation === 'openKey' ? 'openKey' : 'camelot';
   setLang(resolveLang(s.settings.language, navigator.language));
   document.documentElement.lang = resolveLang(s.settings.language, navigator.language);
   translateDom(document.body);

@@ -38,6 +38,7 @@ const DEFAULT_SETTINGS: Settings = {
   learningEnabled: true,
   exportOptions: { memoryCues: true, loops: 'accepted' },
   theme: 'dark',
+  keyNotation: 'camelot',
   autoUpdateCheck: true,
 };
 
@@ -174,6 +175,16 @@ function syncWatch() {
 }
 
 // --- window -----------------------------------------------------------------------
+function windowsTitleBarOverlay() {
+  const theme = settingsStore.data.theme;
+  const light = theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors);
+  return { color: light ? '#ffffff' : '#171923', symbolColor: light ? '#1b1e2a' : '#e8eaf0', height: 42 };
+}
+
+function updateWindowsTitleBar() {
+  if (process.platform === 'win32') win?.setTitleBarOverlay(windowsTitleBarOverlay());
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1360,
@@ -183,6 +194,7 @@ function createWindow() {
     // Matches the --color-bg token (dark by default, see styles.css)
     backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
     title: 'CueKoda',
+    ...(process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() } : {}),
     show: !SMOKE_DIR,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -191,6 +203,7 @@ function createWindow() {
       sandbox: true,
     },
   });
+  if (process.platform === 'win32') win.removeMenu();
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -342,6 +355,7 @@ function registerIpc() {
     settingsStore.save(0);
     queue.setMaxWorkers(s.maxWorkers);
     if ('watchFolders' in patch || 'watchPaused' in patch) syncWatch();
+    if ('theme' in patch) updateWindowsTitleBar();
     return s;
   });
 
@@ -513,7 +527,8 @@ function registerIpc() {
  * console errors and writes a JSON report, then quits.
  */
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
-if (SMOKE_DIR) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
+const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
+if (SMOKE_DIR || SMOKE_WINDOW) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
 
 /** Renderer-side script of the smoke test (runs in the real UI). */
 const SMOKE_UI_SCRIPT = `(async () => {
@@ -547,6 +562,27 @@ const SMOKE_UI_SCRIPT = `(async () => {
   out.emptySearch = !$('no-matches').hidden && $('tracks').hidden;
   $('clear-filters').click();
   out.filtersCleared = !search.value && document.querySelectorAll('tr.row').length === rows.length;
+  const notation = $('key-notation');
+  const initialKey = rows[0].querySelector('.c-key .key');
+  if (initialKey) {
+    const keys = initialKey.title.split(' · ');
+    const setNotation = async (value) => {
+      notation.value = value;
+      notation.dispatchEvent(new Event('change'));
+      for (let i = 0; i < 30 && notation.disabled; i++) await wait(20);
+    };
+    await setNotation('openKey');
+    out.openKeyDisplay = rows[0].querySelector('.c-key .key').textContent.startsWith(keys[2])
+      && $('d-sub').querySelector('.key').textContent === keys[2];
+    out.openKeySaved = (await window.cuekoda.init()).settings.keyNotation === 'openKey';
+    search.value = keys[1];
+    search.dispatchEvent(new Event('input'));
+    await wait(80);
+    out.camelotSearchInOpenKey = rows[0].isConnected;
+    $('clear-filters').click();
+    await setNotation('camelot');
+    out.camelotRestored = rows[0].querySelector('.c-key .key').textContent.startsWith(keys[1]);
+  }
   search.blur();
   await wait(400);
   out.detailVisible = !$('detail').hidden;
@@ -668,6 +704,32 @@ const SMOKE_UI_SCRIPT = `(async () => {
   CanvasRenderingContext2D.prototype.clearRect = clear;
   return out;
 })()`;
+
+/** Verify the renderer geometry against the native Windows caption controls. */
+async function smokeWindowsTitleBar(window: BrowserWindow) {
+  const timeout = setTimeout(() => app.exit(1), 15000);
+  try {
+    const readGeometry = () => window.webContents.executeJavaScript(`(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const area = navigator.windowControlsOverlay?.getTitlebarAreaRect();
+      if (!navigator.windowControlsOverlay?.visible || !area || area.height <= 0) return false;
+      const toolbar = document.querySelector('.bar');
+      const contentEnd = Math.max(...[...toolbar.querySelectorAll('button:not([hidden]), select')].map((e) => e.getBoundingClientRect().right));
+      return document.documentElement.hasAttribute('data-window-overlay')
+        && area.right < innerWidth && contentEnd <= area.right;
+    })()`);
+    if (!await readGeometry()) throw new Error('Caption controls overlap the default toolbar');
+    window.setSize(980, 660);
+    if (!await readGeometry()) throw new Error('Caption controls overlap the minimum-width toolbar');
+    clearTimeout(timeout);
+    console.log('Windows title bar geometry verified');
+    app.exit(0);
+  } catch (error) {
+    clearTimeout(timeout);
+    console.error(error);
+    app.exit(1);
+  }
+}
 
 function runSmoke() {
   const report: Record<string, unknown> = { rendererErrors: [] as string[], batches: [] as unknown[] };
@@ -852,7 +914,12 @@ app.whenReady().then(() => {
   updater = new Updater((st) => send('update', st));
   registerIpc();
   createWindow();
-  if (SMOKE_DIR) runSmoke();
+  nativeTheme.on('updated', updateWindowsTitleBar);
+  if (SMOKE_WINDOW) {
+    const smokeWindow = win!;
+    smokeWindow.webContents.once('did-finish-load', () => void smokeWindowsTitleBar(smokeWindow));
+    smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
+  } else if (SMOKE_DIR) runSmoke();
   // update check: packaged builds only, never during the smoke test, and only if the DJ allows it
   else if (app.isPackaged && settingsStore.data.autoUpdateCheck !== false) {
     setTimeout(() => void updater.check(), 8000);

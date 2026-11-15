@@ -1,4 +1,4 @@
-import { KeyResult } from './types';
+import type { KeyResult } from './types';
 
 const SEMITONE: Record<string, number> = {
   C: 0, 'B#': 0,
@@ -22,13 +22,24 @@ const CAMELOT_MINOR = [5, 12, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10]; // C, C#, D, Eb, 
 const NAMES_MAJOR = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 const NAMES_MINOR = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'];
 
+export type KeyNotation = 'camelot' | 'openKey';
+
+const openKeyNumber = (camelotNumber: number) => ((camelotNumber + 4) % 12) + 1;
+
+export function formatKey(key: Pick<KeyResult, 'camelot' | 'openKey'>, notation: KeyNotation = 'camelot'): string {
+  if (notation !== 'openKey') return key.camelot;
+  if (key.openKey) return key.openKey;
+  const code = /^(1[0-2]|[1-9])([AB])$/.exec(key.camelot);
+  return code ? `${openKeyNumber(Number(code[1]))}${code[2] === 'A' ? 'm' : 'd'}` : '';
+}
+
 export function keyFromTonic(tonic: string, scale: 'major' | 'minor', confidence: number): KeyResult | null {
   const semi = SEMITONE[tonic];
   if (semi === undefined) return null;
   const major = scale === 'major';
   const n = major ? CAMELOT_MAJOR[semi] : CAMELOT_MINOR[semi];
   // Open Key: 1d = C major, 1m = A minor ... = Camelot number shifted by 7 (8B -> 1d, 8A -> 1m)
-  const open = ((n + 4) % 12) + 1;
+  const open = openKeyNumber(n);
   return {
     camelot: `${n}${major ? 'B' : 'A'}`,
     musical: major ? NAMES_MAJOR[semi] : NAMES_MINOR[semi],

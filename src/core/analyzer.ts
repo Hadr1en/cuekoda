@@ -10,6 +10,7 @@ import { computeEnergy } from './energy';
 import { computeFingerprint } from './fingerprint';
 import { buildTempoMap, type TempoMarker } from './tempomap';
 import { cueCandidates, selectCues } from './cues';
+import { refineElectroCues } from './electroCue';
 import { suggestLoops } from './loops';
 import { suggestMix } from './mix';
 import { detectVocals } from './vocals';
@@ -382,7 +383,10 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const g = { d0: firstDownbeatSec, barLen };
   const mix = suggestMix(structure, phrases, energy.curve, profile, g, vocals);
   const phraseOrigin = phrases.lengthBars ? phrases.originBar : structure.phraseOrigin;
-  const cues = selectCues(cueCandidates(structure.landmarks, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
+  const edmCues = (profile.id === 'edm' || profile.id === 'edm-fixed') && !grid.variable
+    && tempoLevel !== 'low';
+  const cueLandmarks = edmCues ? refineElectroCues(feats, structure) : structure.landmarks;
+  const cues = selectCues(cueCandidates(cueLandmarks, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
   const loops = suggestLoops(structure, profile, g);
   if (cues.length <= 1) warnings.push('Structure peu marquée — peu de hot cues proposés');
   if (process.env.CUEKODA_DEBUG) {
