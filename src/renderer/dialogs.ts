@@ -25,11 +25,15 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
   let setName = set?.name ?? '';
   const opts: ExportOptions = { ...state.settings.exportOptions };
 
+  let previewRequest = 0;
   const render = async () => {
+    const request = ++previewRequest;
     const adapter = state.adapters.find((a) => a.id === target)!;
     const paths = scope === 'set' && set ? set.paths : scope === 'current' && currentPath ? [currentPath] : doneResults().map((r) => r.path);
     opts.playlistName = scope === 'set' ? setName.trim() || 'Set CueKoda' : undefined;
-    const preview = await api.exportPreview(target, paths, opts);
+    const exportOptions = { ...opts };
+    const preview = await api.exportPreview(adapter.id, paths, exportOptions);
+    if (request !== previewRequest) return;
     const parts: (Node | null)[] = [
       h('h2', { id: 'dlg-export-title' }, set ? 'Exporter le set vers…' : 'Exporter vers…'),
       h('p', { class: 'muted' }, 'Choisis ton logiciel DJ : CueKoda écrit le fichier qu’il sait lire, puis te guide pour l’import.'),
@@ -78,7 +82,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
           )
         : null,
       h('h3', {}, adapter.status === 'available' ? 'Ce qui sera transféré' : 'Pourquoi ce n’est pas disponible'),
-      h('ul', { class: 'summary' }, ...preview.map((l) => h('li', {}, l))),
+      h('ul', { class: 'summary' }, ...preview.lines.map((l) => h('li', { class: l.startsWith('⚠') ? 'note warn' : '' }, l))),
       h('h3', {}, 'Import dans le logiciel'),
       h('ol', { class: 'summary' }, ...adapter.howToImport.map((l) => h('li', {}, l))),
       h('p', { class: 'muted' }, 'Sécurité : CueKoda écrit un nouveau fichier de collection ; un fichier existant est d’abord sauvegardé à côté (.backup-…). Vos fichiers audio et votre bibliothèque DJ ne sont jamais modifiés directement.'),
@@ -87,15 +91,16 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
         h('button', {
           type: 'button',
           class: 'btn primary',
-          disabled: adapter.status !== 'available' || !paths.length,
+          disabled: adapter.status !== 'available' || !preview.readyPaths.length,
           onclick: async () => {
-            const res = await api.exportCollection(target, paths, opts);
+            if (request !== previewRequest) return;
+            const res = await api.exportCollection(adapter.id, preview.readyPaths, exportOptions);
             if (res.ok) {
               dlg.close();
               toast(`Exporté : ${res.file}${res.backup ? ` (ancien fichier sauvegardé : ${res.backup})` : ''}`, 8000);
             } else if (!res.canceled) toast(`Erreur d’export : ${res.error}`, 8000);
           },
-        }, `Exporter ${paths.length} morceau(x)…`),
+        }, `Exporter ${preview.readyPaths.length} morceau(x)…`),
       ),
     ];
     dlg.replaceChildren(...parts.filter((n): n is Node => n !== null));

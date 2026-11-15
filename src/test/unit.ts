@@ -12,6 +12,7 @@ import { emptyStats, recordDeleted, recordSuggested, suppressedKinds } from '../
 import { mergeWithPrevious } from '../core/merge';
 import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/cues';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
+import { beatIndex, gridBeats, nearestBeat } from '../core/beatgrid';
 import { allKeys, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation } from '../core/export/traktor';
@@ -427,6 +428,15 @@ test('export adapters are honest about their status', () => {
   const summary = exportSummary(rb, [track({ path: 'a', cues: [cue({})] })], { memoryCues: true, loops: 'accepted' });
   assert.ok(summary.some((l) => l.includes('1 hot cue')));
   assert.ok(summary.some((l) => l.startsWith('Non transférés')));
+  const traktor = ADAPTERS.find((a) => a.id === 'traktor')!;
+  const variable = track({
+    path: 'a', cues: [cue({ slot: 0 }), cue({ slot: 7 }), cue({ slot: -1 })],
+    tempoMap: [{ startSec: 0, bpm: 128, beatInBar: 1 }, { startSec: 15, bpm: 132, beatInBar: 1 }],
+  });
+  const traktorSummary = exportSummary(traktor, [variable], { memoryCues: false, loops: 'none' });
+  assert.ok(traktorSummary.some((line) => line.startsWith('1 hot cue')));
+  assert.ok(traktorSummary.some((line) => line.startsWith('2 memory cue')));
+  assert.ok(traktorSummary.some((line) => line.startsWith('⚠ Tempo variable')));
 });
 
 // ---------------------------------------------------------------- batch queue (fake workers)
@@ -779,6 +789,12 @@ test('evaluateTrack: beat F-measures follow tempo markers and their beat-in-bar'
     beats: [0, 0.5, 1, 1.5, 2, 2.5, 3.25, 4, 4.75, 5.5],
     downbeats: [0, 2, 4.75],
   };
+  const timeline = gridBeats(det);
+  assert.deepEqual(timeline.map((beat) => beat.timeSec), ref.beats);
+  assert.deepEqual(timeline.filter((beat) => beat.downbeat).map((beat) => beat.timeSec), ref.downbeats);
+  assert.equal(timeline[beatIndex(timeline, 2.52)].timeSec, 3.25);
+  assert.equal(timeline[nearestBeat(timeline, 2.52)].timeSec, 2.5);
+  assert.equal(timeline[nearestBeat(timeline, 3.15)].timeSec, 3.25);
   const result = evaluateTrack(det, ref);
   assert.deepEqual(result.beats, { fMeasure: 1, downbeatF: 1 });
   assert.equal(result.grid, undefined);

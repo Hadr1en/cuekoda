@@ -172,6 +172,9 @@ job**.
 - **References**: "Validate as reference" saves a track you checked by ear. References measure the
   engine's accuracy (`npm run eval`).
 
+Use the **metronome** to check the grid by ear, with an accented downbeat.
+**Mark checked and go to next track** checks off the current track and opens the next track in the list.
+
 ### 8. Export to your DJ software
 <img src="docs/screenshots/en/export.png" alt="Export window: pick the DJ software, what is transferred, import steps" width="100%">
 

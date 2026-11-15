@@ -6,8 +6,9 @@ import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
 import { resolveLang, setLang, tr } from '../shared/i18n';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
-import type { TrackRecord } from '../shared/api';
-import { allProfiles, api, applyTheme, doneResults, history, state } from './state';
+import type { TrackEdits, TrackRecord } from '../shared/api';
+import { allProfiles, api, applyTheme, changedEdits, doneResults, history, snapshotEdits, state } from './state';
+import { metronome } from './metronome';
 import { WaveView, drawOverview } from './waveform';
 import { openDuplicates, openExport, openHelp, openSetOrder, openSettings, renderUpdateBadge } from './dialogs';
 import {
@@ -33,18 +34,26 @@ const current = (): AnalysisResult | null => {
 };
 
 // ===================================================================== persistence of edits
-const saveTimers = new Map<string, number>();
-function persist(r: AnalysisResult) {
-  window.clearTimeout(saveTimers.get(r.path));
-  saveTimers.set(r.path, window.setTimeout(() => void api.saveTrack(r), 300));
+function persist(r: AnalysisResult, before: TrackEdits) {
+  const edits = changedEdits(before, r);
+  if (Object.keys(edits).length && !api.saveTrackEdits(r.path, r.fileHash, edits)) {
+    Object.assign(r, before);
+    toast('Le morceau a changé pendant la correction. Réessayez.');
+    return false;
+  }
+  return Object.keys(edits).length > 0;
 }
 
-/** Every manual edit goes through here: undo snapshot → change → save → redraw. */
-function edit(r: AnalysisResult, change: () => void) {
-  history.push(r);
-  change();
-  persist(r);
+function finishEdit(r: AnalysisResult, before: TrackEdits) {
+  if (persist(r, before)) history.push(r, before);
   refreshTrack(r.path);
+}
+
+/** Every manual edit goes through here: snapshot → change → save → redraw. */
+function edit(r: AnalysisResult, change: () => void) {
+  const before = snapshotEdits(r);
+  change();
+  finishEdit(r, before);
 }
 
 function refreshTrack(path: string) {
@@ -267,13 +276,17 @@ const timeDisplay = $('time');
 const wave = new WaveView(waveCanvas, {
   seek: (t) => jump(t),
   cueSelected: () => renderDetail(),
+  dragCancelled: () => {
+    dragStart?.restorePosition();
+    dragStart = null;
+  },
   viewChanged: () => { drawOverview(overview, current(), wave); updatePlayheads(); },
   cueMoved: (cue, t, done) => {
     const r = current();
     if (!r) return;
     if (!dragStart) {
-      dragStart = { id: cue.id, time: cue.timeSec, wasAuto: cue.origin === 'auto' };
-      history.push(r);
+      const time = cue.timeSec;
+      dragStart = { time, wasAuto: cue.origin === 'auto', before: snapshotEdits(r), restorePosition: () => { cue.timeSec = time; } };
     }
     cue.timeSec = t;
     if (done) {
@@ -282,29 +295,29 @@ const wave = new WaveView(waveCanvas, {
       cue.origin = 'user';
       syncSectionWithCue(r, cue, oldBar);
       if (dragStart.wasAuto) api.learningEvent({ type: 'moved', kind: cue.kind, beats: (t - dragStart.time) / (60 / r.bpm) });
+      const { before } = dragStart;
       dragStart = null;
-      persist(r);
-      refreshTrack(r.path);
+      finishEdit(r, before);
     }
   },
   loopMoved: (loop, t, done) => {
     const r = current();
     if (!r) return;
     if (!dragStart) {
-      dragStart = { id: loop.id, time: loop.startSec, wasAuto: false };
-      history.push(r);
+      const time = loop.startSec;
+      dragStart = { time, wasAuto: false, before: snapshotEdits(r), restorePosition: () => { loop.startSec = time; } };
     }
     loop.startSec = t;
     if (done) {
       loop.bar = Math.round((t - r.grid.firstDownbeatSec) / (4 * (60 / r.bpm)));
       loop.origin = 'user';
+      const { before } = dragStart;
       dragStart = null;
-      persist(r);
-      refreshTrack(r.path);
+      finishEdit(r, before);
     }
   },
 });
-let dragStart: { id: string; time: number; wasAuto: boolean } | null = null;
+let dragStart: { time: number; wasAuto: boolean; before: TrackEdits; restorePosition: () => void } | null = null;
 
 /** Track whose audio / peaks are loaded in the player */
 let audioPath = '';
@@ -446,11 +459,7 @@ function renderDetail() {
 
 // ---------------------------------------------------------------- tab: cues
 const beatOf = (r: AnalysisResult) => 60 / r.bpm;
-const snapBeat = (r: AnalysisResult, t: number) => {
-  const b = beatOf(r);
-  const d0 = r.grid.firstDownbeatSec;
-  return Math.max(0, d0 + Math.round((t - d0) / b) * b);
-};
+const snapBeat = (t: number) => wave.snap(t);
 const barOf = (r: AnalysisResult, t: number) => Math.round((t - r.grid.firstDownbeatSec) / (4 * beatOf(r)));
 const newId = (p: string) => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -460,17 +469,18 @@ function profileColors() {
 
 /** A cue already sits at that position: say which one instead of wasting a second pad on it. */
 function refuseSamePosition(r: AnalysisResult, t: number, except?: HotCue): boolean {
-  const other = cueAt(r.cues, snapBeat(r, t), except);
+  const other = cueAt(r.cues, snapBeat(t), except);
   if (!other) return false;
   toast(`Déjà un cue à ${fmtTime(other.timeSec)} : ${other.name}${other.slot >= 0 ? ` (pad ${LETTERS[other.slot]})` : ' (memory cue)'}`);
   return true;
 }
 
 function setCueAt(r: AnalysisResult, slot: number, t: number, kind?: CueKind) {
-  if (refuseSamePosition(r, t, r.cues.find((c) => c.slot === slot))) return;
+  const existing = r.cues.find((c) => c.slot === slot);
+  if (existing?.locked) return toast('Ce cue est verrouillé');
+  if (refuseSamePosition(r, t, existing)) return;
   edit(r, () => {
-    const existing = r.cues.find((c) => c.slot === slot);
-    const time = snapBeat(r, t);
+    const time = snapBeat(t);
     if (existing) {
       const oldBar = existing.bar;
       existing.timeSec = time;
@@ -497,7 +507,7 @@ function addCue(r: AnalysisResult, t: number, kind: CueKind, memory = false) {
   const free = [0, 1, 2, 3, 4, 5, 6, 7].find((s) => !r.cues.some((c) => c.slot === s));
   const slot = memory || free === undefined ? -1 : free;
   edit(r, () => {
-    const time = snapBeat(r, t);
+    const time = snapBeat(t);
     r.cues.push({
       id: newId('c'), slot, role: 'custom', kind, name: CUE_KIND_LABEL[kind], timeSec: time, bar: barOf(r, time),
       color: profileColors()[kind] ?? DEFAULT_COLORS[kind], confidence: 'high', reason: 'Placé manuellement', origin: 'user',
@@ -505,13 +515,14 @@ function addCue(r: AnalysisResult, t: number, kind: CueKind, memory = false) {
     r.cues.sort((a, b) => a.slot - b.slot || a.timeSec - b.timeSec);
   });
   const where = slot < 0 ? (memory ? 'memory cue' : 'memory cue (les 8 pads sont occupés)') : `pad ${LETTERS[slot]}`;
-  toast(`${CUE_KIND_LABEL[kind]} ajouté à ${fmtTime(snapBeat(r, t))} — ${where}`);
+  toast(`${CUE_KIND_LABEL[kind]} ajouté à ${fmtTime(snapBeat(t))} — ${where}`);
 }
 
 /** Moves a memory cue onto a free pad (or swaps it with the pad's cue, which becomes a memory cue). */
 function promoteCue(r: AnalysisResult, cue: HotCue, slot: number) {
+  const occupant = r.cues.find((c) => c.slot === slot);
+  if (cue.locked || occupant?.locked) return toast('Ce cue est verrouillé');
   edit(r, () => {
-    const occupant = r.cues.find((c) => c.slot === slot);
     if (occupant) occupant.slot = -1;
     cue.slot = slot;
     cue.origin = 'user';
@@ -533,7 +544,7 @@ function moveCue(r: AnalysisResult, cue: HotCue, beats: number) {
   edit(r, () => {
     if (cue.origin === 'auto') api.learningEvent({ type: 'moved', kind: cue.kind, beats });
     const oldBar = cue.bar;
-    cue.timeSec = Math.max(0, Math.min(r.durationSec - 0.05, cue.timeSec + beats * beatOf(r)));
+    cue.timeSec = Math.max(0, Math.min(r.durationSec - 0.05, wave.stepBeats(cue.timeSec, beats)));
     cue.bar = barOf(r, cue.timeSec);
     cue.origin = 'user';
     syncSectionWithCue(r, cue, oldBar);
@@ -605,18 +616,18 @@ function renderCues(r: AnalysisResult) {
         h('table', { class: 'caps' },
           h('thead', {}, h('tr', {}, ...['Nom', 'Type', 'Position', '', 'Pad'].map((t) => h('th', { scope: 'col' }, t)))),
           h('tbody', {}, ...memo.map((cue) => {
-            const padSel = h('select', { 'aria-label': `Placer « ${cue.name} » sur un pad` },
+            const padSel = h('select', { 'aria-label': `Placer « ${cue.name} » sur un pad`, disabled: cue.locked },
               h('option', { value: '' }, '→ pad…'),
               ...[0, 1, 2, 3, 4, 5, 6, 7].map((sl) => {
                 const occ = r.cues.find((c) => c.slot === sl);
-                return h('option', { value: String(sl) }, `${LETTERS[sl]}${occ ? ` (remplace ${occ.name})` : ' (libre)'}`);
+                return h('option', { value: String(sl), disabled: occ?.locked }, `${LETTERS[sl]}${occ ? ` (remplace ${occ.name})` : ' (libre)'}`);
               }));
             padSel.addEventListener('change', () => { if (padSel.value !== '') promoteCue(r, cue, Number(padSel.value)); });
             const btn = (label: string, title: string, fn: () => void) => h('button', { type: 'button', class: 'btn small ghost', title, 'aria-label': title, onclick: fn }, label);
             return h('tr', { class: wave.selectedCueId === cue.id ? 'selected' : '' },
-              h('td', {}, h('input', { type: 'text', value: cue.name, 'aria-label': 'Nom de la memory cue',
+              h('td', {}, h('input', { type: 'text', value: cue.name, 'aria-label': 'Nom de la memory cue', disabled: cue.locked,
                 onchange: (e: Event) => edit(r, () => { cue.name = (e.target as HTMLInputElement).value || cue.name; cue.origin = 'user'; }) })),
-              h('td', {}, h('select', { 'aria-label': 'Type de la memory cue', onchange: (e: Event) => edit(r, () => {
+              h('td', {}, h('select', { 'aria-label': 'Type de la memory cue', disabled: cue.locked, onchange: (e: Event) => edit(r, () => {
                 const k = (e.target as HTMLSelectElement).value as CueKind;
                 if (cue.name === CUE_KIND_LABEL[cue.kind]) cue.name = CUE_KIND_LABEL[k];
                 cue.kind = k; cue.color = profileColors()[k] ?? DEFAULT_COLORS[k]; cue.origin = 'user';
@@ -1154,6 +1165,16 @@ function togglePlay() {
   } else audio.pause();
 }
 $('btn-play').addEventListener('click', togglePlay);
+const toggleMetronome = metronome(audio, () => wave.beats, () => !!tx);
+$('btn-metronome').addEventListener('click', async () => {
+  try {
+    const enabled = await toggleMetronome();
+    $('btn-metronome').setAttribute('aria-pressed', String(enabled));
+  } catch {
+    $('btn-metronome').setAttribute('aria-pressed', 'false');
+    toast('Métronome indisponible');
+  }
+});
 let raf = 0;
 function loop() {
   if (loopPlay && current()) {
@@ -1191,8 +1212,16 @@ new MutationObserver(redrawTheme).observe(document.documentElement, { attributes
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawTheme);
 
 // undo / redo
-function undo() { const p = history.undo(); if (p) { void api.saveTrack(state.tracks.get(p)!.result!); refreshTrack(p); announce('Modification annulée'); } }
-function redo() { const p = history.redo(); if (p) { void api.saveTrack(state.tracks.get(p)!.result!); refreshTrack(p); announce('Modification rétablie'); } }
+function restoreEdit(direction: 'undo' | 'redo') {
+  const change = history[direction]();
+  if (!change) return updateUndo();
+  const { r, previous } = change;
+  if (persist(r, previous)) announce(direction === 'undo' ? 'Modification annulée' : 'Modification rétablie');
+  refreshTrack(r.path);
+}
+
+const undo = () => restoreEdit('undo');
+const redo = () => restoreEdit('redo');
 $('btn-undo').addEventListener('click', undo);
 $('btn-redo').addEventListener('click', redo);
 
@@ -1225,8 +1254,8 @@ document.addEventListener('keydown', (e) => {
     }
   } else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && r) {
     e.preventDefault();
-    const step = (e.shiftKey ? 1 : 4) * beatOf(r) * (e.key === 'ArrowLeft' ? -1 : 1);
-    jump(audio.currentTime + step);
+    const step = (e.shiftKey ? 1 : 4) * (e.key === 'ArrowLeft' ? -1 : 1);
+    jump(wave.stepBeats(audio.currentTime, step));
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
     const index = state.selected ? visibleIndex.get(state.selected) : undefined;
@@ -1271,7 +1300,10 @@ function adjacentTrack(direction: -1 | 1) {
 
 function updateTransport() {
   $<HTMLButtonElement>('btn-prev-track').disabled = !adjacentTrack(-1);
-  $<HTMLButtonElement>('btn-next-track').disabled = !adjacentTrack(1);
+  const next = adjacentTrack(1);
+  $<HTMLButtonElement>('btn-next-track').disabled = !next;
+  const selected = state.selected ? state.tracks.get(state.selected) : undefined;
+  $<HTMLButtonElement>('btn-review-next').disabled = !next || selected?.status !== 'done' || !!selected.missing;
 }
 
 for (const [id, direction] of [['btn-prev-track', -1], ['btn-next-track', 1]] as const) {
@@ -1293,6 +1325,14 @@ $('btn-reviewed').addEventListener('click', async () => {
   const rec = state.selected ? state.tracks.get(state.selected) : undefined;
   if (!rec) return;
   await api.setReviewed([rec.path], !rec.reviewedAt);
+});
+$('btn-review-next').addEventListener('click', async () => {
+  const path = state.selected;
+  const next = adjacentTrack(1);
+  const rec = path ? state.tracks.get(path) : undefined;
+  if (!path || !next || rec?.status !== 'done' || rec.missing) return;
+  await api.setReviewed([path], true);
+  if (state.selected === path && state.tracks.has(next)) select(next);
 });
 $('btn-import').addEventListener('click', async () => {
   const s = await api.importCollection();

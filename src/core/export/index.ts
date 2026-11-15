@@ -202,8 +202,10 @@ export const ADAPTERS: ExportAdapter[] = [
 export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], opts: ExportOptions): string[] {
   if (adapter.status !== 'available') return adapter.howToImport;
   const xml = adapter.id === 'rekordbox' || adapter.via === 'rekordbox';
-  const cues = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot >= 0 && c.slot <= 7).length, 0);
-  const memo = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot < 0).length, 0);
+  const lastHotCueSlot = xml ? 7 : 6;
+  const cues = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot >= 0 && c.slot <= lastHotCueSlot).length, 0);
+  const memo = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot < 0 || (!xml && c.slot === 7)).length, 0);
+  const variable = tracks.filter((t) => (t.tempoMap?.length ?? 0) > 1).length;
   const loops = tracks.reduce((s, t) => s + exportedLoops(t, opts.loops).length, 0);
   const keys = tracks.filter((t) => t.key.camelot).length;
   const out = [
@@ -213,6 +215,7 @@ export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], 
   ];
   if (xml && opts.memoryCues) out.push(`${cues} memory cue(s) aux positions des hot cues`);
   if (memo) out.push(`${memo} memory cue(s) sans pad${xml ? '' : ' (cues mémorisés Traktor)'}`);
+  if (variable && !xml) out.push(`⚠ Tempo variable : Traktor ne reçoit qu’un tempo pour ${variable} morceau(x)`);
   if (adapter.via) out.push(`Fichier au format rekordbox XML, à indiquer dans ${adapter.name}`);
   if (opts.commentTags !== false && tracks.length) out.push(`Commentaire de chaque morceau : énergie, clé et voix (ex. « ${commentTag(tracks[0]) || 'E8 · 8B · Vocal'} »)`);
   if (opts.playlistName) out.push(`Playlist « ${opts.playlistName} » : ${tracks.length} morceau(x) dans l’ordre du set`);
