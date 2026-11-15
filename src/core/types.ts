@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.4.1';
+export const ENGINE_VERSION = '0.4.2';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
@@ -149,6 +149,8 @@ export interface TempoInfo {
   localMax: number;
   /** Plausible alternatives (half / double / Essentia's raw estimate) for one-click correction */
   alternatives: number[];
+  /** A half-time grid also supported by acoustic evidence. The DJ can choose which pulse to use. */
+  competingBpm?: number;
   /** Essentia's raw (unfolded) estimate, for transparency */
   rawEstimate: number;
 }

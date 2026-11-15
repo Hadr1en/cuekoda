@@ -88,7 +88,7 @@ function reviewReasons(rec: TrackRecord): string[] {
   const r = rec.result;
   if (!r) return [];
   const out: string[] = [];
-  if (r.tempo?.confidence === 'low') out.push('tempo incertain');
+  if (r.tempo?.confidence === 'low' || r.tempo?.competingBpm) out.push('tempo incertain');
   if (r.grid.downbeatConfidence === 'low') out.push('premier temps incertain');
   if (r.key.level === 'low' || r.key.ambiguous) out.push('tonalité incertaine');
   if (r.key.changes?.length) out.push('changement de tonalité');
@@ -431,6 +431,22 @@ function renderDetail() {
   // corrections
   const bpmInput = $<HTMLInputElement>('bpm-input');
   if (document.activeElement !== bpmInput) bpmInput.value = r.bpm.toFixed(2);
+  const alt = r.tempo?.competingBpm;
+  const tempoActions = $('tempo-actions');
+  tempoActions.replaceChildren(
+    alt !== undefined ? h('button', {
+      type: 'button', class: 'btn small', disabled: isBusy(rec),
+      title: 'L’écoute permet de choisir entre les deux pulsations',
+      onclick: () => override({ bpm: alt }, `BPM fixé à ${alt}`),
+    }, `Utiliser ${fmtBpm(alt)} BPM`) : '',
+    r.overrides?.bpm !== undefined || r.overrides?.firstDownbeatSec !== undefined
+      ? h('button', {
+        type: 'button', class: 'btn small ghost', disabled: isBusy(rec),
+        title: 'Recalculer le BPM et le premier temps sans les corrections de grille',
+        onclick: () => override({ bpm: undefined, firstDownbeatSec: undefined }, 'BPM et grille automatiques'),
+      }, 'BPM et grille automatiques') : '',
+  );
+  tempoActions.hidden = !tempoActions.childElementCount;
   $('bpm-conf').replaceChildren(
     r.tempo ? confBadge(r.tempo.confidence) : '',
     r.overrides?.bpm ? h('span', { class: 'pill' }, 'manuel') : '',

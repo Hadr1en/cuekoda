@@ -73,7 +73,7 @@ export interface CueMiss {
 
 export interface TrackEvaluation {
   fileName: string;
-  bpm?: { reference: number; detected: number; errorPct: number; octaveError: boolean; confidence?: Confidence };
+  bpm?: { reference: number; detected: number; errorPct: number; octaveError: boolean; confidence?: Confidence; competingBpm?: number };
   /** Phase error of the grid, in ms (−beat/2 … +beat/2), and whether the bar start is the same beat */
   grid?: { phaseErrorMs: number; downbeatOk: boolean };
   /** Beat / downbeat tracking against annotated beat times (Harmonix-style): share of beats within ±70 ms */
@@ -151,7 +151,7 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
   if (ref.bpm) {
     const bpmErr = ((det.bpm - ref.bpm) / ref.bpm) * 100;
     const octave = [0.5, 2, 1 / 3, 3, 2 / 3, 1.5].some((k) => Math.abs(det.bpm / ref.bpm! - k) < 0.02);
-    out.bpm = { reference: ref.bpm, detected: det.bpm, errorPct: bpmErr, octaveError: Math.abs(bpmErr) > 2 && octave, confidence: det.tempo?.confidence };
+    out.bpm = { reference: ref.bpm, detected: det.bpm, errorPct: bpmErr, octaveError: Math.abs(bpmErr) > 2 && octave, confidence: det.tempo?.confidence, competingBpm: det.tempo?.competingBpm };
   }
   // Annotated beat times give a more meaningful comparison than extrapolating
   // a constant 4/4 grid from the reference's median tempo.
