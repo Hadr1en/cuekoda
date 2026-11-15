@@ -368,7 +368,7 @@ test('export: comment tags (energy, key, vocals) and the set as an ordered, name
   const noTags = buildRekordboxXml(set, { ...opts, commentTags: false });
   assert.match(noTags, /Comments=""/);
   const nml = buildTraktorNml(set, opts, 'Macintosh HD');
-  assert.match(nml, /COMMENT="E8 · 8B · Instru"/);
+  assert.match(nml, /COMMENT="E8 · 1d · Instru"/);
   assert.match(nml, /<NODE TYPE="PLAYLIST" NAME="Set &amp; Co">/);
   const order = [...nml.matchAll(/PRIMARYKEY TYPE="TRACK" KEY="[^"]*\/:(\w+)\.mp3"/g)].map((m) => m[1]);
   assert.deepEqual(order, ['ins', 'voc', 'uns']);
