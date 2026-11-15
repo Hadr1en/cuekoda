@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Reference } from './evaluate';
 import { keyFromTonic } from './key';
-import { AUDIO_EXTENSIONS } from './types';
+import { AUDIO_EXTENSIONS, type SectionType } from './types';
 
 /**
  * Public annotated datasets as CueKoda references (evaluation only — audio is never shipped):
@@ -12,22 +12,24 @@ import { AUDIO_EXTENSIONS } from './types';
  *                       segments/<id>.txt ("time label"); the audio must be obtained separately
  *  - ballroom         : CPJKU BallroomAnnotations — <id>.beats ("time beat-in-bar")
  *  - brid             : BRID ensemble recordings — beats/<id>.beats and tempo/<id>.bpm
+ *  - raveform         : Raveform EDM annotations — structures/segments.json and structures/beats/<key>.beat.csv
  * Each annotation is paired with the audio file of the same name stem in the audio folder.
  */
-export const DATASETS = ['giantsteps-tempo', 'giantsteps-key', 'harmonix', 'ballroom', 'brid'] as const;
+export const DATASETS = ['giantsteps-tempo', 'giantsteps-key', 'harmonix', 'ballroom', 'brid', 'raveform'] as const;
 export type DatasetId = typeof DATASETS[number];
 
 const stem = (f: string) => path.basename(f).replace(/\.(bpm|key|txt|beats|LOFI)$/i, '').replace(/\.LOFI$/i, '');
 
-/** Audio files of a folder indexed by stem (case-insensitive, ".LOFI" suffix ignored). */
-function audioIndex(dir: string): Map<string, string> {
+/** Audio files indexed by stem, preserving case for case-sensitive video IDs. */
+function audioIndex(dir: string, caseSensitive: boolean): Map<string, string> {
   const out = new Map<string, string>();
   const walk = (d: string) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) walk(p);
       else if (AUDIO_EXTENSIONS.includes(path.extname(e.name).toLowerCase())) {
-        out.set(stem(e.name.slice(0, -path.extname(e.name).length)).toLowerCase(), p);
+        const name = e.name.slice(0, -path.extname(e.name).length);
+        out.set(caseSensitive ? name : stem(name).toLowerCase(), p);
       }
     }
   };
@@ -55,7 +57,8 @@ const median = (a: number[]) => {
 
 /** Builds references for a dataset; annotations without audio are counted, not silently dropped. */
 export function loadDataset(id: DatasetId, annotationsDir: string, audioDir: string): { refs: Reference[]; withoutAudio: number } {
-  const audio = audioIndex(audioDir);
+  const audio = audioIndex(audioDir, id === 'raveform');
+  if (id === 'raveform') return loadRaveform(annotationsDir, audio);
   const refs: Reference[] = [];
   let withoutAudio = 0;
   const files = (dir: string, ext: string) => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.toLowerCase().endsWith(ext)) : []);
@@ -130,6 +133,52 @@ export function loadDataset(id: DatasetId, annotationsDir: string, audioDir: str
       }
       refs.push(ref);
     }
+  }
+  return { refs, withoutAudio };
+}
+
+
+interface RaveformTrack {
+  id: string;
+  key: string;
+  title: string;
+  average_bpm: number;
+  sections: { name: string; start: number }[];
+}
+
+const raveformSectionTypes: Readonly<Record<string, SectionType>> = {
+  intro: 'intro', altintro: 'intro', buildup: 'build', breakdown: 'breakdown',
+  drop: 'drop', outro: 'outro', altoutro: 'outro',
+};
+
+function loadRaveform(annotationsDir: string, audio: Map<string, string>): { refs: Reference[]; withoutAudio: number } {
+  const index = path.join(annotationsDir, 'segments.json');
+  const dir = fs.existsSync(index) ? annotationsDir : path.join(annotationsDir, 'structures');
+  const tracks: RaveformTrack[] = JSON.parse(fs.readFileSync(path.join(dir, 'segments.json'), 'utf8'));
+  const refs: Reference[] = [];
+  let withoutAudio = 0;
+  for (const track of tracks) {
+    const file = audio.get(track.id);
+    if (!file) { withoutAudio++; continue; }
+    const beatFile = path.join(dir, 'beats', `${track.key}.beat.csv`);
+    const [, ...lines] = fs.readFileSync(beatFile, 'utf8').trim().split(/\r?\n/);
+    const rows = lines.map((line) => line.split(','))
+      .filter(([time, beat]) => time.trim() !== '' && Number.isFinite(Number(time)) && Number(time) >= 0
+        && Number.isInteger(Number(beat)) && Number(beat) > 0);
+    if (rows.length < 8) continue;
+    const beats = rows.map(([time]) => Number(time));
+    const downbeats = rows.filter(([, beat]) => Number(beat) === 1).map(([time]) => Number(time));
+    refs.push({
+      ...baseRef(file, 'raveform'),
+      title: track.title,
+      bpm: track.average_bpm,
+      firstDownbeatSec: downbeats[0],
+      beats,
+      downbeats,
+      beatWindow: [beats[0], beats[beats.length - 1]],
+      sections: track.sections.filter(({ name }) => name !== 'end')
+        .map(({ name, start }) => ({ type: raveformSectionTypes[name] ?? 'section', label: name, startSec: start })),
+    });
   }
   return { refs, withoutAudio };
 }

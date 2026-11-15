@@ -1043,7 +1043,7 @@ function renderInfo(r: AnalysisResult) {
           row('Tempo', `${r.bpm.toFixed(2)} BPM${r.tempo ? ` (Essentia brut ${r.tempo.rawEstimate.toFixed(1)})` : ''}`),
           row('Stabilité', r.tempo ? (r.tempo.variable ? `variable ${r.tempo.localMin.toFixed(1)}–${r.tempo.localMax.toFixed(1)}` : `stable (${r.tempo.localMin.toFixed(2)}–${r.tempo.localMax.toFixed(2)})`) : undefined),
           row('Alternatives tempo', r.tempo?.alternatives.join(' · ')),
-          row('Ajustement de la grille', `${Math.round(r.grid.confidence * 100)} % des temps alignés à ±12 ms`),
+          row('Ajustement de la grille', `${Math.round(r.grid.confidence * 100)} % des attaques retenues alignées à ±12 ms`),
           row('Premier temps', `${r.grid.firstDownbeatSec.toFixed(3)} s`),
           row('Tonalité', `${r.key.musical} · ${r.key.camelot} · ${r.key.openKey}${r.key.ambiguous ? ' (ambiguë)' : ''}`),
           row('Alternatives tonalité', (r.key.alternatives ?? []).map((a) => `${a.camelot} (${Math.round(a.weight * 100)} %)`).join(' · ')),

@@ -320,11 +320,12 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const folded = rawBpm ? foldBpm(rawBpm, minBpm, maxBpm) : bpm;
   const alternativeBpm = halfTime !== undefined && Math.abs(halfTime / bpm - 0.5) < 0.015
     ? Math.round(halfTime * 100) / 100 : undefined;
+  const highGridConfidence = profile.id === 'edm' || profile.id === 'edm-fixed' ? 0.8 : 0.7;
   const tempoLevel: Confidence = ov.bpm
     ? 'high'
     : alternativeBpm !== undefined || grid.variable || grid.confidence < 0.4
       ? 'low'
-      : grid.confidence >= 0.7 && Math.abs(folded - bpm) < 1.5
+      : grid.confidence >= highGridConfidence && Math.abs(folded - bpm) < 1.5
         ? 'high'
         : 'medium';
   const alternatives = [alternativeBpm ?? bpm / 2, bpm * 2, ...(rawBpm && Math.abs(folded - bpm) >= 1.5 ? [folded] : [])]

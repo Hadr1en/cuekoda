@@ -2,7 +2,7 @@
  * Engine evaluation against reference annotations (spec §21).
  *   npm run eval                                   → references saved by the app (user data folder)
  *   npm run eval -- --refs <file|dir> [--audio <dir>] → e.g. tests/ground-truth (files found by name in --audio)
- *   npm run eval -- --dataset giantsteps-tempo|giantsteps-key|harmonix|ballroom|brid --annotations <dir> --audio <dir>
+ *   npm run eval -- --dataset giantsteps-tempo|giantsteps-key|harmonix|ballroom|brid|raveform --annotations <dir> --audio <dir>
  *   options: --limit <n>, --write docs/EVALUATION.md, --json <file>
  * Each file is re-analysed from scratch (no corrections, no cache) and compared. Cues count as found only
  * on the right beat (±40 ms) and with the same kind; ±1 beat is reported separately.

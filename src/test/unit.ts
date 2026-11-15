@@ -13,6 +13,8 @@ import { mergeWithPrevious } from '../core/merge';
 import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/cues';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { beatIndex, gridBeats, nearestBeat } from '../core/beatgrid';
+import { analyseBands } from '../core/dsp';
+import { estimateGrid } from '../core/rhythm';
 import { allKeys, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation } from '../core/export/traktor';
@@ -28,6 +30,43 @@ import { MAC_SWAP_SCRIPT, evaluateRelease, parseBuild, type GithubRelease } from
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
+
+test('beatgrid keeps a fractional BPM that would drift when rounded', () => {
+  const sr = 22050;
+  const bpm = 128.03;
+  const phase = 0.241;
+  const period = 60 / bpm;
+  const beats = 256;
+  const audio = new Float32Array(Math.ceil(sr * (phase + beats * period + 0.3)));
+  for (let i = 0; i < beats; i++) {
+    // Give the sections different dynamics and give individual hits a little timing variation.
+    const level = [0.2, 0.75, 0.4, 1][Math.floor(i / 64)];
+    const jitter = ((73 * i) % 53 - 26) / 2600;
+    const start = Math.round((phase + i * period + jitter) * sr);
+    for (let j = 0; j < 768; j++) audio[start + j] = level * Math.cos(j * 0.023) * Math.exp(-j / 190);
+  }
+  const bands = analyseBands(audio, sr);
+  const grid = estimateGrid(audio, sr, bands, 128);
+  assert.ok(Math.abs(60 / grid.bpm - period) * 128 < 0.003, 'tempo drift after 32 bars');
+  assert.ok(Math.abs(grid.firstBeatSec + 255 * 60 / grid.bpm - (phase + 255 * period)) < 0.004);
+});
+
+test('beatgrid confidence measures alignment against the applied phase', () => {
+  const sr = 22050;
+  const phase = 0.25;
+  const audio = new Float32Array(33 * sr);
+  for (let i = 0; i < 64; i++) {
+    const start = Math.round((phase + i / 2) * sr);
+    for (let j = 0; j < 192; j++) audio[start + j] = Math.cos(j * 0.08) * Math.exp(-j / 40);
+  }
+  const bands = analyseBands(audio, sr);
+  const aligned = estimateGrid(audio, sr, bands, 120, { fixedBpm: true, fixedPhaseSec: phase });
+  assert.equal(aligned.confidence, 1);
+  const early = estimateGrid(audio, sr, bands, 120, { fixedBpm: true, fixedPhaseSec: phase - 0.016 });
+  assert.ok(Math.abs(early.firstBeatSec - (phase - 0.016)) < 1e-9);
+  assert.equal(early.bpm, 120);
+  assert.equal(early.confidence, 0);
+});
 
 function track(p: Partial<AnalysisResult> & { path: string }): AnalysisResult {
   return {
@@ -774,6 +813,41 @@ test('datasets: key labels and GiantSteps / Harmonix loaders', () => {
   assert.deepEqual(hx.downbeats, [0.5, 2.5, 4.5, 6.5]);
   assert.equal(hx.sections!.length, 2);
 });
+
+test('Raveform uses case-sensitive video IDs and imports musical landmarks', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-raveform-'));
+  const ann = path.join(dir, 'structures');
+  const audio = path.join(dir, 'audio');
+  fs.mkdirSync(path.join(ann, 'beats'), { recursive: true });
+  fs.mkdirSync(audio);
+  try {
+    fs.writeFileSync(path.join(audio, 'Video_01.flac'), '');
+    fs.writeFileSync(path.join(ann, 'segments.json'), JSON.stringify([
+      {
+        id: 'Video_01', key: '0001.Video_01', title: 'Original edit', average_bpm: 120,
+        sections: [
+          { name: 'intro', start: 0.2 },
+          { name: 'buildup', start: 2.2 },
+          { name: 'drop', start: 4.2 },
+          { name: 'end', start: 8.2 },
+        ],
+      },
+      { id: 'video_01', key: '0002.video_01' },
+    ]));
+    const rows = Array.from({ length: 16 }, (_, i) => `${0.2 + i / 2},${i % 4 + 1},intro`);
+    fs.writeFileSync(path.join(ann, 'beats', '0001.Video_01.beat.csv'), ['time,downbeat,section', ...rows].join('\n'));
+    const { refs, withoutAudio } = loadDataset('raveform', dir, audio);
+    assert.equal(withoutAudio, 1);
+    assert.equal(refs[0].bpm, 120);
+    assert.deepEqual(refs[0].beatWindow, [0.2, 7.7]);
+    assert.deepEqual(refs[0].downbeats, [0.2, 2.2, 4.2, 6.2]);
+    assert.deepEqual(refs[0].sections?.map(({ type }) => type), ['intro', 'build', 'drop']);
+    assert.equal(refs[0].cues, undefined);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 
 test('external beat annotations use their annotated window and keep the reference meter', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-external-beats-'));
