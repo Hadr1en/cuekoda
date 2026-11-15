@@ -61,18 +61,22 @@ interface RankedBar {
 
 const cueReason = 'Repère électro proposé après comparaison des changements sur plusieurs mesures';
 
-function rankAlternatives(scores: number[], origin: number, existing: Landmark[]): RankedBar[] {
+function rankAlternatives(
+  scores: number[], origin: number, existing: Landmark[], occupied: Set<number>
+): RankedBar[] {
   const ranked: RankedBar[] = [];
   for (let bar = origin + 3; bar < scores.length - 3; bar++) {
-    if (existing.every((cue) => Math.abs(cue.bar - bar) >= 4)) ranked.push({ bar, score: scores[bar] });
+    if (!occupied.has(bar) && existing.every((cue) => Math.abs(cue.bar - bar) >= 4)) {
+      ranked.push({ bar, score: scores[bar] });
+    }
   }
   return ranked.sort((a, b) => b.score - a.score || a.bar - b.bar);
 }
 
 function recheckKind(
-  existing: Landmark[], scores: number[], origin: number, floor: number
+  existing: Landmark[], scores: number[], origin: number, floor: number, occupied: Set<number>
 ): { cues: Landmark[]; ranked: RankedBar[] } {
-  const ranked = rankAlternatives(scores, origin, existing);
+  const ranked = rankAlternatives(scores, origin, existing, occupied);
   const cues = [...existing];
   for (const [index, cue] of cues.entries()) {
     const alternative = ranked.find(({ bar }) => cues.every((old) => Math.abs(old.bar - bar) >= 4));
@@ -92,12 +96,16 @@ export function refineElectroCues(f: BarFeatures, s: StructureAnalysis): Landmar
   const unchanged = s.landmarks.filter(({ role }) => role !== 'drop1' && role !== 'drop2' && role !== 'break1');
 
   const dropScores = features.map((row) => landmarkScore(weights.drop, row));
-  const drops = recheckKind(existingDrops, dropScores, s.origin, 0.7).cues
+  const breakBars = new Set(existingBreak.map((cue) => cue.bar));
+  const drops = recheckKind(existingDrops, dropScores, s.origin, 0.7, breakBars).cues
     .sort((a, b) => a.bar - b.bar)
     .map((cue, index): Landmark => ({ ...cue, role: existingDrops[index].role }));
 
   const breakScores = features.map((row) => landmarkScore(weights.breakdown, row));
-  const breaks = recheckKind(existingBreak, breakScores, s.origin, 0.25);
+  // A model suggestion must leave the other landmark's dedicated pad available.
+  const dropBars = new Set(drops.map((cue) => cue.bar));
+  // A weak score increase is not enough to displace an existing break.
+  const breaks = recheckKind(existingBreak, breakScores, s.origin, 0.6, dropBars);
   const missingBreak = breaks.ranked[0];
   if (breaks.cues.length === 0 && missingBreak && missingBreak.score >= 0.8) {
     breaks.cues.push({ role: 'break1', bar: missingBreak.bar, confidence: 'medium', reason: cueReason });

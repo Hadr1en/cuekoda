@@ -34,7 +34,7 @@ def train(features, targets):
                     int(node["right"]),
                 ])
         trees.append(nodes)
-    return {"intercept": float(classifier._baseline_prediction[0, 0]), "trees": trees}
+    return {"intercept": round(float(classifier._baseline_prediction[0, 0]), 9), "trees": trees}
 
 
 def main():
