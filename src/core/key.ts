@@ -107,7 +107,9 @@ export function electronicKeyFromVotes(segments: readonly KeyVote[], gate: KeyVo
   const runnerUp = ranked[1]?.weight ?? 0;
   const mean = segments.reduce((sum, vote) => sum + strength(vote), 0) / segmentCount;
   const ambiguous = share < 0.55 || runnerUp / first.weight > 0.70;
-  const high = !ambiguous && first.families.size === 3 && share >= 0.8 && mean >= 0.85;
+  // Two profiles hear the same central excerpt. Also check that the local votes agree across the track.
+  const high = !ambiguous && first.families.size === 3 && share >= 0.8 && mean >= 0.85
+    && segments.every((vote) => keyFromTonic(vote.tonic, vote.scale, 0)?.camelot === first.key.camelot);
   return {
     ...first.key,
     confidence: share * Math.min(1, mean / 0.6),

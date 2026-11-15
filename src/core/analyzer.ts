@@ -16,7 +16,7 @@ import { suggestMix } from './mix';
 import { detectVocals } from './vocals';
 import { predictVoice, vocalModelError } from './vocalModel';
 import { findProfile, sanitizeProfile } from './profiles';
-import { hashFile } from './hash';
+import { assertAudioRevision, hashAudioRevision, type AudioRevision } from './hash';
 import { bandPeaks } from './peaks';
 import {
   AnalysisResult,
@@ -136,11 +136,12 @@ function detectKey(x: Float32Array, durSec: number): KeyResult {
 }
 
 /** Key of one excerpt (EDM profile) with its strength. */
-function keyOf(seg: Float32Array, profile = 'edma'): KeyVote {
+function keyOf(seg: Float32Array, profile = 'edma', sampleRate = SR_FULL): KeyVote {
+  const frameSize = sampleRate === SR_DSP ? 2048 : 4096;
   const e = essentia();
   const v = e.arrayToVector(seg);
   try {
-    const r = e.KeyExtractor(v, true, 4096, 4096, 12, 3500, 60, 25, 0.2, profile, SR_FULL);
+    const r = e.KeyExtractor(v, true, frameSize, frameSize, 12, 3500, 60, 25, 0.2, profile, sampleRate);
     return { tonic: r.key as string, scale: r.scale === 'major' ? 'major' : 'minor', strength: r.strength as number };
   } finally {
     v.delete();
@@ -148,12 +149,12 @@ function keyOf(seg: Float32Array, profile = 'edma'): KeyVote {
 }
 
 /** EDM: combine the local votes with two profiles on the harmonically richer central passage. */
-export function detectElectronicKey(x: Float32Array, durSec: number): KeyResult {
+export function detectElectronicKey(x: Float32Array, durSec: number, sampleRate = SR_FULL): KeyResult {
   const length = Math.min(50, durSec / 3);
   const variants = [0.25, 0.5, 0.75].map((center) =>
-    keyOf(excerpt(x, SR_FULL, Math.max(0, durSec * center - length / 2), length)));
-  const middle = excerpt(x, SR_FULL, Math.max(0, durSec / 2 - 60), 120);
-  return electronicKeyFromVotes(variants, keyOf(middle, 'bgate'), keyOf(middle, 'edmm'));
+    keyOf(excerpt(x, sampleRate, Math.max(0, durSec * center - length / 2), length), 'edma', sampleRate));
+  const middle = excerpt(x, sampleRate, Math.max(0, durSec / 2 - 60), 120);
+  return electronicKeyFromVotes(variants, keyOf(middle, 'bgate', sampleRate), keyOf(middle, 'edmm', sampleRate));
 }
 
 /**
@@ -178,11 +179,11 @@ export function findKeyChanges(
   return out;
 }
 
-function detectKeyChanges(x: Float32Array, durSec: number, main: KeyResult): KeyChange[] {
+function detectKeyChanges(x: Float32Array, durSec: number, main: KeyResult, sampleRate = SR_FULL): KeyChange[] {
   if (!main.camelot || durSec < 120) return [];
   const windows: { startSec: number; endSec: number; camelot: string; strength: number }[] = [];
   for (let t = 0; t + 30 <= durSec; t += 15) {
-    const k = keyOf(excerpt(x, SR_FULL, t, 30));
+    const k = keyOf(excerpt(x, sampleRate, t, 30), 'edma', sampleRate);
     const res = keyFromTonic(k.tonic, k.scale, k.strength);
     if (res) windows.push({ startSec: t, endSec: t + 30, camelot: res.camelot, strength: k.strength });
   }
@@ -240,7 +241,9 @@ async function readInfo(file: string, durationFallback: number): Promise<TrackIn
   return info;
 }
 
-export async function analyzeFile(file: string, options: Partial<AnalyzeOptions> = {}): Promise<AnalysisResult> {
+export async function analyzeFile(
+  file: string, options: Partial<AnalyzeOptions> = {}, revision?: AudioRevision,
+): Promise<AnalysisResult> {
   const t0 = Date.now();
   const opt = { ...DEFAULT_OPTIONS, ...options };
   const progress = opt.onProgress ?? (() => {});
@@ -255,7 +258,10 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   const warnings: string[] = [];
 
   progress('décodage', 0.02);
-  const [decoded, fileHash] = await Promise.all([decodeAudio(file, SR_FULL), hashFile(file)]);
+  // Read the revision before the decoder opens the file. The worker already hashed it for the cache.
+  const initial = revision?.stat ?? await fs.promises.stat(file, { bigint: true });
+  const [decoded, source] = await Promise.all([decodeAudio(file, SR_FULL), revision ?? hashAudioRevision(file, initial)]);
+  await assertAudioRevision(file, source);
   let full = decoded.samples;
   const durSec = full.length / SR_FULL;
   if (durSec > MAX_DURATION_SEC) throw new Error(`fichier de plus de ${MAX_DURATION_SEC / 60} min (mix DJ ?) — ignoré`);
@@ -433,14 +439,15 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   if (manualKey) {
     key = { ...manualKey, level: 'high', ambiguous: false, alternatives: [] };
   } else {
-    key = profile.vocabulary === 'edm' || profile.id === 'techno'
-      ? detectElectronicKey(full, durSec)
-      : detectKey(full, durSec);
+    // Use the existing downsampled signal for electronic tracks. Halving both frame and sample
+    // rates keeps the time and frequency resolution of the tonal analysis.
+    const electronic = profile.vocabulary === 'edm' || profile.id === 'techno';
+    key = electronic ? detectElectronicKey(x, durSec, SR_DSP) : detectKey(full, durSec);
     if (key.ambiguous) {
       const alts = (key.alternatives ?? []).map((a) => a.camelot).join(', ');
       warnings.push(`Tonalité ambiguë${alts ? ` (aussi plausible : ${alts})` : ''}`);
     }
-    const changes = detectKeyChanges(full, durSec, key);
+    const changes = electronic ? detectKeyChanges(x, durSec, key, SR_DSP) : detectKeyChanges(full, durSec, key);
     if (changes.length) {
       key.changes = changes;
       const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -449,12 +456,13 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
   }
 
   const { wave, waveLow, waveMid, waveHigh } = waveform(x, opt.wavePoints);
+  await assertAudioRevision(file, source);
   progress('terminé', 1);
 
   return {
     ...info,
     engineVersion: ENGINE_VERSION,
-    fileHash,
+    fileHash: source.fileHash,
     profileId: profile.id,
     bpm,
     tempo,

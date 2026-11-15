@@ -77,10 +77,11 @@ export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE, cha
       if (code !== 0 && n === 0) {
         return reject(new Error(`fichier illisible ou corrompu (ffmpeg ${code}) : ${lastErr()}`));
       }
-      // copy into an aligned buffer, then view it as float32 (little-endian on every supported platform)
-      const out = new Float32Array(n);
-      new Uint8Array(out.buffer).set(buf.subarray(0, n * 4));
       if (n < sampleRate * 5) return reject(new Error('audio trop court ou illisible (< 5 s)'));
+      // PCM is little-endian on all supported platforms. Most concatenated buffers are aligned.
+      const out = buf.byteOffset % Float32Array.BYTES_PER_ELEMENT === 0
+        ? new Float32Array(buf.buffer, buf.byteOffset, n)
+        : new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + n * Float32Array.BYTES_PER_ELEMENT));
       resolve({ samples: out, loudness: parseEbuR128(log), decodeError: code !== 0 ? `ffmpeg ${code} : ${lastErr()}` : undefined });
     });
   });

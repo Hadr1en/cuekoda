@@ -504,6 +504,21 @@ async function main() {
     check('Fichier corrompu isolé', first.log.some((l) => l.startsWith('err corrompu')) && first.log.some((l) => l.startsWith('ok fast')), first.log.join(' | '));
     const second = await runBatch([good]);
     check('Résultat repris du cache', second.log[0]?.endsWith('cache') && second.summary.cached === 1, second.log.join(' | '));
+    for (const file of fs.readdirSync(cacheDir).filter((name) => name.endsWith('.json'))) {
+      fs.writeFileSync(path.join(cacheDir, file), '{"interrompu":');
+    }
+    const third = await runBatch([good]);
+    check('Cache illisible recalculé', third.summary.done === 1 && third.summary.cached === 0 && third.summary.errors === 0, third.log.join(' | '));
+
+    const changing = path.join(dir, 'copie-en-cours.wav');
+    fs.copyFileSync(good, changing);
+    const result = await analyzeFile(changing, {
+      profileId: 'edm',
+      onProgress: (stage) => {
+        if (stage === 'tempo') fs.appendFileSync(changing, Buffer.alloc(4));
+      },
+    }).then(() => '', (error: Error) => error.message);
+    check('Fichier modifié pendant l’analyse détecté', /audio a changé/.test(result), result);
   }
 
   // Optional: dump results so scripts/preview.html can render the UI with real analysis data.
