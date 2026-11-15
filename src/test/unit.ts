@@ -1,3 +1,4 @@
+import { analysisChanges, comparisonPoint } from '../core/analysisComparison';
 /**
  * Unit tests of the pure modules (no audio decoding):  npm run test:unit
  */
@@ -12,12 +13,12 @@ import { emptyStats, recordDeleted, recordSuggested, suppressedKinds } from '../
 import { mergeWithPrevious } from '../core/merge';
 import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/cues';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
-import { beatIndex, gridBeats, nearestBeat } from '../core/beatgrid';
+import { beatIndex, gridBeats, gridAudition, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
 import { estimateGrid } from '../core/rhythm';
 import { allKeys, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
-import { buildTraktorNml, traktorLocation } from '../core/export/traktor';
+import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
 import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
 import { detectPhrases, labelVocalSections, type StructureAnalysis } from '../core/structure';
 import { FUSED_THRESHOLDS, fuseScores, modelBarProbs, segmentVocals, vocalBarFeatures, vocalFrames, vocalPresence, VOCAL_ON } from '../core/vocals';
@@ -390,6 +391,30 @@ test('phrases: regular 16-bar grid detected, irregular track gives null', () => 
 });
 
 // ---------------------------------------------------------------- exports
+test('analysis comparison ignores regenerated cue IDs and detects material changes', () => {
+  const before = track({
+    path: '/m/a.mp3', cues: [cue({ id: 'a', timeSec: 3 })],
+    tempoMap: [{ startSec: 0.1, bpm: 128, beatInBar: 1 }],
+  });
+  const makeChanges = (after: AnalysisResult) => analysisChanges(comparisonPoint(before), comparisonPoint(after));
+  assert.deepEqual(makeChanges({ ...before, cues: [{ ...before.cues[0], id: 'b', timeSec: 3.001 }] }),
+    { bpm: false, grid: false, cues: false });
+  assert.deepEqual(makeChanges({
+    ...before, bpm: 128.5, cues: [{ ...before.cues[0], timeSec: 4 }],
+    tempoMap: [{ startSec: 0.1, bpm: 128, beatInBar: 3 }],
+  }), { bpm: true, grid: true, cues: true });
+});
+
+test('four-bar grid audition anchors near the start or end and supports short files', () => {
+  const t = track({ path: '/m/a.mp3', bpm: 120, durationSec: 40, grid: { bpm: 120, firstDownbeatSec: 0.5, confidence: 1 } });
+  const beats = gridBeats(t);
+  assert.deepEqual(gridAudition(beats, 40, 0.5), { start: 0.455, end: 8.5 });
+  const tail = gridAudition(beats, 40, 39.9);
+  assert.ok(Math.abs(tail.start - 30.455) < 1e-8 && tail.end === 38.5);
+  const short = gridAudition(gridBeats({ ...t, durationSec: 4 }), 4, 3);
+  assert.deepEqual(short, { start: 0.455, end: 4 });
+});
+
 test('rekordbox export: hot cues, memory cues option, loops with End', () => {
   const t = track({
     path: '/m/a b.mp3',
@@ -466,6 +491,10 @@ test('Traktor keeps AutoGrid alone and assigns button 2 to the first eligible pa
   assert.doesNotMatch(nml, /NAME="(?:Intro|Near grid)"/);
   assert.match(nml, /NAME="Drop"[^>]*HOTCUE="1"/);
   assert.match(nml, /NAME="Intro loop"[^>]*TYPE="5"[^>]*HOTCUE="-1"/);
+  const plan = traktorPlan(t, 'accepted');
+  assert.deepEqual(plan.pads.slice(0, 3), [{ name: 'AutoGrid', timeSec: 0.1 }, { name: 'Drop', timeSec: 15.1 }, null]);
+  assert.deepEqual(plan.loops, [{ name: 'Intro loop', timeSec: 0.1, beats: 16, durationSec: 7.5 }]);
+  assert.equal(traktorPlan(t, 'none').loops.length, 0);
   assert.match(buildTraktorNml([{ ...t, loops: [] }], opts), /NAME="Drop"[^>]*HOTCUE="1"/);
   assert.match(buildRekordboxXml([t], opts), /Name="Intro"[^>]*Num="0"/);
   const summary = exportSummary(ADAPTERS.find((a) => a.id === 'traktor')!, [t], opts);

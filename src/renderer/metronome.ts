@@ -65,8 +65,9 @@ export function metronome(audio: HTMLAudioElement, getBeats: () => readonly Grid
   for (const event of ['pause', 'waiting', 'ended', 'emptied']) audio.addEventListener(event, stop);
   for (const event of ['seeking', 'ratechange']) audio.addEventListener(event, clear);
 
-  return async () => {
-    enabled = !enabled;
+  return async (on: boolean) => {
+    if (on === enabled) return enabled;
+    enabled = on;
     if (!enabled) stop();
     else {
       context ??= new AudioContext();

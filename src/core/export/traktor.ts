@@ -37,6 +37,25 @@ export function traktorCues(track: AnalysisResult) {
   ];
 }
 
+/** The same marker list drives the NML and the per-track preview. */
+export function traktorPlan(track: AnalysisResult, loops: ExportOptions['loops']) {
+  const cues = traktorCues(track);
+  const pads = Array.from({ length: 8 }, (_, i) => {
+    if (i === 0) return { name: 'AutoGrid', timeSec: Math.max(0, track.grid.firstDownbeatSec) };
+    const cue = cues.find((c) => c.hotcue === i)?.cue;
+    return cue ? { name: cue.name, timeSec: Math.max(0, cue.timeSec) } : null;
+  });
+  return {
+    pads,
+    stored: cues.filter(({ hotcue }) => hotcue < 0).map(({ cue }) => ({
+      name: cue.name, timeSec: Math.max(0, cue.timeSec),
+    })),
+    loops: exportedLoops(track, loops).map((loop) => ({
+      name: loop.name, timeSec: Math.max(0, loop.startSec), beats: loop.beats, durationSec: loop.beats * 60 / track.bpm,
+    })),
+  };
+}
+
 /**
  * Traktor collection (NML 19).
  *  - hot cues → CUE_V2 TYPE=0 HOTCUE=1..7 (hotcue 0 = grid marker; Traktor colours cues by type: CueKoda colours are not transferable)
@@ -73,20 +92,17 @@ export function buildTraktorNml(
     lines.push(`<TEMPO BPM="${t.bpm.toFixed(6)}" BPM_QUALITY="${(t.grid.confidence * 100).toFixed(6)}"></TEMPO>`);
     const ki = traktorKeyIndex(t.key.musical);
     if (ki !== null) lines.push(`<MUSICAL_KEY VALUE="${ki}"></MUSICAL_KEY>`);
-    lines.push(
-      `<CUE_V2 NAME="AutoGrid" DISPL_ORDER="0" TYPE="4" START="${ms(t.grid.firstDownbeatSec)}" LEN="0" REPEATS="-1" HOTCUE="0"></CUE_V2>`,
-    );
-    for (const { cue: c, hotcue } of traktorCues(t)) {
-      // slot < 0 = memory cue: a stored cue point with no hotcue button (HOTCUE="-1")
-      lines.push(
-        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${hotcue}"></CUE_V2>`,
+    const plan = traktorPlan(t, opts.loops);
+    for (const [hotcue, marker] of plan.pads.entries()) {
+      if (marker) lines.push(
+        `<CUE_V2 NAME="${esc(marker.name)}" DISPL_ORDER="0" TYPE="${hotcue === 0 ? 4 : 0}" START="${ms(marker.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${hotcue}"></CUE_V2>`,
       );
     }
-    for (const l of exportedLoops(t, opts.loops)) {
-      const len = (l.beats * 60) / t.bpm;
-      lines.push(
-        `<CUE_V2 NAME="${esc(l.name)}" DISPL_ORDER="0" TYPE="5" START="${ms(l.startSec)}" LEN="${(len * 1000).toFixed(3)}" REPEATS="-1" HOTCUE="-1"></CUE_V2>`,
-      );
+    for (const marker of plan.stored) {
+      lines.push(`<CUE_V2 NAME="${esc(marker.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(marker.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="-1"></CUE_V2>`);
+    }
+    for (const loop of plan.loops) {
+      lines.push(`<CUE_V2 NAME="${esc(loop.name)}" DISPL_ORDER="0" TYPE="5" START="${ms(loop.timeSec)}" LEN="${(loop.durationSec * 1000).toFixed(3)}" REPEATS="-1" HOTCUE="-1"></CUE_V2>`);
     }
     lines.push('</ENTRY>');
   }

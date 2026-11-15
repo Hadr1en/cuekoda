@@ -1,3 +1,4 @@
+import { analysisChanges, comparisonPoint, type AnalysisComparison } from '../core/analysisComparison';
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from 'electron';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -5,6 +6,7 @@ import * as path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { collectAudioFiles } from '../core/scan';
 import { ADAPTERS, exportSummary, type ExportOptions } from '../core/export/index';
+import { traktorPlan } from '../core/export/traktor';
 import { mergeWithPrevious } from '../core/merge';
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { describe, emptyStats, recordDeleted, recordMoved, recordSuggested, suppressedKinds, type LearningStats } from '../core/learning';
@@ -57,6 +59,44 @@ const lite = (r: TrackRecord): TrackRecord => ({ ...r, result: undefined });
 
 function pushRecord(r: TrackRecord, withResult = false) {
   send('track', { path: r.path, record: withResult ? r : lite(r) });
+}
+
+type PreviousAnalysis = { result: AnalysisResult; batch: number; reviewedAt?: number };
+
+const previousFile = (p: string) => `${library.resultFile(p)}.previous`;
+
+function forgetComparison(record: TrackRecord) {
+  record.comparison = undefined;
+  try { fs.rmSync(previousFile(record.path), { force: true }); }
+  catch (error) { console.warn('Could not clear previous analysis', error); }
+}
+
+function previousAnalysis(record: TrackRecord | undefined): PreviousAnalysis | undefined {
+  if (!record?.comparison || !record.result) return;
+  try {
+    const previous: PreviousAnalysis = JSON.parse(fs.readFileSync(previousFile(record.path), 'utf8'));
+    if (previous.batch === record.comparison.batch && previous.result.fileHash === record.result.fileHash) return previous;
+  } catch {
+    // The comparison is optional, so a missing or damaged snapshot cannot block the library.
+  }
+}
+
+function saveComparison(record: TrackRecord, fresh: AnalysisResult, batch: number, reviewedAt?: number) {
+  const previous = record.result;
+  if (!previous?.fileHash || previous.fileHash !== fresh.fileHash) { forgetComparison(record); return; }
+  const changes = analysisChanges(comparisonPoint(previous), comparisonPoint(fresh));
+  if (!Object.values(changes).some(Boolean)) return;
+  const file = previousFile(record.path);
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const snapshot: PreviousAnalysis = { result: previous, batch, reviewedAt };
+    fs.writeFileSync(`${file}.tmp`, JSON.stringify(snapshot));
+    fs.renameSync(`${file}.tmp`, file);
+    record.comparison = { batch, changes };
+  } catch (error) {
+    forgetComparison(record);
+    console.warn('Could not save previous analysis', error);
+  }
 }
 
 function currentProfile() {
@@ -126,13 +166,15 @@ function createQueue() {
             r.result = { ...old.result!, path: p, fileName: path.basename(p) };
             r.reviewedAt = old.reviewedAt;
             r.imported = r.imported ?? old.imported;
+            if (old.comparison) forgetComparison(old);
             delete records()[old.path];
             send('removed', { path: old.path, movedTo: p });
           }
         }
+        const previousReviewed = r.reviewedAt;
         // a new engine version invalidates the "checked by ear" mark
         if (r.reviewedAt && r.result?.engineVersion && result.engineVersion !== r.result.engineVersion) r.reviewedAt = undefined;
-        const strictSlots = currentProfile().slotOrder === 'template';
+        const strictSlots = findProfile(result.profileId, settingsStore.data.customProfiles).slotOrder === 'template';
         let merged = mergeWithPrevious(result, r.result, { strictSlots });
         // cues imported from the DJ's collection before this track was analysed
         if (r.imported) {
@@ -143,6 +185,11 @@ function createQueue() {
           recordSuggested(learningStore.data, result.cues.map((c) => c.kind));
           learningStore.save();
         }
+        if (r.compareNext) {
+          saveComparison(r, merged, r.compareNext, previousReviewed);
+          if (r.comparison?.batch === r.compareNext) r.reviewedAt = undefined;
+          r.compareNext = undefined;
+        } else if (r.comparison) forgetComparison(r);
         Object.assign(r, { status: 'done', progress: 1, stage: undefined, error: undefined, cached, result: merged });
         pushRecord(r, true);
         library.save();
@@ -150,7 +197,7 @@ function createQueue() {
       error: (p, message) => {
         const r = records()[p];
         if (!r) return;
-        Object.assign(r, { status: 'error', error: message, progress: undefined, stage: undefined });
+        Object.assign(r, { status: 'error', error: message, progress: undefined, stage: undefined, compareNext: undefined });
         pushRecord(r);
         library.save();
       },
@@ -158,7 +205,7 @@ function createQueue() {
         const r = records()[p];
         if (!r) return;
         // a track that already had a result keeps it
-        Object.assign(r, { status: r.result ? 'done' : 'cancelled', progress: undefined, stage: undefined });
+        Object.assign(r, { status: r.result ? 'done' : 'cancelled', progress: undefined, stage: undefined, compareNext: undefined });
         pushRecord(r);
         library.save();
       },
@@ -301,12 +348,45 @@ function registerIpc() {
   ipcMain.handle('add-paths', (_e, paths: string[]) => addFiles(collectAudioFiles(paths)));
 
   ipcMain.handle('reanalyze', (_e, paths: string[], force = false) => {
-    for (const p of paths) enqueue(p, force);
+    const batch = Date.now();
+    for (const p of new Set(paths)) {
+      const record = records()[p];
+      if (!record || record.missing || queue.has(p)) continue;
+      if (record.result) record.compareNext = batch;
+      enqueue(p, force);
+    }
+    return batch;
+  });
+
+  ipcMain.handle('analysis-comparison', (_e, p: string): AnalysisComparison | null => {
+    const record = records()[p];
+    const previous = previousAnalysis(record);
+    return previous && record?.result && record.comparison ? {
+      before: comparisonPoint(previous.result), after: comparisonPoint(record.result), changes: record.comparison.changes,
+    } : null;
+  });
+
+  ipcMain.handle('restore-analysis', (_e, p: string): boolean => {
+    const record = records()[p];
+    if (queue.has(p) || record?.missing || record?.status !== 'done') return false;
+    const previous = previousAnalysis(record);
+    if (!previous || !record.result) return false;
+    // Keep later DJ edits in place while restoring the older automatic analysis.
+    record.result = record.comparison?.edited ? {
+      ...mergeWithPrevious(previous.result, record.result, { strictSlots: true }),
+      overrides: previous.result.overrides,
+    } : previous.result;
+    record.cached = false;
+    record.reviewedAt = previous.reviewedAt;
+    forgetComparison(record);
+    pushRecord(record, true);
+    library.save();
+    return true;
   });
 
   ipcMain.handle('set-overrides', (_e, p: string, ov: Overrides) => {
     const r = records()[p];
-    if (!r?.result) return;
+    if (!r?.result || queue.has(p)) return;
     const next: Overrides = { ...(r.result.overrides ?? {}), ...ov };
     for (const k of Object.keys(next) as (keyof Overrides)[]) if (next[k] === undefined || next[k] === null) delete next[k];
     r.result.overrides = next;
@@ -321,6 +401,7 @@ function registerIpc() {
       e.returnValue = false;
       return;
     }
+    if (r.comparison) r.comparison.edited = true;
     // Copy only editor-owned fields. Preserve engine data and overrides from any newer analysis.
     if ('cues' in edits && edits.cues) result.cues = edits.cues;
     if ('loops' in edits) result.loops = edits.loops;
@@ -333,12 +414,17 @@ function registerIpc() {
 
   ipcMain.handle('remove', (_e, paths: string[]) => {
     queue.cancel(paths);
-    for (const p of paths) delete records()[p];
+    for (const p of paths) {
+      const record = records()[p];
+      if (record?.comparison) forgetComparison(record);
+      delete records()[p];
+    }
     library.save();
   });
 
   ipcMain.handle('clear', () => {
     queue.cancel();
+    for (const record of Object.values(records())) if (record.comparison) forgetComparison(record);
     library.data.tracks = {};
     library.save();
   });
@@ -373,6 +459,11 @@ function registerIpc() {
     learningStore.data = emptyStats();
     learningStore.save(0);
     return describe(learningStore.data);
+  });
+
+  ipcMain.handle('traktor-plan', (_e, p: string, loops: ExportOptions['loops']) => {
+    const result = records()[p]?.result;
+    return result ? traktorPlan(result, loops) : null;
   });
 
   ipcMain.handle('export-preview', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportPreview> => {
@@ -477,6 +568,7 @@ function registerIpc() {
       out.matched++;
       out.cues += t.cues.length;
       if (r.result && r.status !== 'queued' && r.status !== 'analyzing') {
+        if (r.comparison) r.comparison.edited = true;
         r.result = applyImport(r.result, t, { strictSlots });
         pushRecord(r, true);
       } else {

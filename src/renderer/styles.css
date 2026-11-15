@@ -165,6 +165,18 @@
   #main-more { position-anchor: --main-more; inset: auto; top: calc(anchor(bottom) + 6px); left: anchor(left); }
   #track-actions { position: fixed; inset: auto; }
   .c-select { inline-size: 30px; text-align: center; input { vertical-align: middle; cursor: pointer; } }
+  .traktor-inspector {
+    margin-block: 10px; padding: 8px 10px; border: var(--ui-border); border-radius: var(--ui-radius);
+    summary { cursor: pointer; font-weight: 600; }
+    .hrow { margin-block: 8px; flex-wrap: wrap; }
+    select { min-inline-size: 0; max-inline-size: 100%; }
+  }
+  .traktor-pads {
+    list-style: none; padding: 0; display: grid; gap: 5px; grid-template-columns: repeat(8, minmax(0, 1fr));
+    li { display: grid; gap: 3px; min-block-size: 54px; border: var(--ui-border); border-radius: 6px; padding: 5px; }
+    .filled { background: var(--ui-selected-bg); }
+    span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
   .export-working { display: flex; align-items: center; gap: 12px; }
   .export-working progress { inline-size: 120px; }
   .queue {
@@ -280,6 +292,22 @@
   .d-sub {
     display: flex; flex-wrap: wrap; align-items: center; gap: 5px 10px; color: var(--color-muted);
     margin-block: 5px 8px; font-variant-numeric: tabular-nums;
+  }
+  .quick-review {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; margin-block: 6px; background: var(--color-panel); border: var(--ui-border); border-radius: var(--ui-radius);
+    .hrow { flex-wrap: wrap; }
+  }
+  .comparison-list {
+    margin-block: 8px; display: grid; gap: 4px;
+    button { display: flex; gap: 8px; justify-content: space-between; text-align: start; white-space: normal; }
+    [aria-pressed='true'] { background: var(--ui-selected-bg); }
+  }
+  .comparison-detail {
+    border-block-start: var(--ui-border); padding-block-start: 8px;
+    .cols { align-items: start; }
+    .summary { margin-block-end: 0; }
+    .comparison-changed { font-weight: 600; }
   }
   .review-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .d-artist { color: var(--color-text); font-weight: 500; }

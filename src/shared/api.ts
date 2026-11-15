@@ -1,7 +1,9 @@
+import type { AnalysisChanges, AnalysisComparison } from '../core/analysisComparison';
 import type { KeyNotation } from '../core/key';
 import type { AnalysisResult, Overrides } from '../core/types';
 import type { Profile } from '../core/profiles';
 import type { ExportOptions, ExportTargetId } from '../core/export/index';
+import type { traktorPlan } from '../core/export/traktor';
 import type { Peaks } from '../core/peaks';
 import type { UpdateStatus } from './update';
 import type { ImportedTrack } from '../core/import/collection';
@@ -26,6 +28,8 @@ export interface TrackRecord {
   imported?: ImportedTrack;
   /** The DJ checked this track (removes it from the "to review" list until it is re-analysed) */
   reviewedAt?: number;
+  compareNext?: number;
+  comparison?: { batch: number; changes: AnalysisChanges; edited?: boolean };
   /** The file is no longer at this path (moved / renamed / disk not connected) */
   missing?: boolean;
 }
@@ -146,7 +150,9 @@ export interface CueKodaApi {
   pick(kind: 'files' | 'folder'): Promise<string[]>;
   addPaths(paths: string[]): Promise<AddedFile[]>;
   /** Re-analyse; user edits are kept. force = ignore the cache (e.g. new engine version). */
-  reanalyze(paths: string[], force?: boolean): Promise<void>;
+  reanalyze(paths: string[], force?: boolean): Promise<number>;
+  analysisComparison(path: string): Promise<AnalysisComparison | null>;
+  restoreAnalysis(path: string): Promise<boolean>;
   /** Manual BPM / downbeat / key correction → re-analysis with those values, edits kept */
   setOverrides(path: string, overrides: Overrides): Promise<void>;
   /** Hand a completed edit to the library immediately. Disk writes are batched by the main process. */
@@ -160,6 +166,7 @@ export interface CueKodaApi {
   setSettings(patch: Partial<Settings>): Promise<Settings>;
   learningEvent(e: { type: 'deleted' | 'moved'; kind: string; beats?: number }): void;
   resetLearning(): Promise<string[]>;
+  traktorPlan(path: string, loops: ExportOptions['loops']): Promise<ReturnType<typeof traktorPlan> | null>;
   exportPreview(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportPreview>;
   exportCollection(format: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse>;
   /** Reads a rekordbox XML / Traktor NML collection: the DJ's cues become locked cues (read-only on the file) */
