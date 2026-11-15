@@ -167,21 +167,28 @@ function addVoice(x: Float32Array, i0: number, len: number, spb: number, level: 
   }
 }
 
-export function writeWav(file: string, x: Float32Array) {
-  const buf = Buffer.alloc(44 + x.length * 2);
+export function writeWav(file: string, x: Float32Array, right?: Float32Array) {
+  const channels = right ? 2 : 1;
+  const dataSize = x.length * channels * 2;
+  const buf = Buffer.alloc(44 + dataSize);
   buf.write('RIFF', 0);
-  buf.writeUInt32LE(36 + x.length * 2, 4);
+  buf.writeUInt32LE(36 + dataSize, 4);
   buf.write('WAVEfmt ', 8);
   buf.writeUInt32LE(16, 16);
   buf.writeUInt16LE(1, 20);
-  buf.writeUInt16LE(1, 22);
+  buf.writeUInt16LE(channels, 22);
   buf.writeUInt32LE(SR, 24);
-  buf.writeUInt32LE(SR * 2, 28);
-  buf.writeUInt16LE(2, 32);
+  buf.writeUInt32LE(SR * channels * 2, 28);
+  buf.writeUInt16LE(channels * 2, 32);
   buf.writeUInt16LE(16, 34);
   buf.write('data', 36);
-  buf.writeUInt32LE(x.length * 2, 40);
-  for (let i = 0; i < x.length; i++) buf.writeInt16LE(Math.round(Math.max(-1, Math.min(1, x[i])) * 32767), 44 + i * 2);
+  buf.writeUInt32LE(dataSize, 40);
+  const pcm = (value: number) => Math.round(Math.max(-1, Math.min(1, value)) * 32767);
+  for (let i = 0; i < x.length; i++) {
+    const offset = 44 + i * channels * 2;
+    buf.writeInt16LE(pcm(x[i]), offset);
+    if (right) buf.writeInt16LE(pcm(right[i]), offset + 2);
+  }
   fs.writeFileSync(file, buf);
 }
 
@@ -385,6 +392,21 @@ async function main() {
     check('Évaluation : clé', e.key!.score === 1, `${e.key!.detected}`);
     check('Évaluation : cues (rappel)', e.cues!.recall === 1, `${e.cues!.matched}/${e.cues!.reference}, F1 ${sum.cueF1.toFixed(2)}`);
     check('Évaluation : sections (rappel)', e.sections!.recall === 1, `${e.sections!.matched}/${e.sections!.reference}, F1 ${sum.sectionF1.toFixed(2)}`);
+  }
+
+  // ---- prevent misleading analyses for silence, recover phase-cancelling stereo -------------
+  {
+    console.log('\n▶ silence et stéréo en opposition de phase');
+    const silence = path.join(dir, 'silence.wav');
+    writeWav(silence, new Float32Array(SR * 8));
+    const error = await analyzeFile(silence).then(() => '', (e: Error) => e.message);
+    check('Silence sans faux BPM ni tonalité', error.startsWith('Aucun signal audio exploitable'), error);
+    const phase = path.join(dir, 'phase.wav');
+    const left = render(SPECS[0].spec).subarray(0, SR * 32);
+    writeWav(phase, left, left.map((sample) => -sample));
+    const result = await analyzeFile(phase, { profileId: 'edm' });
+    check('Stéréo en opposition de phase analysée à 128 BPM', Math.abs(result.bpm - 128) < 0.1, `${result.bpm} BPM`);
+    check('Canal de secours signalé', result.warnings.some((w) => w.includes('canal gauche')), result.warnings.join(' · '));
   }
 
   // ---- CLI tempo bounds override their own side of the DJ profile ---------------------------

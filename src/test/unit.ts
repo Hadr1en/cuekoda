@@ -775,6 +775,37 @@ test('datasets: key labels and GiantSteps / Harmonix loaders', () => {
   assert.equal(hx.sections!.length, 2);
 });
 
+test('external beat annotations use their annotated window and keep the reference meter', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-external-beats-'));
+  try {
+    const audio = path.join(dir, 'audio');
+    const ann = path.join(dir, 'annotations');
+    fs.mkdirSync(audio);
+    fs.mkdirSync(path.join(ann, 'beats'), { recursive: true });
+    fs.mkdirSync(path.join(ann, 'tempo'));
+    fs.writeFileSync(path.join(audio, 'sample.wav'), '');
+    const beats = Array.from({ length: 12 }, (_, index) => 4 + index / 2);
+    const rows = beats.map((time, index) => `${time} ${index % 3 + 1}`);
+    fs.writeFileSync(path.join(ann, 'beats', 'sample.beats'), rows.join('\n'));
+    fs.writeFileSync(path.join(ann, 'tempo', 'sample.bpm'), '121.5');
+    const { refs, withoutAudio } = loadDataset('brid', ann, audio);
+    assert.equal(withoutAudio, 0);
+    assert.equal(refs[0].bpm, 121.5);
+    assert.deepEqual(refs[0].beatWindow, [4, 9.5]);
+    const result = evaluateTrack(track({
+      path: 'sample.wav', bpm: 120, grid: { bpm: 120, firstDownbeatSec: 0, confidence: 1 },
+      durationSec: 15,
+    }), refs[0]);
+    assert.equal(result.beats?.referenceBeatsPerBar, 3);
+    assert.equal(result.beats?.fMeasure, 1);
+    assert.ok(result.beats!.downbeatF < 1);
+    const ballroom = loadDataset('ballroom', path.join(ann, 'beats'), audio);
+    assert.equal(ballroom.refs[0].bpm, 120);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('evaluateTrack: beat F-measures follow tempo markers and their beat-in-bar', () => {
   const det = track({
     path: 'tempo-map.wav', durationSec: 6.25, bpm: 120,

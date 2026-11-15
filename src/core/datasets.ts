@@ -10,12 +10,14 @@ import { AUDIO_EXTENSIONS } from './types';
  *  - giantsteps-key   : GiantSteps Key (EDM from Beatport) — annotations/<id>.key, e.g. "Eb minor"
  *  - harmonix         : Harmonix Set — beats_and_downbeats/<id>.txt ("time beat bar") and optionally
  *                       segments/<id>.txt ("time label"); the audio must be obtained separately
+ *  - ballroom         : CPJKU BallroomAnnotations — <id>.beats ("time beat-in-bar")
+ *  - brid             : BRID ensemble recordings — beats/<id>.beats and tempo/<id>.bpm
  * Each annotation is paired with the audio file of the same name stem in the audio folder.
  */
-export type DatasetId = 'giantsteps-tempo' | 'giantsteps-key' | 'harmonix';
-export const DATASETS: DatasetId[] = ['giantsteps-tempo', 'giantsteps-key', 'harmonix'];
+export const DATASETS = ['giantsteps-tempo', 'giantsteps-key', 'harmonix', 'ballroom', 'brid'] as const;
+export type DatasetId = typeof DATASETS[number];
 
-const stem = (f: string) => path.basename(f).replace(/\.(bpm|key|txt|LOFI)$/i, '').replace(/\.LOFI$/i, '');
+const stem = (f: string) => path.basename(f).replace(/\.(bpm|key|txt|beats|LOFI)$/i, '').replace(/\.LOFI$/i, '');
 
 /** Audio files of a folder indexed by stem (case-insensitive, ".LOFI" suffix ignored). */
 function audioIndex(dir: string): Map<string, string> {
@@ -80,13 +82,19 @@ export function loadDataset(id: DatasetId, annotationsDir: string, audioDir: str
       refs.push(ref);
     }
   } else {
-    const beatsDir = fs.existsSync(path.join(annotationsDir, 'beats_and_downbeats')) ? path.join(annotationsDir, 'beats_and_downbeats') : annotationsDir;
+    const annotatedPart = id !== 'harmonix';
+    const annotationsSubdir = id === 'brid' ? 'beats' : 'beats_and_downbeats';
+    const beatsSubdir = path.join(annotationsDir, annotationsSubdir);
+    const beatsDir = fs.existsSync(beatsSubdir) ? beatsSubdir : annotationsDir;
     const segDir = path.join(annotationsDir, 'segments');
-    for (const f of files(beatsDir, '.txt')) {
+    for (const f of files(beatsDir, annotatedPart ? '.beats' : '.txt')) {
       const a = find(f);
       if (!a) { withoutAudio++; continue; }
-      const rows = fs.readFileSync(path.join(beatsDir, f), 'utf8').trim().split(/\r?\n/).map((l) => l.trim().split(/\s+/).map(Number));
-      const beats = rows.map((r) => r[0]).filter((t) => Number.isFinite(t));
+      const rows = fs.readFileSync(path.join(beatsDir, f), 'utf8').trim().split(/\r?\n/)
+        .filter((line) => line.trim())
+        .map((line) => line.trim().split(/\s+/).map(Number))
+        .filter(([time]) => Number.isFinite(time) && time >= 0);
+      const beats = rows.map(([time]) => time);
       if (beats.length < 8) continue;
       const ref = baseRef(a, id);
       ref.beats = beats;
@@ -94,8 +102,27 @@ export function loadDataset(id: DatasetId, annotationsDir: string, audioDir: str
       const ibi = median(beats.slice(1).map((t, i) => t - beats[i]));
       ref.bpm = ibi > 0 ? 60 / ibi : undefined;
       if (ref.downbeats.length) ref.firstDownbeatSec = ref.downbeats[0];
+      if (annotatedPart) {
+        ref.beatWindow = [beats[0], beats[beats.length - 1]];
+        const barLengths = new Map<number, number>();
+        let previous = -1;
+        for (const [index, [, beat]] of rows.entries()) {
+          if (beat !== 1) continue;
+          if (previous >= 0) {
+            const length = index - previous;
+            barLengths.set(length, (barLengths.get(length) ?? 0) + 1);
+          }
+          previous = index;
+        }
+        ref.beatsPerBar = [...barLengths].sort(([, a], [, b]) => b - a)[0]?.[0];
+      }
+      if (id === 'brid') {
+        const tempoFile = path.join(annotationsDir, 'tempo', `${stem(f)}.bpm`);
+        const tempo = fs.existsSync(tempoFile) ? Number(fs.readFileSync(tempoFile, 'utf8').trim()) : 0;
+        if (Number.isFinite(tempo) && tempo > 0) ref.bpm = tempo;
+      }
       const segFile = path.join(segDir, f);
-      if (fs.existsSync(segFile)) {
+      if (id === 'harmonix' && fs.existsSync(segFile)) {
         ref.sections = fs.readFileSync(segFile, 'utf8').trim().split(/\r?\n/)
           .map((l) => l.trim().split(/\s+/))
           .filter((p) => p.length > 1 && Number.isFinite(Number(p[0])) && p[1].toLowerCase() !== 'end')

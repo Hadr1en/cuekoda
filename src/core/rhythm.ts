@@ -10,29 +10,76 @@ export function foldBpm(bpm: number, min: number, max: number): number {
   return b;
 }
 
+/** Pearson similarity of an onset envelope with a delayed copy, interpolating fractional frames. */
+function pulseSimilarity(onsets: Float32Array, lag: number): number {
+  const offset = Math.floor(lag);
+  const fraction = lag - offset;
+  const n = onsets.length - offset - 1;
+  if (n <= 0) return 0;
+  let sumA = 0, sumB = 0, sumAA = 0, sumBB = 0, sumAB = 0;
+  for (let i = 0; i < n; i++) {
+    const a = onsets[i];
+    const b = onsets[i + offset] * (1 - fraction) + onsets[i + offset + 1] * fraction;
+    sumA += a;
+    sumB += b;
+    sumAA += a * a;
+    sumBB += b * b;
+    sumAB += a * b;
+  }
+  const variance = (sumAA - sumA * sumA / n) * (sumBB - sumB * sumB / n);
+  return variance > 0 ? (sumAB - sumA * sumB / n) / Math.sqrt(variance) : 0;
+}
+
+function barPeriodicity(bands: Bands, candidates: CombFit[]): CombFit | undefined {
+  const win = Math.round(bands.frameRate * 0.5);
+  const envelopes = [bands.onset, bands.fluxLow, bands.fluxMid].map((onsets) => detrend(onsets, win));
+  const ranked = candidates.map((candidate) => {
+    const beat = 60 * bands.frameRate / candidate.bpm;
+    // Half a bar, a bar and two bars. Repeating syncopation can support the correct pulse
+    // even when the individual beats fit less well than a misleading 3:2 grid.
+    const periodicity = envelopes.reduce((sum, o) => sum
+      + 0.2 * pulseSimilarity(o, 2 * beat)
+      + 0.6 * pulseSimilarity(o, 4 * beat)
+      + 0.2 * pulseSimilarity(o, 8 * beat), 0) / envelopes.length;
+    return { candidate, periodicity };
+  });
+  const base = ranked[0];
+  const best = ranked.reduce((a, b) => b.periodicity > a.periodicity ? b : a, base);
+  return best.periodicity > base.periodicity + 0.1 ? best.candidate : undefined;
+}
+
 /**
- * Validates Essentia's tempo. Beat trackers sometimes lock on a 3:2 / 4:3 related pulse
- * (e.g. 116 instead of 174). We score the beat grid at a few related tempi, folded into the
- * allowed range, and only abandon Essentia's estimate if another candidate clearly fits better.
+ * Validates Essentia's tempo on related pulses. In the EDM profile, repeated rhythmic
+ * patterns can break a tie, provided the alternative already fits individual beats.
  */
-export function chooseTempo(bands: Bands, rawBpm: number, min: number, max: number): { bpm: number; note?: string } {
+export function chooseTempo(bands: Bands, rawBpm: number, min: number, max: number, preferRepeatedBars = false): { bpm: number; note?: string } {
   const base = foldBpm(rawBpm, min, max);
   const ratios = [1, 3 / 2, 2 / 3, 4 / 3, 3 / 4];
   const seen = new Set<number>();
-  let best = { bpm: base, score: -1 };
-  let baseScore = -1;
-  for (const r of ratios) {
-    const cand = foldBpm(base * r, min, max);
-    const key = Math.round(cand);
+  const candidates: { center: number; fit: CombFit }[] = [];
+  for (const ratio of ratios) {
+    const center = foldBpm(base * ratio, min, max);
+    const key = Math.round(center);
     if (seen.has(key)) continue;
     seen.add(key);
-    // Window must cover Essentia's usual error (up to ~2 bpm, e.g. 124.05 for a true 126).
-    const s = fitGridComb(bands, cand, 3.5).score;
-    if (r === 1) baseScore = s;
-    if (s > best.score) best = { bpm: cand, score: s };
+    candidates.push({ center, fit: fitGridComb(bands, center, 3.5) });
   }
-  if (best.bpm !== base && best.score > baseScore * 1.15) {
-    return { bpm: best.bpm, note: `Tempo Essentia ${rawBpm.toFixed(1)} remplacé par ${best.bpm.toFixed(1)} (meilleur alignement de grille)` };
+  const first = candidates[0];
+  const best = candidates.reduce((a, b) => b.fit.score > a.fit.score ? b : a, first);
+  const selected = best.fit.score > first.fit.score * 1.15 ? best : first;
+  if (preferRepeatedBars && selected.fit.score > 0 && bands.frames >= 20 * bands.frameRate) {
+    const alternatives = candidates
+      .filter((c) => c !== selected && c.fit.bpm >= min && c.fit.bpm < max && c.fit.score >= selected.fit.score * 0.85)
+      .map((c) => c.fit);
+    const preferred = alternatives.length ? barPeriodicity(bands, [selected.fit, ...alternatives]) : undefined;
+    // Correct undercounted beats. A slower candidate can make a genuine three-beat
+    // measure look like four beats by subdividing it, as in the Ballroom waltzes.
+    if (preferred && preferred.bpm > selected.fit.bpm * 1.1) {
+      return { bpm: preferred.bpm, note: `Tempo ${selected.center.toFixed(1)} remplacé par ${preferred.bpm.toFixed(1)} (motif rythmique récurrent)` };
+    }
+  }
+  if (selected !== first) {
+    return { bpm: selected.center, note: `Tempo Essentia ${rawBpm.toFixed(1)} remplacé par ${selected.center.toFixed(1)} (meilleur alignement de grille)` };
   }
   return { bpm: base };
 }

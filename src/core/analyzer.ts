@@ -246,7 +246,7 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
 
   progress('décodage', 0.02);
   const [decoded, fileHash] = await Promise.all([decodeAudio(file, SR_FULL), hashFile(file)]);
-  const full = decoded.samples;
+  let full = decoded.samples;
   const durSec = full.length / SR_FULL;
   if (durSec > MAX_DURATION_SEC) throw new Error(`fichier de plus de ${MAX_DURATION_SEC / 60} min (mix DJ ?) — ignoré`);
   const info = await readInfo(file, durSec);
@@ -263,13 +263,23 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     warnings.push('MP3 sans en-tête LAME : délai d’encodage inconnu, cues possiblement décalés d’environ 25 ms selon le logiciel DJ');
   }
 
+  // ffmpeg measures the original channels before downmix. Recover an audible stereo file whose
+  // channels cancel in mono, but never generate a tempo or key from digital silence.
+  let audible = full.some((sample) => Math.abs(sample) > 1e-7);
+  if (!audible && (decoded.loudness.truePeakDbtp ?? -Infinity) > -100) {
+    const left = await decodeAudio(file, SR_FULL, 'left');
+    full = left.samples;
+    audible = full.some((sample) => Math.abs(sample) > 1e-7);
+    if (audible) warnings.push('Les canaux s’annulent en mono : analyse sur le canal gauche.');
+  }
+  if (!audible) throw new Error('Aucun signal audio exploitable après conversion mono.');
+
   // --- loudness / dynamics (algorithmic, separate from tag metadata) -------------
   let sq = 0;
   let pk = 0;
   for (let i = 0; i < full.length; i++) {
     sq += full[i] * full[i];
-    const a = Math.abs(full[i]);
-    if (a > pk) pk = a;
+    pk = Math.max(pk, Math.abs(full[i]));
   }
   const rmsDb = 10 * Math.log10(sq / full.length + 1e-12);
   const loudness = { ...decoded.loudness, rmsDb, crestDb: 20 * Math.log10(pk + 1e-9) - rmsDb };
@@ -284,7 +294,9 @@ export async function analyzeFile(file: string, options: Partial<AnalyzeOptions>
     bpmEst = ov.bpm;
   } else {
     rawBpm = essentiaTempo(full, durSec);
-    const tempo = chooseTempo(bands, rawBpm, minBpm, maxBpm);
+    const preferRepeatedBars = (profile.id === 'edm' || profile.id === 'edm-fixed')
+      && options.minBpm === undefined && options.maxBpm === undefined;
+    const tempo = chooseTempo(bands, rawBpm, minBpm, maxBpm, preferRepeatedBars);
     bpmEst = tempo.bpm;
     if (tempo.note) warnings.push(tempo.note);
   }

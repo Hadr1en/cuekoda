@@ -53,12 +53,12 @@ function parseEbuR128(log: string): EbuR128 {
  * Decodes any audio file ffmpeg understands into mono float32 PCM and, in the same pass,
  * measures EBU R128 loudness and true peak (ffmpeg `ebur128` filter) on the original channels.
  */
-export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE): Promise<Decoded> {
+export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE, channel?: 'left'): Promise<Decoded> {
   return new Promise((resolve, reject) => {
     const args = [
       '-hide_banner', '-nostats', '-v', 'info', '-nostdin',
       '-i', file, '-vn',
-      '-af', 'ebur128=peak=true:framelog=quiet',
+      '-af', 'ebur128=peak=true:framelog=quiet' + (channel === 'left' ? ',pan=mono|c0=c0' : ''),
       '-ac', '1', '-ar', String(sampleRate), '-f', 'f32le', 'pipe:1',
     ];
     const proc = spawn(ffmpegPath(), args, { stdio: ['ignore', 'pipe', 'pipe'] });
