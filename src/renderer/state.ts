@@ -1,3 +1,4 @@
+import type { PrepCrate } from '../core/crates';
 import type { UpdateStatus } from '../shared/update';
 import { formatKey } from '../core/key';
 import type { AnalysisResult } from '../core/types';
@@ -14,6 +15,7 @@ export const api = window.cuekoda;
 
 export const state = {
   tracks: new Map<string, TrackRecord>(),
+  crates: [] as PrepCrate[],
   settings: null as unknown as Settings,
   builtinProfiles: [] as Profile[],
   adapters: [] as AdapterInfo[],

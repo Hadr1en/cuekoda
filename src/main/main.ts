@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { applyCrateAction, replaceCratePaths, type CrateAction, type PrepCrate } from '../core/crates';
 import { analysisChanges, comparisonPoint, type AnalysisComparison } from '../core/analysisComparison';
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from 'electron';
 import * as fs from 'node:fs';
@@ -46,6 +48,7 @@ const DEFAULT_SETTINGS: Settings = {
 
 let library: LibraryStore<AnalysisResult, TrackRecord>;
 let settingsStore: JsonStore<Settings>;
+let crateStore: JsonStore<{ crates: PrepCrate[] }>;
 let updater: Updater;
 let learningStore: JsonStore<LearningStats>;
 let referenceStore: JsonStore<{ version: 1; refs: Record<string, Reference> }>;
@@ -54,6 +57,15 @@ let queue: AnalysisQueue;
 let watcher: FolderWatcher;
 
 const records = () => library.data.tracks;
+
+function updateCratePaths(paths: string[], movedTo?: string) {
+  if (!crateStore.data.crates.length || !paths.length) return;
+  const crates = replaceCratePaths(crateStore.data.crates, new Set(paths), movedTo);
+  if (crates === crateStore.data.crates) return;
+  crateStore.data.crates = crates;
+  crateStore.save();
+  send('crates', crates);
+}
 /** Light copy for progress events (the result is only sent when it changes) */
 const lite = (r: TrackRecord): TrackRecord => ({ ...r, result: undefined });
 
@@ -168,6 +180,7 @@ function createQueue() {
             r.imported = r.imported ?? old.imported;
             if (old.comparison) forgetComparison(old);
             delete records()[old.path];
+            updateCratePaths([old.path], p);
             send('removed', { path: old.path, movedTo: p });
           }
         }
@@ -295,6 +308,7 @@ async function checkExportTracks(paths: string[]) {
 // --- IPC ----------------------------------------------------------------------------
 function registerIpc() {
   ipcMain.handle('init', (): InitialState => ({
+    crates: crateStore.data.crates,
     tracks: Object.values(records()).sort((a, b) => a.addedAt - b.addedAt),
     settings: settingsStore.data,
     builtinProfiles: BUILTIN_PROFILES,
@@ -343,6 +357,15 @@ function registerIpc() {
       filters: kind === 'files' ? [{ name: 'Audio', extensions: AUDIO_EXTENSIONS.map((x) => x.slice(1)) }] : undefined,
     });
     return r.canceled ? [] : r.filePaths;
+  });
+
+  ipcMain.handle('crates-update', (_e, action: CrateAction) => {
+    const response = applyCrateAction(crateStore.data.crates, action, (p) => Object.hasOwn(records(), p), randomUUID);
+    if (response.crates !== crateStore.data.crates) {
+      crateStore.data.crates = response.crates;
+      crateStore.save();
+    }
+    return response;
   });
 
   ipcMain.handle('add-paths', (_e, paths: string[]) => addFiles(collectAudioFiles(paths)));
@@ -419,12 +442,14 @@ function registerIpc() {
       if (record?.comparison) forgetComparison(record);
       delete records()[p];
     }
+    updateCratePaths(paths);
     library.save();
   });
 
   ipcMain.handle('clear', () => {
     queue.cancel();
     for (const record of Object.values(records())) if (record.comparison) forgetComparison(record);
+    updateCratePaths(Object.keys(records()));
     library.data.tracks = {};
     library.save();
   });
@@ -1009,6 +1034,7 @@ app.whenReady().then(() => {
   // files moved / renamed / on a disconnected drive: flagged, never removed from the library
   for (const r of Object.values(library.data.tracks)) r.missing = !fs.existsSync(r.path) || undefined;
   settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
+  crateStore = new JsonStore(path.join(userData(), 'crates.json'), { crates: [] });
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
   referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });
   createQueue();
@@ -1047,6 +1073,7 @@ app.on('before-quit', (event) => {
   if (exportInProgress) { event.preventDefault(); return; }
   library?.flush();
   settingsStore?.flush();
+  crateStore?.flush();
   learningStore?.flush();
   referenceStore?.flush();
   watcher?.close();

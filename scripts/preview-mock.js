@@ -11,10 +11,12 @@
   };
   const adapters = window.__ADAPTERS__ || [];
   window.cuekoda = {
-    init: async () => ({ tracks, settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8, references: {}, update: { state: 'idle' }, appVersion: 'preview', appBuild: null }),
+    init: async () => ({ tracks, crates: [], settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8, references: {}, update: { state: 'idle' }, appVersion: 'preview', appBuild: null }),
     pathsForFiles: () => [],
     pick: async () => [],
     addPaths: async () => [],
+    onCrates: () => {},
+    updateCrates: async () => ({ crates: [] }),
     reanalyze: async () => Date.now(),
     analysisComparison: async () => null,
     restoreAnalysis: async () => false,

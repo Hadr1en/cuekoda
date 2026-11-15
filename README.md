@@ -180,6 +180,10 @@ Sélectionne les morceaux avec les cases à cocher, Ctrl/⌘ + clic ou Maj + cli
 Dans **Plus › Comparer la réanalyse…**, retrouve les BPM, grilles ou cues modifiés. Écoute l’avant et
 l’après, puis rétablis l’analyse précédente par morceau depuis la comparaison.
 
+**Bacs…** enregistre tes sélections dans des listes locales. Ajoute les morceaux par clic droit,
+range-les dans ton ordre, puis affiche le bac dans la bibliothèque ou exporte-le en playlist nommée.
+Retirer du bac conserve le morceau dans la bibliothèque. Tu peux aussi exporter directement une sélection.
+
 ### 8. Export vers ton logiciel DJ
 <img src="docs/screenshots/fr/export.png" alt="Fenêtre d’export de CueKoda" width="100%">
 

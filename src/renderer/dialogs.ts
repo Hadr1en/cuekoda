@@ -79,11 +79,11 @@ function traktorInspector(
 }
 
 /** set: tracks in the order of the mix-order window, exported as one named playlist */
-export function openExport(currentPath: string | null, set?: { name: string; paths: string[] }) {
+export function openExport(currentPath: string | null, set?: { name: string; paths: string[]; source?: 'crate' }, selection: string[] = []) {
   const dlg = $<HTMLDialogElement>('dlg-export');
   if (dlg.open) return;
   let target: AdapterInfo['id'] = 'rekordbox';
-  let scope: 'all' | 'current' | 'set' = set ? 'set' : 'all';
+  let scope: 'all' | 'current' | 'set' | 'selection' = set ? 'set' : selection.length ? 'selection' : 'all';
   let setName = set?.name ?? '';
   let inspectedPath = currentPath;
   let inspectorOpen = false;
@@ -95,7 +95,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
   const render = async () => {
     const request = ++previewRequest;
     const adapter = state.adapters.find((a) => a.id === target)!;
-    const paths = scope === 'set' && set ? set.paths : scope === 'current' && currentPath ? [currentPath] : doneResults().map((r) => r.path);
+    const paths = scope === 'set' && set ? set.paths : scope === 'selection' ? selection : scope === 'current' && currentPath ? [currentPath] : doneResults().map((r) => r.path);
     opts.playlistName = scope === 'set' ? setName.trim() || 'Set CueKoda' : undefined;
     const exportOptions = { ...opts };
     const preview = await api.exportPreview(adapter.id, paths, exportOptions);
@@ -105,7 +105,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
       : null;
     inspector?.addEventListener('toggle', () => { inspectorOpen = inspector.open; });
     const parts: (Node | null)[] = [
-      h('h2', { id: 'dlg-export-title' }, set ? 'Exporter le set vers…' : 'Exporter vers…'),
+      h('h2', { id: 'dlg-export-title' }, set ? set.source === 'crate' ? 'Exporter le bac vers…' : 'Exporter le set vers…' : 'Exporter vers…'),
       h(
         'div',
         { class: 'targets', role: 'radiogroup', 'aria-label': 'Logiciel DJ' },
@@ -125,10 +125,12 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
       ),
       h('fieldset', { class: 'opts' },
         h('legend', {}, 'Options'),
-        set ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'set', onchange: () => { scope = 'set'; void render(); } }), ` Le set (${set.paths.length} morceaux, dans l’ordre) en playlist : `,
+        set ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'set', onchange: () => { scope = 'set'; void render(); } }), set.source === 'crate' ? ' Le bac dans l’ordre enregistré' : ` Le set (${set.paths.length} morceaux, dans l’ordre) en playlist : `,
           h('input', { type: 'text', class: 'set-name', value: setName, 'aria-label': 'Nom de la playlist', disabled: scope !== 'set',
             onchange: (e: Event) => { setName = (e.target as HTMLInputElement).value; void render(); } })) : null,
         h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'all', onchange: () => { scope = 'all'; void render(); } }), ` Tous les morceaux analysés (${doneResults().length})`),
+        selection.length ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'selection',
+          onchange: () => { scope = 'selection'; void render(); } }), ' Morceaux sélectionnés') : null,
         currentPath ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'current', onchange: () => { scope = 'current'; void render(); } }), ' Morceau affiché seulement') : null,
         target === 'rekordbox' || adapter.via === 'rekordbox'
           ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')

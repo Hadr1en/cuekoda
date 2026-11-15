@@ -1,3 +1,4 @@
+import type { CrateAction, CrateResponse, PrepCrate } from '../core/crates';
 import type { AnalysisChanges, AnalysisComparison } from '../core/analysisComparison';
 import type { KeyNotation } from '../core/key';
 import type { AnalysisResult, Overrides } from '../core/types';
@@ -124,6 +125,7 @@ export type TrackEdits = Pick<AnalysisResult, 'cues' | 'loops' | 'sections' | 'v
 
 export interface InitialState {
   tracks: TrackRecord[];
+  crates: PrepCrate[];
   settings: Settings;
   builtinProfiles: Profile[];
   queue: QueueState;
@@ -149,6 +151,8 @@ export interface CueKodaApi {
   pathsForFiles(files: File[]): string[];
   pick(kind: 'files' | 'folder'): Promise<string[]>;
   addPaths(paths: string[]): Promise<AddedFile[]>;
+  updateCrates(action: CrateAction): Promise<CrateResponse>;
+  onCrates(cb: (crates: PrepCrate[]) => void): void;
   /** Re-analyse; user edits are kept. force = ignore the cache (e.g. new engine version). */
   reanalyze(paths: string[], force?: boolean): Promise<number>;
   analysisComparison(path: string): Promise<AnalysisComparison | null>;
