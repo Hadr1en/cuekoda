@@ -283,6 +283,8 @@ export const EN_EXACT: Record<string, string> = {
   'Résultats d’analyse (estimations)': 'Analysis results (estimates)',
   Stabilité: 'Stability',
   'Alternatives tempo': 'Tempo alternatives',
+  'Repère électro proposé après comparaison des changements sur plusieurs mesures':
+    'Electronic music cue suggested from changes across several bars',
   'Ajustement de la grille': 'Grid fit',
   'Premier temps': 'First downbeat',
   'Alternatives tonalité': 'Key alternatives',

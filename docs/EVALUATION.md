@@ -77,3 +77,23 @@ calcule ses mesures en 4/4.
 Le CLI accepte une liste JSON de références avec un chemin audio par entrée via `--refs`.
 Les mesures de tempo sur des boucles ou sur de la batterie seule n’évaluent pas le placement
 de cues sur des morceaux complets.
+
+### Modèles de cues électro
+
+CueKoda 0.4.4 utilise deux petits modèles d’arbres pour comparer les emplacements de drops et
+de breaks sur une grille EDM déjà établie. Les modèles suivent l’énergie, le bas du spectre,
+la brillance et les attaques de grosse caisse sur plusieurs mesures. Les seuils de sélection
+et le résultat passent ensuite par le profil habituel de hot cues.
+
+Le [manifeste d’entraînement](../scripts/electro-cue-training-ids.json) contient 45 titres
+des plis 2 à 5 de [Raveform](https://mir-aidj.github.io/raveform/). Le pli 6 a servi au réglage
+et un nouveau lot du pli 7 à la validation finale. Pour régénérer les coefficients à partir
+des versions audio originales, utiliser scikit-learn 1.9.1 et NumPy 2.5.4.
+
+```bash
+npm run build
+CUEKODA_VOCAL_MODEL=0 node dist/test/export-electro-cue-features.js \
+  /chemin/vers/raveform/structures /chemin/vers/audio \
+  scripts/electro-cue-training-ids.json > electro-cue-features.jsonl
+python3 scripts/train-electro-cues.py electro-cue-features.jsonl src/core/electroCueModel.json
+```
