@@ -20,12 +20,15 @@ const SUPPORT_TEXT = { yes: '✓', partial: '≈', no: '✗' } as const;
 /** set: tracks in the order of the mix-order window, exported as one named playlist */
 export function openExport(currentPath: string | null, set?: { name: string; paths: string[] }) {
   const dlg = $<HTMLDialogElement>('dlg-export');
+  if (dlg.open) return;
   let target: AdapterInfo['id'] = 'rekordbox';
   let scope: 'all' | 'current' | 'set' = set ? 'set' : 'all';
   let setName = set?.name ?? '';
   const opts: ExportOptions = { ...state.settings.exportOptions };
 
   let previewRequest = 0;
+  let exporting = false;
+  dlg.oncancel = (event) => { if (exporting) event.preventDefault(); };
   const render = async () => {
     const request = ++previewRequest;
     const adapter = state.adapters.find((a) => a.id === target)!;
@@ -36,70 +39,76 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
     if (request !== previewRequest) return;
     const parts: (Node | null)[] = [
       h('h2', { id: 'dlg-export-title' }, set ? 'Exporter le set vers…' : 'Exporter vers…'),
-      h('p', { class: 'muted' }, 'Choisis ton logiciel DJ : CueKoda écrit le fichier qu’il sait lire, puis te guide pour l’import.'),
       h(
         'div',
         { class: 'targets', role: 'radiogroup', 'aria-label': 'Logiciel DJ' },
         ...state.adapters.map((a) =>
-          h('label', { class: `target${a.id === target ? ' on' : ''}${a.status !== 'available' ? ' off' : ''}` },
+          h('label', { class: `target${a.id === target ? ' on' : ''}` },
             h('input', { type: 'radio', name: 'target', checked: a.id === target, onchange: () => { target = a.id; void render(); } }),
             h('b', {}, a.name),
             h('span', { class: 'muted' }, a.tagline),
-            h('span', { class: `pill ${a.status === 'available' ? (a.validated ? 'ok' : 'warn') : 'off'}` },
-              a.status === 'available' ? (a.validated ? 'import vérifié' : a.via ? `via ${a.via} XML · non vérifié` : 'non vérifié') : 'indisponible'),
           ),
         ),
       ),
       h('p', { class: 'muted' }, `Format : ${adapter.formatName}`),
-      adapter.status === 'available' && !adapter.validated
-        ? h('p', { class: 'note warn' }, adapter.via
-          ? `${adapter.name} sait lire une collection rekordbox XML, mais cet import n’a pas encore été vérifié avec CueKoda. Testez d’abord sur quelques morceaux.`
-          : 'Format documenté et XML valide, mais l’import n’a pas encore été vérifié dans le logiciel lui-même. Testez d’abord sur quelques morceaux.')
-        : null,
       h('table', { class: 'caps' },
         h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Donnée'), h('th', { scope: 'col' }, 'Transfert'), h('th', { scope: 'col' }, 'Détail'))),
         h('tbody', {}, ...adapter.capabilities.map((c) =>
           h('tr', {}, h('td', {}, c.field), h('td', { class: `sup-${c.support}` }, SUPPORT_TEXT[c.support]), h('td', { class: 'muted' }, c.note)))),
       ),
-      adapter.status === 'available'
-        ? h('fieldset', { class: 'opts' },
-            h('legend', {}, 'Options'),
-            set ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'set', onchange: () => { scope = 'set'; void render(); } }), ` Le set (${set.paths.length} morceaux, dans l’ordre) en playlist : `,
-              h('input', { type: 'text', class: 'set-name', value: setName, 'aria-label': 'Nom de la playlist', disabled: scope !== 'set',
-                onchange: (e: Event) => { setName = (e.target as HTMLInputElement).value; void render(); } })) : null,
-            h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'all', onchange: () => { scope = 'all'; void render(); } }), ` Tous les morceaux analysés (${doneResults().length})`),
-            currentPath ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'current', onchange: () => { scope = 'current'; void render(); } }), ' Morceau affiché seulement') : null,
-            target === 'rekordbox' || adapter.via === 'rekordbox'
-              ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
-              : null,
-            h('label', { title: 'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.' },
-              h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
-              ' Énergie, clé et voix dans le commentaire'),
-            h('label', {}, 'Boucles : ',
-              h('select', { onchange: (e: Event) => { opts.loops = (e.target as HTMLSelectElement).value as ExportOptions['loops']; void render(); } },
-                ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))),
-          )
-        : null,
-      h('h3', {}, adapter.status === 'available' ? 'Ce qui sera transféré' : 'Pourquoi ce n’est pas disponible'),
+      h('fieldset', { class: 'opts' },
+        h('legend', {}, 'Options'),
+        set ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'set', onchange: () => { scope = 'set'; void render(); } }), ` Le set (${set.paths.length} morceaux, dans l’ordre) en playlist : `,
+          h('input', { type: 'text', class: 'set-name', value: setName, 'aria-label': 'Nom de la playlist', disabled: scope !== 'set',
+            onchange: (e: Event) => { setName = (e.target as HTMLInputElement).value; void render(); } })) : null,
+        h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'all', onchange: () => { scope = 'all'; void render(); } }), ` Tous les morceaux analysés (${doneResults().length})`),
+        currentPath ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'current', onchange: () => { scope = 'current'; void render(); } }), ' Morceau affiché seulement') : null,
+        target === 'rekordbox' || adapter.via === 'rekordbox'
+          ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
+          : null,
+        h('label', { title: 'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.' },
+          h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
+          ' Énergie, clé et voix dans le commentaire'),
+        h('label', {}, 'Boucles : ',
+          h('select', { onchange: (e: Event) => { opts.loops = (e.target as HTMLSelectElement).value as ExportOptions['loops']; void render(); } },
+            ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))),
+      ),
+      h('h3', {}, 'Ce qui sera transféré'),
       h('ul', { class: 'summary' }, ...preview.lines.map((l) => h('li', { class: l.startsWith('⚠') ? 'note warn' : '' }, l))),
       h('h3', {}, 'Import dans le logiciel'),
       h('ol', { class: 'summary' }, ...adapter.howToImport.map((l) => h('li', {}, l))),
-      h('p', { class: 'muted' }, 'Sécurité : CueKoda écrit un nouveau fichier de collection ; un fichier existant est d’abord sauvegardé à côté (.backup-…). Vos fichiers audio et votre bibliothèque DJ ne sont jamais modifiés directement.'),
+      h('p', { class: 'muted' }, 'CueKoda sauvegarde le fichier de destination s’il existe déjà.'),
       h('div', { class: 'dlg-actions' },
         closeBtn(dlg),
         h('button', {
           type: 'button',
           class: 'btn primary',
-          disabled: adapter.status !== 'available' || !preview.readyPaths.length,
+          disabled: !preview.readyPaths.length,
           onclick: async () => {
-            if (request !== previewRequest) return;
-            const res = await api.exportCollection(adapter.id, preview.readyPaths, exportOptions);
-            if (res.ok) {
-              dlg.close();
-              toast(`Exporté : ${res.file}${res.backup ? ` (ancien fichier sauvegardé : ${res.backup})` : ''}`, 8000);
-            } else if (!res.canceled) toast(`Erreur d’export : ${res.error}`, 8000);
+            if (request !== previewRequest || exporting) return;
+            exporting = true;
+            dlg.replaceChildren(
+              h('h2', { id: 'dlg-export-title' }, 'Export en cours…'),
+              h('div', { class: 'export-working', role: 'status' },
+                h('progress', { 'aria-label': 'Export en cours…' }),
+                h('span', {}, 'Création du fichier de collection…')),
+            );
+            try {
+              const res = await api.exportCollection(adapter.id, preview.readyPaths, exportOptions);
+              if (res.ok) {
+                dlg.close();
+                toast(`Exporté : ${res.file}${res.backup ? ` (ancien fichier sauvegardé : ${res.backup})` : ''}`, 8000);
+                return;
+              }
+              if (!res.canceled) toast(`Erreur d’export : ${res.error}`, 8000);
+            } catch (e) {
+              toast(`Erreur d’export : ${String(e)}`, 8000);
+            } finally {
+              exporting = false;
+              if (dlg.open) await render();
+            }
           },
-        }, `Exporter ${preview.readyPaths.length} morceau(x)…`),
+        }, `Exporter ${preview.readyPaths.length} morceau${preview.readyPaths.length === 1 ? '' : 'x'}…`),
       ),
     ];
     dlg.replaceChildren(...parts.filter((n): n is Node => n !== null));
@@ -146,7 +155,9 @@ export function openHelp() {
     ['↑ / ↓', 'Morceau précédent / suivant'],
     ['1 … 8', 'Aller au hot cue A … H'],
     ['Maj + 1 … 8', 'Poser le hot cue A … H à la position de lecture (calé sur le temps)'],
-    ['Suppr', 'Supprimer le cue sélectionné'],
+    ['⌘ / Ctrl + A', 'Sélectionner tous les morceaux affichés'],
+    ['Maj + ↑ / ↓', 'Étendre la sélection dans la bibliothèque'],
+    ['Suppr', 'Retirer les morceaux sélectionnés dans la bibliothèque, ou supprimer le cue sélectionné'],
     [', / .', 'Déplacer le cue sélectionné d’un temps (Maj : une mesure)'],
     ['C', 'Ajouter un cue à la position de lecture (premier pad libre, sinon memory cue)'],
     ['M', 'Ajouter une memory cue à la position de lecture'],

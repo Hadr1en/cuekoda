@@ -111,8 +111,6 @@ export interface AdapterInfo {
   name: string;
   tagline: string;
   via?: 'rekordbox' | 'traktor';
-  status: 'available' | 'unavailable';
-  validated: boolean;
   formatName: string;
   capabilities: { field: string; support: 'yes' | 'partial' | 'no'; note: string }[];
   howToImport: string[];

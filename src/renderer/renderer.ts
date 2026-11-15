@@ -30,6 +30,10 @@ let searchTerms: string[] = [];
 let visibleRecords: TrackRecord[] = [];
 let visibleIndex = new Map<string, number>();
 let libraryFrame = 0;
+let markedPaths = new Set<string>();
+let selectionAnchor: string | null = null;
+const selectAll = $<HTMLInputElement>('select-all');
+const trackActions = $('track-actions');
 const searchText = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 let activeTab = 'cues';
 let loopPlay: Loop | null = null;
@@ -157,6 +161,12 @@ function renderLibrary() {
   });
   visibleRecords = recs;
   visibleIndex = new Map(recs.map(({ path }, index) => [path, index]));
+  for (const path of markedPaths) {
+    if (!visibleIndex.has(path)) {
+      markRow(path, false);
+      markedPaths.delete(path);
+    }
+  }
   const body = $('rows');
   const focusedRow = document.activeElement?.closest('tr.row');
   const shownRows = new Set(recs.map(({ path }) => rowEls.get(path)));
@@ -167,12 +177,25 @@ function renderLibrary() {
   for (const rec of recs) {
     let tr = rowEls.get(rec.path);
     if (!tr) {
-      tr = h('tr', { class: 'row', tabIndex: 0 });
+      tr = h('tr', { class: 'row', tabIndex: 0, 'data-track': rec.path });
       const p = rec.path;
-      tr.addEventListener('click', () => select(p));
-      tr.addEventListener('dblclick', () => api.revealInFolder(p));
+      tr.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('input')) chooseTrack(p, e);
+      });
+      tr.addEventListener('dblclick', (e) => {
+        if (!(e.target as HTMLElement).closest('input') && !e.shiftKey && !e.ctrlKey && !e.metaKey) api.revealInFolder(p);
+      });
+      tr.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        openTrackActions(p, e.clientX, e.clientY);
+      });
       tr.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); select(p); }
+        if (e.key === 'Enter' && e.target === tr) { e.preventDefault(); chooseTrack(p, e); }
+        if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+          e.preventDefault();
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          openTrackActions(p, rect.left + 20, rect.bottom);
+        }
       });
       rowEls.set(rec.path, tr);
       renderRow(rec, tr);
@@ -191,10 +214,81 @@ function renderLibrary() {
   document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
     th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
   });
+  syncTrackSelection();
   updateGlobalButtons();
   updateTransport();
 }
 
+function markRow(path: string, marked: boolean) {
+  const row = rowEls.get(path);
+  if (!row) return;
+  row.classList.toggle('marked', marked);
+  row.querySelector<HTMLInputElement>('input')!.checked = marked;
+}
+
+function syncTrackSelection() {
+  const count = markedPaths.size;
+  selectAll.checked = count > 0 && count === visibleRecords.length;
+  selectAll.indeterminate = count > 0 && count < visibleRecords.length;
+  $('selection-count').hidden = count === 0;
+  setText($('selection-count'), `${count} sélectionné${count > 1 ? 's' : ''}`);
+  $<HTMLButtonElement>('btn-remove').disabled = count === 0;
+  $<HTMLButtonElement>('btn-reanalyze').disabled = ![...markedPaths].some((p) => !state.tracks.get(p)?.missing);
+}
+
+function replaceTrackSelection(next: Set<string>) {
+  for (const path of markedPaths) if (!next.has(path)) markRow(path, false);
+  for (const path of next) if (!markedPaths.has(path)) markRow(path, true);
+  markedPaths = next;
+  syncTrackSelection();
+}
+
+function selectedPaths() {
+  return [...markedPaths].filter((path) => visibleIndex.has(path) && state.tracks.has(path));
+}
+
+function chooseTrack(path: string, e?: MouseEvent | KeyboardEvent, checkbox = false) {
+  const toggle = checkbox || !!(e?.metaKey || e?.ctrlKey);
+  const anchor = selectionAnchor === null ? undefined : visibleIndex.get(selectionAnchor);
+  const index = visibleIndex.get(path);
+  const next = new Set(toggle ? markedPaths : []);
+  if (e?.shiftKey && anchor !== undefined && index !== undefined) {
+    for (const record of visibleRecords.slice(Math.min(anchor, index), Math.max(anchor, index) + 1)) next.add(record.path);
+  } else {
+    selectionAnchor = path;
+    if (toggle && next.has(path)) next.delete(path);
+    else next.add(path);
+    if (!toggle) select(path);
+  }
+  replaceTrackSelection(next);
+  // The native checkbox has already toggled itself, even when a range keeps its selection.
+  if (checkbox) markRow(path, markedPaths.has(path));
+}
+
+function markAllVisible(on: boolean) {
+  selectionAnchor = on ? visibleRecords[0]?.path ?? null : null;
+  replaceTrackSelection(new Set(on ? visibleRecords.map(({ path }) => path) : []));
+}
+
+function openTrackActions(path: string, x: number, y: number) {
+  rowEls.get(path)?.focus({ preventScroll: true });
+  if (!markedPaths.has(path)) chooseTrack(path);
+  const button = (label: string, action: () => void, disabled = false) => h('button', {
+    type: 'button', class: 'btn ghost', disabled, onclick: () => { trackActions.hidePopover(); action(); },
+  }, label);
+  trackActions.replaceChildren(
+    button('Ré-analyser', () => void reanalyzeSelected(), !selectedPaths().some((p) => !state.tracks.get(p)?.missing)),
+    button('Retirer de la bibliothèque', () => void removeSelected()),
+    button('Afficher le fichier', () => void api.revealInFolder(path), markedPaths.size > 1 || !!state.tracks.get(path)?.missing),
+    button('Tout sélectionner', () => markAllVisible(true)),
+  );
+  if (!trackActions.matches(':popover-open')) trackActions.showPopover();
+  trackActions.style.left = `${Math.max(4, Math.min(x, innerWidth - trackActions.offsetWidth - 4))}px`;
+  trackActions.style.top = `${Math.max(4, Math.min(y, innerHeight - trackActions.offsetHeight - 4))}px`;
+  trackActions.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+}
+
+const selectionLabel = (name: string) => `${tr('Sélectionner')} ${name}`;
 const td = (text: string | Node, cls = '') => h('td', { class: cls }, text);
 
 const isBusy = (rec?: TrackRecord) => !!rec && (rec.status === 'analyzing' || rec.status === 'queued');
@@ -220,10 +314,12 @@ function busyLine(rec: TrackRecord, inRow = false) {
 
 function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
   if (!tr) return;
+  const checkboxFocused = document.activeElement?.parentElement === tr.firstElementChild;
   tr.replaceChildren();
   if (rec.path === state.selected) tr.setAttribute('aria-current', 'true');
   else tr.removeAttribute('aria-current');
   tr.classList.toggle('busy', isBusy(rec));
+  tr.classList.toggle('marked', markedPaths.has(rec.path));
   const r = rec.result;
   const reasons = rec.status === 'done' ? reviewReasons(rec) : [];
   const warn = rec.missing || reasons.length > 0;
@@ -234,6 +330,12 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
         : rec.status === 'error' ? `Erreur : ${rec.error ?? ''}`
           : rec.status === 'cancelled' ? 'Annulé'
             : warn ? `À vérifier : ${[...reasons, ...r!.warnings].join(' ; ')}` : rec.reviewedAt ? 'Vérifié par vous' : rec.cached ? 'Analysé (cache)' : 'Analysé';
+  tr.append(td(h('input', {
+    type: 'checkbox', 'aria-label': selectionLabel(r?.title || rec.fileName),
+    checked: markedPaths.has(rec.path),
+    onclick: (e: MouseEvent) => chooseTrack(rec.path, e, true),
+  }), 'c-select'));
+  if (checkboxFocused) tr.querySelector('input')?.focus({ preventScroll: true });
   tr.append(td(h('span', {}, h('span', { class: `dot ${warn ? 'warn' : rec.status}`, title: stateText }), h('span', { class: 'sr-only' }, stateText)), 'c-state'));
 
   if (r && rec.status !== 'error') {
@@ -625,7 +727,7 @@ function renderCues(r: AnalysisResult) {
       h('input', { class: 'nm', type: 'text', value: cue.name, 'aria-label': `Nom du pad ${LETTERS[slot]}`, disabled: cue.locked,
         onchange: (e: Event) => edit(r, () => { cue.name = (e.target as HTMLInputElement).value || cue.name; cue.origin = 'user'; }) }),
       h('div', { class: 'tm' }, `${fmtTime(cue.timeSec)} · mes. ${cue.bar + 1}`),
-      h('div', { class: 'why', title: cue.reason }, cue.reason),
+      h('div', { class: 'why' }, cue.reason.replace(/ — détection heuristique non validée$/, '')),
       h('div', { class: 'ctl' },
         b('▶', 'Aller au cue', () => { jump(cue.timeSec); void audio.play(); }),
         b('−mes', '1 mesure plus tôt', () => moveCue(r, cue, -4), cue.locked),
@@ -829,10 +931,7 @@ function renderVocals(r: AnalysisResult): HTMLElement {
     h('button', { type: 'button', class: 'btn small ghost', title, 'aria-label': title, disabled, onclick: fn }, label);
   return h('section', { class: 'vocals-edit' },
     h('h3', {}, 'Voix'),
-    h('p', { class: 'muted' },
-      r.vocals?.edited
-        ? 'Passages vocaux corrigés par vous : conservés lors des ré-analyses.'
-        : 'Détection automatique non validée : corrige les passages (début / fin à la mesure près), ils seront conservés.'),
+    h('p', { class: 'muted' }, 'Ajuste les passages vocaux à la mesure près. CueKoda conserve tes corrections.'),
     h('div', { class: 'hrow' },
       h('button', { type: 'button', class: 'btn small', onclick: () => vocalEdit(r, (list) => {
         const b = Math.max(0, barOf(r, audio.currentTime));
@@ -1009,7 +1108,6 @@ function renderMix(r: AnalysisResult) {
     );
   const matches = matchTracks(r, doneResults(), 8);
   $('tab-mix').replaceChildren(
-    h('p', { class: 'muted' }, 'Suggestions à valider : elles s’appuient sur la structure, les phrases, l’énergie, la percussion et la détection vocale (expérimentale).'),
     h('div', { class: 'cols' },
       list('Mix In', r.mix?.mixIn ?? [], 'mixin'),
       list('Mix Out', r.mix?.mixOut ?? [], 'mixout'),
@@ -1035,14 +1133,13 @@ function renderMix(r: AnalysisResult) {
 }
 
 // ---------------------------------------------------------------- tab: info
-/** Vocal detection summary — always labelled as an unvalidated estimate. */
 function vocalSummary(r: AnalysisResult): string | undefined {
   const v = r.vocals;
   if (!v) return undefined;
-  if (!v.segments.length) return `aucune voix détectée${v.note ? ` — ${v.note}` : ''} (heuristique non validée : des voix peuvent être manquées)`;
+  if (!v.segments.length) return 'Aucune voix détectée';
   const strong = v.segments.filter((s) => s.strength === 'strong').length;
   const parts = v.segments.map((s) => `${fmtTime(s.startSec)}–${fmtTime(s.endSec)}${s.strength === 'strong' ? '' : ' (faible)'}`);
-  return `${v.segments.length} passage(s), ${Math.round(v.coverage * 100)} % du morceau, ${strong} net(s) : ${parts.join(' · ')} (heuristique non validée)`;
+  return `${v.segments.length} passage(s), ${Math.round(v.coverage * 100)} % du morceau, ${strong} net(s) : ${parts.join(' · ')}`;
 }
 
 function renderInfo(r: AnalysisResult) {
@@ -1073,7 +1170,7 @@ function renderInfo(r: AnalysisResult) {
           row('True peak', L?.truePeakDbtp != null ? `${L.truePeakDbtp.toFixed(1)} dBTP` : undefined),
           row('RMS / crête', L ? `${L.rmsDb.toFixed(1)} dBFS · facteur de crête ${L.crestDb.toFixed(1)} dB` : undefined),
           row('Énergie estimée', r.energy ? `${r.energy.score}/10 (algorithmique, comparable dans cette bibliothèque)` : undefined),
-          row('Voix (expérimental)', vocalSummary(r)),
+          row('Voix', vocalSummary(r)),
           row('Moteur', `v${r.engineVersion ?? '?'} · ${(r.analysisMs / 1000).toFixed(1)} s${state.tracks.get(r.path)?.cached ? ' · depuis le cache' : ''}`),
         ))),
     ),
@@ -1266,15 +1363,28 @@ document.addEventListener('keydown', (e) => {
   const t = e.target as HTMLElement;
   const typing = t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable;
   const mod = e.metaKey || e.ctrlKey;
+  const inLibrary = !!t.closest('#list-wrap');
+  if (t.closest('.action-popover') || document.querySelector('dialog[open]')) return;
+  if (mod && (!typing || t === selectAll || t.matches('#rows input[type=checkbox]'))
+    && (inLibrary || t === document.body) && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+    markAllVisible(true);
+    return;
+  }
+  if (inLibrary && (e.key === 'Delete' || e.key === 'Backspace')) {
+    e.preventDefault();
+    if (!e.repeat) void removeSelected();
+    return;
+  }
   if (mod && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
   if (mod && e.key.toLowerCase() === 'e') { e.preventDefault(); if (doneResults().length) openExport(state.selected); return; }
-  if (!document.querySelector('dialog[open]') && mod && e.key.toLowerCase() === 'f') {
+  if (mod && e.key.toLowerCase() === 'f') {
     e.preventDefault();
     search.focus();
     search.select();
     return;
   }
-  if (typing || mod || document.querySelector('dialog[open]')) return;
+  if (typing || mod) return;
   const r = current();
   const selCue = r?.cues.find((c) => c.id === wave.selectedCueId);
   if (e.code === 'Space') {
@@ -1294,9 +1404,12 @@ document.addEventListener('keydown', (e) => {
     jump(wave.stepBeats(audio.currentTime, step));
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
-    const index = state.selected ? visibleIndex.get(state.selected) : undefined;
+    const focused = t.closest<HTMLElement>('tr.row')?.dataset.track;
+    const path = focused ?? state.selected;
+    const index = path ? visibleIndex.get(path) : undefined;
+    if (e.shiftKey && selectionAnchor === null) selectionAnchor = path;
     const next = visibleRecords[Math.max(0, (index ?? -1) + (e.key === 'ArrowDown' ? 1 : -1))]?.path;
-    if (next) { select(next); rowEls.get(next)?.focus({ preventScroll: true }); }
+    if (next) { chooseTrack(next, e); rowEls.get(next)?.focus(); }
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && r && selCue) {
     e.preventDefault();
     deleteCue(r, selCue);
@@ -1397,21 +1510,46 @@ $('btn-order').addEventListener('click', () => {
     stop: () => { tx?.stop(); audio.pause(); },
   });
 });
-$('btn-reanalyze').addEventListener('click', () => {
-  const paths = [...state.tracks.values()].filter(matchesFilter).map((r) => r.path);
+selectAll.addEventListener('change', () => markAllVisible(selectAll.checked));
+
+async function reanalyzeSelected() {
+  const paths = selectedPaths().filter((p) => !state.tracks.get(p)?.missing);
+  if (!paths.length) return;
   if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Vos cues modifiés ou verrouillés sont conservés.`))) return;
-  void api.reanalyze(paths);
-});
-$('btn-remove').addEventListener('click', () => {
-  if (!state.selected) return toast('Sélectionnez un morceau');
-  const p = state.selected;
-  if (!confirm(tr('Retirer ce morceau de la bibliothèque CueKoda ? Le fichier audio n’est pas supprimé.'))) return;
-  void api.removeTracks([p]).then(() => {
-    state.tracks.delete(p);
-    rowEls.delete(p);
-    if (state.selected === p) select(null);
+  await api.reanalyze(paths, true);
+}
+
+let removing = false;
+async function removeSelected() {
+  const paths = selectedPaths();
+  if (!paths.length || removing) return;
+  const message = paths.length === 1
+    ? 'Retirer ce morceau de la bibliothèque CueKoda ? Le fichier audio n’est pas supprimé.'
+    : `Retirer ${paths.length} morceaux de la bibliothèque ? Les fichiers audio sont conservés.`;
+  if (!confirm(tr(message))) return;
+  const selected = state.selected;
+  const removed = new Set(paths);
+  removing = true;
+  try {
+    await api.removeTracks(paths);
+    for (const p of paths) {
+      state.tracks.delete(p);
+      rowEls.delete(p);
+      markedPaths.delete(p);
+    }
+    if (selected && state.selected === selected && removed.has(selected)) select(null);
     renderLibrary();
-  });
+    selectAll.focus({ preventScroll: true });
+  } finally {
+    removing = false;
+  }
+}
+$('btn-reanalyze').addEventListener('click', () => void reanalyzeSelected());
+$('btn-remove').addEventListener('click', () => void removeSelected());
+
+// Close the overflow before opening a secondary dialog.
+$('main-more').addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).closest('button')) $('main-more').hidePopover();
 });
 
 // header
@@ -1499,7 +1637,7 @@ async function boot() {
   renderLibrary();
   onQueue();
   const first = s.tracks.find((t) => t.result);
-  if (first) select(first.path);
+  if (first && visibleIndex.has(first.path)) chooseTrack(first.path);
 
   api.onTrack(({ path, record }) => {
     const prev = state.tracks.get(path);
@@ -1512,6 +1650,7 @@ async function boot() {
     if (prev?.status !== merged.status || prev?.missing !== merged.missing || record.result !== undefined) {
       updateGlobalButtons();
       updateTransport();
+      if (prev?.missing !== merged.missing && markedPaths.has(path)) syncTrackSelection();
     }
     onQueue(); // the header names the track being analysed and its stage
     if (record.result && path === state.selected) {
@@ -1524,7 +1663,10 @@ async function boot() {
       if (prev?.status !== merged.status || prev?.missing !== merged.missing || prev?.reviewedAt !== merged.reviewedAt) renderDetail();
       else renderBusy(merged);
     }
-    if (record.result && !state.selected) select(path);
+    if (record.result && !state.selected) {
+      if (visibleIndex.has(path) && !markedPaths.size) chooseTrack(path);
+      else select(path);
+    }
   });
   api.onQueue((q) => { state.queue = q; onQueue(); });
   api.onSummary((sum) => {

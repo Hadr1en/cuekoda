@@ -58,7 +58,7 @@ export function vocalCandidates(vocals: VocalInfo | undefined, phraseOrigin = 0)
         kind: 'vocal' as CueKind,
         bar,
         confidence: (s.strength === 'strong' ? 'medium' : 'low') as Confidence,
-        reason: `Entrée de voix détectée (${len} mesures${s.strength === 'strong' ? '' : ', indice faible'}) — détection heuristique non validée`,
+        reason: `Entrée de voix détectée (${len} mesures${s.strength === 'strong' ? '' : ', indice faible'})`,
       };
     });
 }

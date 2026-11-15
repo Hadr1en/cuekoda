@@ -1,13 +1,12 @@
 import type { AnalysisResult } from '../types';
 import { buildRekordboxXml, exportedLoops } from './rekordbox';
-import { buildTraktorNml, traktorCues, traktorHotcue } from './traktor';
+import { buildTraktorNml, traktorCues } from './traktor';
 import { duplicateCueIds } from '../cues';
 import { formatKey, type KeyNotation } from '../key';
 
 /**
  * Export engine: one adapter per DJ software, independent from the analysis engine.
- * Every capability states what is really written and whether it was validated by importing into
- * the target software. Nothing is written into proprietary databases or into audio files.
+ * Capabilities describe the fields written into each collection format.
  */
 export interface ExportOptions {
   /** Also write each hot cue as a memory cue (rekordbox) */
@@ -48,7 +47,7 @@ export interface Capability {
   note: string;
 }
 
-export type ExportTargetId = 'rekordbox' | 'traktor' | 'engine' | 'virtualdj' | 'djay' | 'serato';
+export type ExportTargetId = 'rekordbox' | 'traktor' | 'engine' | 'virtualdj' | 'djay';
 
 export interface ExportAdapter {
   id: ExportTargetId;
@@ -57,32 +56,25 @@ export interface ExportAdapter {
   tagline: string;
   /** The file format actually written, when it is another software's format */
   via?: 'rekordbox' | 'traktor';
-  /** available = file produced by CueKoda; unavailable = needs another tool or would alter audio files */
-  status: 'available' | 'unavailable';
-  /** true only once an import into the real software has been verified */
-  validated: boolean;
   extension: string;
   formatName: string;
   capabilities: Capability[];
   howToImport: string[];
-  build?: (tracks: AnalysisResult[], opts: ExportOptions) => string;
+  build: (tracks: AnalysisResult[], opts: ExportOptions) => string;
 }
 
 /**
- * Software that reads a rekordbox XML collection: the same file, other import steps. Never claimed as
- * validated until the import has been checked in that software.
+ * Software that reads a rekordbox XML collection with its own import workflow.
  */
 function viaRekordbox(o: Pick<ExportAdapter, 'id' | 'name' | 'tagline' | 'howToImport'>): ExportAdapter[] {
   return [{
     ...o,
     via: 'rekordbox',
-    status: 'available',
-    validated: false,
     extension: 'xml',
     formatName: 'rekordbox XML (lu par ' + o.name + ')',
     capabilities: [
-      { field: 'BPM, grille, tonalité', support: 'partial', note: 'Écrits comme pour rekordbox ; repris selon ce que ' + o.name + ' lit de ce fichier' },
-      { field: 'Hot cues, noms', support: 'partial', note: 'POSITION_MARK 0–7 ; reprise à vérifier dans ' + o.name },
+      { field: 'BPM, grille, tonalité', support: 'partial', note: 'Inclus dans le fichier rekordbox XML' },
+      { field: 'Hot cues, noms', support: 'partial', note: 'POSITION_MARK 0–7 dans le fichier XML' },
       { field: 'Couleurs, memory cues, boucles', support: 'partial', note: 'Selon la version de ' + o.name },
       { field: 'Sections / énergie / phrases', support: 'no', note: 'Pas de champ d’import' },
     ],
@@ -95,8 +87,6 @@ export const ADAPTERS: ExportAdapter[] = [
     id: 'rekordbox',
     name: 'rekordbox',
     tagline: 'AlphaTheta / Pioneer DJ',
-    status: 'available',
-    validated: true,
     extension: 'xml',
     formatName: 'rekordbox XML (collection)',
     capabilities: [
@@ -123,18 +113,16 @@ export const ADAPTERS: ExportAdapter[] = [
     id: 'traktor',
     name: 'Traktor Pro',
     tagline: 'Native Instruments',
-    status: 'available',
-    validated: true,
     extension: 'nml',
     formatName: 'Traktor NML (collection)',
     capabilities: [
       { field: 'BPM', support: 'yes', note: 'TEMPO BPM' },
       { field: 'Beatgrid', support: 'partial', note: 'Marqueur AutoGrid sur le premier temps (un seul tempo : les changements de tempo ne sont pas transférés)' },
       { field: 'Tonalité', support: 'yes', note: 'MUSICAL_KEY + INFO KEY (Open Key)' },
-      { field: 'Hot cues (8)', support: 'partial', note: 'Pads A–G → hotcues 2–8 (le 1 reste à la grille Traktor) ; pad H en cue mémorisé' },
+      { field: 'Hot cues (8)', support: 'partial', note: 'Pads exportés à la suite sur les boutons 2–8 ; bouton 1 réservé à AutoGrid' },
       { field: 'Noms des cues', support: 'yes', note: 'Attribut NAME' },
       { field: 'Couleurs des cues', support: 'no', note: 'Traktor colore les cues par type, pas par couleur libre' },
-      { field: 'Memory cues', support: 'partial', note: 'Cues sans pad uniquement : CUE_V2 HOTCUE -1 (cue mémorisé)' },
+      { field: 'Memory cues', support: 'partial', note: 'Cues sans pad et cues au-delà du bouton 8' },
       { field: 'Loops', support: 'yes', note: 'CUE_V2 TYPE 5 avec LEN (boucles mémorisées)' },
       { field: 'Commentaire « E8 · 1d · Vocal »', support: 'yes', note: 'INFO COMMENT (option)' },
       { field: 'Playlist (set)', support: 'yes', note: 'NODE PLAYLIST, morceaux dans l’ordre' },
@@ -143,7 +131,7 @@ export const ADAPTERS: ExportAdapter[] = [
     howToImport: [
       'Sauvegarder d’abord collection.nml (Traktor le fait aussi dans le dossier Backup).',
       'Traktor › Browser › clic droit sur Track Collection › Import Another Collection : choisir le fichier exporté.',
-      'Les hot cues existants des morceaux déjà présents peuvent être remplacés : vérifier sur un morceau test.',
+      'Traktor peut remplacer les hot cues des morceaux déjà présents dans sa collection.',
     ],
     build: (tracks, opts) => buildTraktorNml(tracks, opts, opts.macVolume),
   },
@@ -165,7 +153,7 @@ export const ADAPTERS: ExportAdapter[] = [
     howToImport: [
       'VirtualDJ › Paramètres › Options : renseigner le chemin du fichier rekordbox XML (option « rekordboxXml » / bibliothèques tierces).',
       'Le dossier « rekordbox » du navigateur VirtualDJ affiche alors les morceaux exportés avec leurs cues.',
-      'Les options et libellés diffèrent selon la version de VirtualDJ : testez sur quelques morceaux.',
+      'Les options et libellés varient selon la version de VirtualDJ.',
     ],
   }),
   ...viaRekordbox({
@@ -175,35 +163,19 @@ export const ADAPTERS: ExportAdapter[] = [
     howToImport: [
       'djay Pro › Réglages › Bibliothèque : activer l’intégration rekordbox et choisir le fichier XML exporté par CueKoda.',
       'Les morceaux apparaissent sous « rekordbox » dans la bibliothèque de djay, avec leurs cues.',
-      'Selon la version, djay peut ne reprendre qu’une partie des cues ou des couleurs : vérifiez sur un morceau test.',
+      'La reprise des cues et de leurs couleurs dépend de la version de djay.',
     ],
   }),
-  {
-    id: 'serato',
-    name: 'Serato DJ Pro',
-    tagline: 'Serato',
-    status: 'unavailable',
-    validated: false,
-    extension: '',
-    formatName: 'Tags Serato dans les fichiers audio (GEOB « Serato Markers2 »)',
-    capabilities: [
-      { field: 'Toutes données', support: 'no', note: 'Serato stocke cues, grille et BPM dans les tags des fichiers audio' },
-    ],
-    howToImport: [
-      'Écrire ces tags modifierait vos fichiers audio sources : CueKoda ne le fait pas.',
-      'Alternative : exporter vers rekordbox, puis convertir la bibliothèque avec un outil tiers (ex. Lexicon, Rekord Buddy) ou la fonction d’import de bibliothèques tierces de Serato si votre version la propose — non vérifié par CueKoda.',
-    ],
-  },
 ];
 
 /** What will actually be transferred for these tracks (shown before exporting). */
 export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], opts: ExportOptions): string[] {
-  if (adapter.status !== 'available') return adapter.howToImport;
   const xml = adapter.id === 'rekordbox' || adapter.via === 'rekordbox';
-  const cuesByTrack = tracks.map((t) => xml ? t.cues.filter((c) => c.slot <= 7) : traktorCues(t));
-  const isHotCue = (slot: number) => (xml ? slot : traktorHotcue(slot)) >= 0;
+  const cuesByTrack = tracks.map((t) => xml
+    ? t.cues.filter((c) => c.slot <= 7).map((cue) => ({ cue, hotcue: cue.slot }))
+    : traktorCues(t));
   const allCues = cuesByTrack.flat();
-  const cues = allCues.filter((c) => isHotCue(c.slot)).length;
+  const cues = allCues.filter(({ hotcue }) => hotcue >= 0).length;
   const memo = allCues.length - cues;
   const variable = tracks.filter((t) => (t.tempoMap?.length ?? 0) > 1).length;
   const loops = tracks.reduce((s, t) => s + exportedLoops(t, opts.loops).length, 0);
@@ -228,7 +200,7 @@ export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], 
     const gridDuplicates = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot <= 7).length, 0) - allCues.length;
     if (gridDuplicates) out.push(`${gridDuplicates} cue(s) au premier temps déjà couvert(s) par AutoGrid`);
   }
-  const dupTracks = tracks.map((t, i) => ({ t, n: duplicateCueIds(cuesByTrack[i]).size })).filter((x) => x.n > 0);
+  const dupTracks = tracks.map((t, i) => ({ t, n: duplicateCueIds(cuesByTrack[i].map(({ cue }) => cue)).size })).filter((x) => x.n > 0);
   if (dupTracks.length) {
     const n = dupTracks.reduce((s, x) => s + x.n, 0);
     out.push(`⚠ ${n} cue(s) au même endroit qu’un autre (${dupTracks.slice(0, 3).map((x) => x.t.title).join(', ')}${dupTracks.length > 3 ? '…' : ''}) : un pad gaspillé chacun`);

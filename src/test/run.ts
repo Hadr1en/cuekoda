@@ -325,7 +325,7 @@ async function main() {
     const { findProfile } = await import('../core/profiles');
     const rv = await analyzeFile(file, { profile: { ...findProfile('edm'), id: 'edm-vocal', excludeKinds: [] } });
     const vc = rv.cues.find((c) => c.kind === 'vocal');
-    check('Cue vocal à l’entrée de la voix (profil qui les active)', !!vc && vc.bar === 16 && vc.confidence === 'medium' && vc.reason.includes('non validée'), vc ? `bar ${vc.bar} ${vc.confidence}` : 'absent');
+    check('Cue vocal à l’entrée de la voix (profil qui les active)', !!vc && vc.bar === 16 && vc.confidence === 'medium' && vc.reason.startsWith('Entrée de voix détectée'), vc ? `bar ${vc.bar} ${vc.confidence}` : 'absent');
     const out = r.mix?.mixOut[0];
     check('Mix Out instrumental signalé', out?.vocals === 'none' && out.reason.includes('aucune voix'), out ? `${out.bar}: ${out.reason}` : 'absent');
     const sec = r.sections?.find((x) => x.startBar <= 26 && 26 < x.endBar);

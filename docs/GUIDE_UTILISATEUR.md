@@ -49,13 +49,12 @@ Annuler / rétablir : ⌘Z / ⇧⌘Z. Toutes les modifications sont enregistrée
 une ré-analyse**.
 
 ## 4. Exporter
-« Exporter… » : choisissez votre logiciel (rekordbox et Traktor : import vérifié ; Engine DJ, VirtualDJ et
-djay Pro : via un fichier rekordbox XML, à vérifier), les options (memory cues, boucles), lisez le résumé de
-ce qui sera transféré, puis enregistrez le fichier et suivez les étapes d'import affichées. L'option
+Dans « Exporter… », choisissez le logiciel et les options. L’aperçu récapitule les données transférées.
+Enregistrez le fichier, puis suivez les étapes d’import affichées. L'option
 « Énergie, clé et voix dans le commentaire » écrit par exemple « E8 · 8B · Vocal » dans le champ Commentaire,
 pour trier par énergie dans votre logiciel DJ (si vous acceptez d'écraser les informations d'un morceau déjà
 présent, son commentaire est remplacé). Voir
-[MATRICE_EXPORT.md](MATRICE_EXPORT.md). Serato n'est pas disponible (il faudrait modifier vos fichiers).
+[MATRICE_EXPORT.md](MATRICE_EXPORT.md).
 
 ## Ordre de mix (suggestion)
 « Ordre de mix… » (au-dessus de la liste) propose un ordre pour les morceaux affichés (filtrez d'abord si
@@ -78,6 +77,6 @@ Langue : français ou anglais.
 
 ## Raccourcis
 Espace lecture · ←/→ une mesure (Maj : un temps) · ↑/↓ morceau · 1–8 aller au cue · Maj+1–8 poser le cue ·
-Suppr supprimer le cue sélectionné · , / . déplacer le cue d'un temps (Maj : une mesure) · C ajouter un cue ·
+Ctrl/⌘ + A sélectionner les morceaux affichés · Maj + ↑/↓ étendre la sélection · Suppr retirer les morceaux sélectionnés dans la bibliothèque ou supprimer le cue dans l’éditeur · , / . déplacer le cue d'un temps (Maj : une mesure) · C ajouter un cue ·
 M ajouter une memory cue · L boucle de 16 temps ·
 + / − / 0 zoom · ⌘E exporter · ? aide.

@@ -36,7 +36,6 @@ progressive, techno, trance…) mais fonctionne aussi en open format.
     [Structure et voix](#3-structure-et-voix) · [Boucles](#4-boucles) · [Mix et transitions](#5-mix-et-transitions) ·
     [Ordre de mix](#6-suggestion-dordre-de-mix) · [Bibliothèque](#7-bibliothèque) · [Export](#8-export-vers-ton-logiciel-dj) ·
     [Réglages, mises à jour, langue](#9-réglages-mises-à-jour-et-langue)
-- [Fiabilité et limites](#fiabilité-et-limites)
 - [Raccourcis clavier](#raccourcis-clavier)
 - [Confidentialité et sécurité](#confidentialité-et-sécurité)
 - [Pour les développeurs](#pour-les-développeurs)
@@ -48,8 +47,6 @@ progressive, techno, trance…) mais fonctionne aussi en open format.
   vocal ajusté : tout survit aux ré-analyses.
 - **Rien ne sort de ta machine.** L'analyse est 100 % locale. Les fichiers audio ne sont jamais envoyés,
   modifiés, déplacés ni supprimés.
-- **Pas de fausse précision.** Ce qui n'est pas vérifié est affiché comme tel : export « non vérifié »,
-  détection vocale « expérimentale », tonalité « ambiguë », temps 1 « incertain ».
 
 ## Télécharger et installer
 Les installeurs sont reconstruits à chaque mise à jour du code et publiés dans les
@@ -92,7 +89,7 @@ l'installeur depuis les Releases et l'installer manuellement.
 | **Volume** | LUFS intégré, plage de loudness, true peak, RMS, crête (ffmpeg `ebur128`). |
 | **Énergie** | Score 1–10 et courbe par mesure (volume normalisé par le LUFS intégré, densité d'attaques, graves, brillance). |
 | **Structure** | Intro, build-up, drop, breakdown, outro, phrases de 8 / 16 / 32 mesures (seulement si elles sont régulières). Les **drops** sont repérés par palier d'énergie et placés sur l'entrée de la basse. |
-| **Voix** | Détection locale expérimentale (modèle MusiCNN + heuristique) : passages vocaux nets ou faibles. |
+| **Voix** | Détection locale (modèle MusiCNN + heuristique) : passages vocaux nets ou faibles. |
 | **Empreinte** | Empreinte chromatique par mesure, pour repérer doublons et versions d'un même morceau. |
 
 La file d'analyse se met en pause, s'annule, relance les échecs et respecte une limite CPU. Un fichier
@@ -177,20 +174,21 @@ départ, **construire le set reste ton travail**.
 Le **métronome** permet de vérifier la grille à l’oreille, avec un clic accentué sur le temps 1.
 **Valider et passer au suivant** marque le morceau comme vérifié et ouvre la prochaine piste affichée.
 
+Sélectionne les morceaux avec les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
+
 ### 8. Export vers ton logiciel DJ
-<img src="docs/screenshots/fr/export.png" alt="Fenêtre d'export : choix du logiciel DJ, ce qui est transféré, étapes d'import" width="100%">
+<img src="docs/screenshots/fr/export.png" alt="Fenêtre d’export de CueKoda" width="100%">
 
 Un seul bouton **« Exporter… »** : choisis ton logiciel, vois ce qui sera transféré et ce qui ne le sera
 pas, enregistre le fichier, suis les étapes d'import.
 
-| Logiciel | Fichier écrit | BPM / grille / clé | Hot cues, noms | Couleurs | Memory cues | Boucles | Import |
-|---|---|---|---|---|---|---|---|
-| **rekordbox** | rekordbox XML | ✓ (grille multi-tempo) | ✓ | ✓ | ✓ | ✓ | ✅ vérifié |
-| **Traktor Pro** | Traktor NML | ✓ (un seul tempo) | ✓ | — (couleur par type) | ✓ (cues sans pad) | ✓ | ✅ vérifié |
-| **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | selon Engine DJ | selon Engine DJ | ? | ? | ? | à vérifier |
-| **VirtualDJ** | rekordbox XML | selon VirtualDJ | selon VirtualDJ | ? | ? | ? | à vérifier |
-| **djay Pro** | rekordbox XML | selon djay | selon djay | ? | ? | ? | à vérifier |
-| **Serato DJ Pro** | — | — | — | — | — | — | indisponible |
+| Logiciel | Fichier écrit | BPM / grille / clé | Hot cues, noms | Couleurs | Memory cues | Boucles |
+|---|---|---|---|---|---|---|
+| **rekordbox** | rekordbox XML | ✓ (grille multi-tempo) | ✓ | ✓ | ✓ | ✓ |
+| **Traktor Pro** | Traktor NML | ✓ (un seul tempo) | ✓ | — (couleur par type) | ✓ (cues sans pad) | ✓ |
+| **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | selon Engine DJ | selon Engine DJ | ? | ? | ? |
+| **VirtualDJ** | rekordbox XML | selon VirtualDJ | selon VirtualDJ | ? | ? | ? |
+| **djay Pro** | rekordbox XML | selon djay | selon djay | ? | ? | ? |
 
 **Options utiles** :
 - **Commentaire « E8 · 8B · Vocal »** (activé par défaut) : énergie, clé Camelot et voix écrites dans le champ
@@ -199,12 +197,8 @@ pas, enregistre le fichier, suis les étapes d'import.
 - **Exporter un set** : depuis « Ordre de mix… », « Exporter ce set… » crée une playlist nommée, avec les
   morceaux dans l'ordre que tu as arrangé.
 
-Serato range ses cues **dans les fichiers audio eux-mêmes** : les écrire modifierait tes fichiers, ce que
-CueKoda ne fait jamais. Détails et procédure de vérification : [matrice d'export](docs/MATRICE_EXPORT.md).
-
-Dans Traktor, AutoGrid occupe le bouton 1. Les pads A–G vont sur les boutons 2–8 et le pad H devient un
-cue mémorisé. AutoGrid marque le premier temps à lui seul. Valide les boucles souhaitées dans CueKoda
-avant l’export avec l’option par défaut « validées uniquement ».
+Dans Traktor, AutoGrid occupe le bouton 1. CueKoda remplit les boutons 2 à 8 dans l’ordre des pads
+et écarte les cues superposés à AutoGrid. Valide les boucles avant l’export pour les retrouver parmi les repères mémorisés.
 
 Pour reprendre une collection dans CueKoda, clique sur **« Importer collection… »** et choisis un XML
 rekordbox ou un NML Traktor. Tes cues importés sont verrouillés. Les suggestions remplissent les pads libres.
@@ -226,21 +220,6 @@ ton logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord
 - **Thème** sombre (par défaut), clair ou système ; nombre d'analyses en parallèle ; dossiers surveillés ;
   apprentissage ; profils.
 
-## Fiabilité et limites
-CueKoda est honnête sur ce qu'il sait faire :
-- Le [rapport d'évaluation](docs/EVALUATION.md) mesure les cues sur trois morceaux EDM corrigés à l'oreille.
-- **À confirmer** — Nouveau mapping Traktor, décalage à l'import selon le format audio, imports Engine DJ,
-  VirtualDJ et djay Pro, mise à jour sous Windows et calibration de l'énergie.
-- **Expérimental** : détection vocale (des voix peuvent être manquées) ; couplet / refrain proposés
-  seulement sur preuve forte.
-- **Pas encore fait** : séparation de stems.
-- **Tempo variable** : les marqueurs sont exportés vers rekordbox, mais cues et sections sont calculés sur
-  la grille moyenne ; Traktor ne reçoit qu'un tempo.
-
-Le détail, fonction par fonction, est dans [l'état des fonctionnalités](docs/AUDIT_ET_PLAN.md) et le
-fonctionnement des algorithmes dans [ALGORITHMES.md](docs/ALGORITHMES.md).
-
-
 Le sélecteur de la bibliothèque permet de passer de Camelot à Open Key (Traktor).
 Par exemple, **5A** et **10m** désignent tous deux **do mineur**. La recherche accepte les deux codes.
 
@@ -254,7 +233,9 @@ Par exemple, **5A** et **10m** désignent tous deux **do mineur**. La recherche 
 | Maj + 1 … 8 | Poser le hot cue A … H à la lecture |
 | C / M | Ajouter un cue (premier pad libre, sinon memory cue) / une memory cue |
 | , / . | Déplacer le cue sélectionné d'un temps (Maj : une mesure) |
-| Suppr | Supprimer le cue sélectionné |
+| Ctrl / ⌘ + A | Sélectionner tous les morceaux affichés |
+| Maj + ↑ / ↓ | Étendre la sélection des morceaux |
+| Suppr | Retirer les morceaux sélectionnés dans la bibliothèque ou supprimer un cue dans l’éditeur |
 | L | Boucle de 16 temps à la lecture |
 | + / − / 0 | Zoom avant / arrière / tout le morceau |
 | ⌘Z / ⇧⌘Z | Annuler / rétablir |

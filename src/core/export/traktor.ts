@@ -24,18 +24,17 @@ export function traktorLocation(p: string, macVolume: string): { dir: string; fi
   return { dir, file, volume };
 }
 
-/**
- * Traktor hotcue index for a CueKoda pad. Traktor keeps its beatgrid marker on hotcue 1 (HOTCUE="0", as its
- * own AutoGrid does): pads A–G go to hotcues 2–8 and pad H becomes a stored cue (HOTCUE="-1"), so no cue
- * shares the grid marker's button.
- */
-export const traktorHotcue = (slot: number): number => (slot < 0 || slot >= 7 ? -1 : slot + 1);
-
-/** AutoGrid already marks the first downbeat. Preserve the pad numbers of the remaining cues. */
-export function traktorCues(track: AnalysisResult): AnalysisResult['cues'] {
+/** AutoGrid owns the first button. Pack remaining pad cues in pad order into buttons 2–8. */
+export function traktorCues(track: AnalysisResult) {
   const gridStart = Math.max(0, track.grid.firstDownbeatSec);
-  return track.cues.filter((cue) =>
+  const cues = track.cues.filter((cue) =>
     cue.slot <= 7 && Math.abs(Math.max(0, cue.timeSec) - gridStart) >= SAME_POSITION_SEC);
+  const pads = cues.filter((cue) => cue.slot >= 0).sort((a, b) => a.slot - b.slot);
+  const stored = cues.filter((cue) => cue.slot < 0);
+  return [
+    ...pads.map((cue, index) => ({ cue, hotcue: index < 7 ? index + 1 : -1 })),
+    ...stored.map((cue) => ({ cue, hotcue: -1 })),
+  ];
 }
 
 /**
@@ -77,10 +76,10 @@ export function buildTraktorNml(
     lines.push(
       `<CUE_V2 NAME="AutoGrid" DISPL_ORDER="0" TYPE="4" START="${ms(t.grid.firstDownbeatSec)}" LEN="0" REPEATS="-1" HOTCUE="0"></CUE_V2>`,
     );
-    for (const c of traktorCues(t)) {
+    for (const { cue: c, hotcue } of traktorCues(t)) {
       // slot < 0 = memory cue: a stored cue point with no hotcue button (HOTCUE="-1")
       lines.push(
-        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${traktorHotcue(c.slot)}"></CUE_V2>`,
+        `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${hotcue}"></CUE_V2>`,
       );
     }
     for (const l of exportedLoops(t, opts.loops)) {

@@ -425,9 +425,8 @@ test('traktor export: hot cue index, loop LEN, no colours', () => {
     loops: [{ id: 'l', kind: 'intro', name: 'Intro loop', startSec: 1, beats: 16, bar: 0, confidence: 'high', reason: '', origin: 'auto', accepted: true }],
   });
   const nml = buildTraktorNml([t], { memoryCues: false, loops: 'accepted' }, 'Macintosh HD');
-  // pad D (slot 3) → hotcue 5 (index 4): hotcue index 0 belongs to the AutoGrid marker
-  assert.ok(nml.includes('TYPE="0" START="10000.000" LEN="0" REPEATS="-1" HOTCUE="4"'));
-  assert.ok(nml.includes('TYPE="5" START="1000.000" LEN="7500.000"'));
+  assert.match(nml, /TYPE="0" START="10000.000" LEN="0" REPEATS="-1" HOTCUE="1"/);
+  assert.match(nml, /TYPE="5" START="1000.000" LEN="7500.000" REPEATS="-1" HOTCUE="-1"/);
   assert.ok(nml.includes('DIR="/:m/:" FILE="a.mp3" VOLUME="Macintosh HD"'));
   assert.ok(!/RED|COLOR/i.test(nml));
 });
@@ -435,7 +434,7 @@ test('traktor export: hot cue index, loop LEN, no colours', () => {
 test('traktor export: no cue shares the grid marker hotcue, external volumes', () => {
   const t = track({
     path: '/Volumes/DJ USB/Music/Set 1/a.mp3',
-    cues: [0, 1, 6, 7].map((slot) => cue({ slot, timeSec: 10 + slot, name: `P${slot}` })),
+    cues: [0, 1, 2, 3, 4, 5, 6, 7].map((slot) => cue({ slot, timeSec: 10 + slot, name: `P${slot}` })),
   });
   const nml = buildTraktorNml([t], { memoryCues: false, loops: 'none' }, 'Macintosh HD');
   const hot = [...nml.matchAll(/HOTCUE="(-?\d+)"/g)].map((m) => Number(m[1]));
@@ -449,20 +448,25 @@ test('traktor export: no cue shares the grid marker hotcue, external volumes', (
   assert.equal(traktorLocation('/Users/me/c.mp3', 'Macintosh HD').volume, 'Macintosh HD');
 });
 
-test('Traktor keeps just AutoGrid at the first downbeat and preserves subsequent pad numbers', () => {
+test('Traktor keeps AutoGrid alone and assigns button 2 to the first eligible pad cue', () => {
   const t = track({
     path: '/m/intro.mp3',
     cues: [
       cue({ id: 'intro', slot: 0, timeSec: 0.1, name: 'Intro' }),
       cue({ id: 'near', slot: -1, timeSec: 0.11, name: 'Near grid' }),
-      cue({ id: 'drop', slot: 1, timeSec: 15.1, name: 'Drop' }),
+      cue({ id: 'drop', slot: 3, timeSec: 15.1, name: 'Drop' }),
+    ],
+    loops: [
+      { id: 'loop', kind: 'intro', name: 'Intro loop', startSec: 0.1, beats: 16, bar: 0, confidence: 'high', reason: '', origin: 'auto', accepted: true },
     ],
   });
   const opts = { memoryCues: false, loops: 'accepted' } as const;
   const nml = buildTraktorNml([t], opts);
   assert.match(nml, /NAME="AutoGrid"[^>]*TYPE="4" START="100\.000"[^>]*HOTCUE="0"/);
   assert.doesNotMatch(nml, /NAME="(?:Intro|Near grid)"/);
-  assert.match(nml, /NAME="Drop"[^>]*HOTCUE="2"/);
+  assert.match(nml, /NAME="Drop"[^>]*HOTCUE="1"/);
+  assert.match(nml, /NAME="Intro loop"[^>]*TYPE="5"[^>]*HOTCUE="-1"/);
+  assert.match(buildTraktorNml([{ ...t, loops: [] }], opts), /NAME="Drop"[^>]*HOTCUE="1"/);
   assert.match(buildRekordboxXml([t], opts), /Name="Intro"[^>]*Num="0"/);
   const summary = exportSummary(ADAPTERS.find((a) => a.id === 'traktor')!, [t], opts);
   assert.ok(summary.some((line) => line.startsWith('1 hot cue(s)')));
@@ -484,15 +488,11 @@ test('duplicate cues: same position flagged once, export summary warns', () => {
   assert.ok(sum.some((l) => l.startsWith('⚠ 2 cue(s) au même endroit') && l.includes('Garrix')), sum.join('\n'));
 });
 
-test('export adapters are honest about their status', () => {
-  const serato = ADAPTERS.find((a) => a.id === 'serato')!;
-  assert.equal(serato.status, 'unavailable');
-  assert.equal(serato.build, undefined);
-  assert.deepEqual(ADAPTERS.filter((a) => a.validated).map((a) => a.id).sort(), ['rekordbox', 'traktor']);
+test('export adapters expose supported collection targets and transfer counts', () => {
+  assert.deepEqual(ADAPTERS.map((a) => a.id), ['rekordbox', 'traktor', 'engine', 'virtualdj', 'djay']);
   for (const id of ['engine', 'virtualdj', 'djay'] as const) {
     const a = ADAPTERS.find((x) => x.id === id)!;
     assert.equal(a.via, 'rekordbox');
-    assert.equal(a.validated, false);
     assert.match(a.build!([track({ path: 'a', cues: [cue({})] })], { memoryCues: false, loops: 'none' }), /<DJ_PLAYLISTS/);
   }
   const rb = ADAPTERS.find((a) => a.id === 'rekordbox')!;
@@ -505,8 +505,8 @@ test('export adapters are honest about their status', () => {
     tempoMap: [{ startSec: 0, bpm: 128, beatInBar: 1 }, { startSec: 15, bpm: 132, beatInBar: 1 }],
   });
   const traktorSummary = exportSummary(traktor, [variable], { memoryCues: false, loops: 'none' });
-  assert.ok(traktorSummary.some((line) => line.startsWith('1 hot cue')));
-  assert.ok(traktorSummary.some((line) => line.startsWith('2 memory cue')));
+  assert.ok(traktorSummary.some((line) => line.startsWith('2 hot cue')));
+  assert.ok(traktorSummary.some((line) => line.startsWith('1 memory cue')));
   assert.ok(traktorSummary.some((line) => line.startsWith('⚠ Tempo variable')));
 });
 
@@ -643,7 +643,7 @@ test('vocal cue candidates: snapped to 4 bars, sparse, capped confidence', () =>
   const c = vocalCandidates(v, 0);
   assert.deepEqual(c.map((x) => x.bar), [16, 44], 'snapped, short segment skipped, at most 2');
   assert.deepEqual(c.map((x) => x.confidence), ['medium', 'low']);
-  assert.ok(c.every((x) => x.kind === 'vocal' && x.reason.includes('non validée')));
+  assert.ok(c.every((x) => x.kind === 'vocal' && x.reason.startsWith('Entrée de voix détectée')));
   assert.equal(cueCandidates([], undefined, v).filter((x) => x.kind === 'vocal').length, 2);
   // off by default (0/2 on the DJ's corrections)…
   const cand = [{ role: 'drop1' as const, kind: 'drop' as const, bar: 16, confidence: 'high' as const, reason: '' }, ...c];
@@ -1006,7 +1006,7 @@ test('English UI: dictionary and patterns', () => {
     // engine reasons (structure, cues, mix, loops)
     ['Le groove s’interrompt pendant 8 mesures', 'The groove stops for 8 bars'],
     ['Plus forte hausse de volume du morceau (+4.0 dB)', 'Biggest volume jump in the track (+4.0 dB)'],
-    ['Entrée de voix détectée (4 mesures, indice faible) — détection heuristique non validée', 'Vocal entry detected (4 bars, weak evidence) — unvalidated heuristic detection'],
+    ['Entrée de voix détectée (4 mesures, indice faible)', 'Vocal entry detected (4 bars, weak evidence)'],
     ['Début de l’outro — 32 mesures, kick présent, énergie décroissante, aucune voix détectée', 'Start of the outro — 32 bars, kick present, energy decreasing, no vocals detected'],
     ['Prolonger l’outro rythmique (32 temps)', 'Extend the rhythmic outro (32 beats)'],
     // matching reasons and cautions
@@ -1116,7 +1116,7 @@ test('collection import: rekordbox XML and Traktor NML round-trip, DJ cues locke
   const nml = buildTraktorNml([ours], { memoryCues: false, loops: 'none' }, 'Macintosh HD');
   const tk = parseTraktorNml(nml, 'Macintosh HD');
   assert.equal(tk[0].path, '/Volumes/DJ USB/Music/a & b.mp3');
-  assert.deepEqual(tk[0].cues.map((c) => [c.slot, c.timeSec]), [[0, 10], [2, 60]], 'Traktor hotcues 2–8 back to pads A–G');
+  assert.deepEqual(tk[0].cues.map((c) => [c.slot, c.timeSec]), [[0, 10], [1, 60]], 'Traktor hotcues imported in exported button order');
   assert.equal(pathFromTraktorLocation('Macintosh HD', '/:Users/:me/:', 'x.mp3', 'Macintosh HD'), '/Users/me/x.mp3');
   assert.equal(pathFromTraktorLocation('C:', '/:Music/:', 'x.mp3', 'Macintosh HD'), 'C:\\Music\\x.mp3');
 
