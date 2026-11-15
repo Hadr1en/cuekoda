@@ -97,3 +97,27 @@ CUEKODA_VOCAL_MODEL=0 node dist/test/export-electro-cue-features.js \
   scripts/electro-cue-training-ids.json > electro-cue-features.jsonl
 python3 scripts/train-electro-cues.py electro-cue-features.jsonl src/core/electroCueModel.json
 ```
+
+### Autres corpus électro
+
+[Socially Significant Music Events](https://osf.io/eydxk/), de TU Delft, fournit 402 MP3
+et leurs annotations MATLAB. Télécharger et vérifier les parties d’archive depuis OSF, puis
+extraire le ZIP multipart. Le script ci-dessous prépare les paires audio/annotations.
+Les colonnes de commentaires SoundCloud et les sentinelles zéro sont exclues.
+Les annotations expertes de SSMe sont arrondies à la seconde.
+
+```bash
+python3 scripts/import-ssme.py /chemin/vers/mp3s_soundcloud_cc_event_detection ssme.json
+```
+
+L’importateur utilise NumPy, SciPy et Mutagen. Le manifeste conserve les sommes SHA-256,
+les repères experts et une partition déterministe par identifiant SSMe. Le corpus ne
+fournit pas de tags d’artiste dans ses MP3. Le partage par identifiant protège la séparation
+des fichiers identiques après dédoublonnage SHA-256.
+
+[EDM-98](https://github.com/25ohms/EDM-98) fournit les sections et les partitions officielles,
+avec des identifiants Deezer. Il faut retrouver l’enregistrement complet correspondant avant
+l’extraction de caractéristiques. [M-DJCUE](https://github.com/MZehren/M-DJCUE) fournit des
+repères de mix annotés et indique des versions audio de substitution pour une partie des titres.
+[EDM-CUE](https://huggingface.co/datasets/disco-eth/edm-cue) fournit des cues génériques et une
+grille par titre. Les fichiers `valid` et `test` téléchargés pour ce benchmark sont identiques.
