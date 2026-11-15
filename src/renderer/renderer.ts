@@ -343,7 +343,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
       : rec.status === 'queued' ? 'En attente'
         : rec.status === 'error' ? `Erreur : ${rec.error ?? ''}`
           : rec.status === 'cancelled' ? 'Annulé'
-            : warn ? `À vérifier : ${[...reasons, ...r!.warnings].join(' ; ')}` : rec.reviewedAt ? 'Vérifié par vous' : rec.cached ? 'Analysé (cache)' : 'Analysé';
+            : warn ? `À vérifier : ${[...reasons, ...r!.warnings].join(' ; ')}` : rec.reviewedAt ? 'Contrôlé à l’écoute' : rec.cached ? 'Analysé (cache)' : 'Analysé';
   tr.append(td(h('input', {
     type: 'checkbox', 'aria-label': selectionLabel(r?.title || rec.fileName),
     checked: markedPaths.has(rec.path),
@@ -532,7 +532,7 @@ function renderBusy(rec?: TrackRecord) {
   const busy = isBusy(rec);
   el.hidden = !busy;
   if (busy) el.replaceChildren(h('span', { class: 'spinner', 'aria-hidden': 'true' }), busyLine(rec!),
-    rec!.result ? h('span', { class: 'muted' }, ' · l’analyse précédente reste affichée, tes corrections seront conservées') : '');
+    rec!.result ? h('span', { class: 'muted' }, ' · l’analyse précédente reste affichée et les corrections manuelles sont conservées') : '');
   // first analysis: nothing to show yet except the progress
   const pending = $('pending');
   pending.hidden = !busy || !!rec!.result;
@@ -744,7 +744,7 @@ function renderCues(r: AnalysisResult) {
         h('input', { type: 'color', value: hexOf(cue.color), 'aria-label': `Couleur du pad ${LETTERS[slot]}`, disabled: cue.locked,
           onchange: (e: Event) => edit(r, () => { cue.color = rgbOf((e.target as HTMLInputElement).value); cue.origin = 'user'; }) }),
         confBadge(cue.confidence, true),
-        cue.origin === 'user' ? h('span', { class: 'pill', title: 'Modifié par vous : conservé lors des ré-analyses' }, 'perso') : '',
+        cue.origin === 'user' ? h('span', { class: 'pill', title: 'Modification manuelle conservée lors des réanalyses' }, 'perso') : '',
         dups.has(cue.id) ? h('span', { class: 'pill warn' }, 'doublon') : '',
       ),
       h('input', { class: 'nm', type: 'text', value: cue.name, 'aria-label': `Nom du pad ${LETTERS[slot]}`, disabled: cue.locked,
@@ -954,7 +954,7 @@ function renderVocals(r: AnalysisResult): HTMLElement {
     h('button', { type: 'button', class: 'btn small ghost', title, 'aria-label': title, disabled, onclick: fn }, label);
   return h('section', { class: 'vocals-edit' },
     h('h3', {}, 'Voix'),
-    h('p', { class: 'muted' }, 'Ajuste les passages vocaux à la mesure près. CueKoda conserve tes corrections.'),
+    h('p', { class: 'muted' }, 'Les passages vocaux peuvent être ajustés à la mesure près. Les corrections sont conservées.'),
     h('div', { class: 'hrow' },
       h('button', { type: 'button', class: 'btn small', onclick: () => vocalEdit(r, (list) => {
         const b = Math.max(0, barOf(r, audio.currentTime));
@@ -996,7 +996,7 @@ function renderVocals(r: AnalysisResult): HTMLElement {
                 btn('▶', 'Écouter le passage', () => { jump(seg.startSec); void audio.play(); }),
                 btn('Cue', 'Créer un cue Vocal au début du passage', () => addCue(r, seg.startSec, 'vocal')),
                 btn('✕', 'Supprimer le passage vocal', () => vocalEdit(r, (l) => { l.splice(i, 1); })),
-                seg.origin === 'user' ? h('span', { class: 'pill', title: 'Modifié par vous' }, 'perso') : '',
+                seg.origin === 'user' ? h('span', { class: 'pill', title: 'Modifié manuellement' }, 'perso') : '',
               ),
             ))),
         )
@@ -1211,7 +1211,7 @@ function renderInfo(r: AnalysisResult) {
 // ---------------------------------------------------------------- reference annotations (spec §21)
 function referenceBlock(r: AnalysisResult): HTMLElement {
   const saved = r.fileHash ? state.references[r.fileHash] : undefined;
-  const rating = h('select', { 'aria-label': 'Votre ressenti d’énergie (optionnel)' },
+  const rating = h('select', { 'aria-label': 'Évaluation manuelle de l’énergie (facultative)' },
     h('option', { value: '' }, 'Énergie ressentie : —'),
     ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => h('option', { value: String(v) }, `Énergie ressentie : ${v}/10`)));
   const count = Object.keys(state.references).length;
@@ -1219,7 +1219,7 @@ function referenceBlock(r: AnalysisResult): HTMLElement {
     h('h3', {}, 'Référence de qualité'),
     h('p', { class: 'muted' },
       'Quand ce morceau est vérifié à l’oreille et corrigé (BPM, temps 1, clé, cues, sections), enregistrez-le comme référence. ',
-      '« npm run eval » ré-analyse ensuite les références sans vos corrections et mesure la justesse du moteur.'),
+      '« npm run eval » réanalyse les fichiers de référence et compare les résultats aux annotations.'),
     saved ? h('p', {}, `✓ Référence enregistrée le ${new Date(saved).toLocaleString('fr-FR')}`) : null,
     h('div', { class: 'hrow' },
       rating,
@@ -1260,7 +1260,7 @@ function override(ov: Parameters<typeof api.setOverrides>[1], label: string) {
   const r = current();
   if (!r || isBusy(state.tracks.get(r.path))) return;
   void api.setOverrides(r.path, ov);
-  toast(`${label} — ré-analyse en cours (vos cues sont conservés)`);
+  toast(`${label} — réanalyse en cours (repères conservés)`);
 }
 $('bpm-input').addEventListener('change', (e) => {
   const v = Number((e.target as HTMLInputElement).value);
@@ -1695,7 +1695,7 @@ selectAll.addEventListener('change', () => markAllVisible(selectAll.checked));
 async function reanalyzeSelected() {
   const paths = selectedPaths().filter((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)));
   if (!paths.length) return;
-  if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Vos cues modifiés ou verrouillés sont conservés.`))) return;
+  if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Les cues modifiés ou verrouillés sont conservés.`))) return;
   latestComparison = await api.reanalyze(paths, true);
 }
 
@@ -1871,7 +1871,7 @@ async function boot() {
     state.tracks.delete(p);
     rowEls.delete(p);
     if (state.selected === p) select(movedTo ?? null);
-    if (movedTo) toast(`Fichier retrouvé : ${movedTo.split(/[\\/]/).pop()} — vos corrections le suivent`);
+    if (movedTo) toast(`Fichier retrouvé : ${movedTo.split(/[\\/]/).pop()} — corrections conservées`);
     renderLibrary();
     renderDetail();
   });

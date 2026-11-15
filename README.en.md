@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <b>Your track prep, done for you. The decisions stay yours.</b><br>
-  BPM · beatgrid · Camelot key · structure · energy · hot cues · loops → rekordbox, Traktor and more
+  <b>Local audio analysis, track preparation and export to DJ software.</b><br>
+  <a href="https://hadr1en.github.io/cuekoda/">Project website</a> · <a href="docs/MATRICE_EXPORT.md">Export reference (French)</a>
 </p>
 
 <p align="center">
@@ -22,10 +22,7 @@
   <img src="docs/screenshots/en/detail.png" alt="CueKoda: library, waveform with sections, energy curve and hot cues" width="100%">
 </p>
 
-CueKoda is a **track-preparation app for DJs** (macOS and Windows). It is not mixing software. You give it
-audio files, it analyses them, and you get back annotated tracks to import into **rekordbox, Traktor,
-Engine DJ, VirtualDJ or djay Pro**. It is built with EDM in mind (house, big room, progressive, techno,
-trance…) but also works for open-format sets.
+CueKoda is a **track-preparation application for DJs** on macOS and Windows. It analyses audio locally, suggests editable cues and exports collections as **rekordbox XML** or **Traktor NML**. Built-in profiles cover electronic music and open-format sets.
 
 ## Contents
 - [Principles](#principles)
@@ -34,18 +31,17 @@ trance…) but also works for open-format sets.
 - [Features in detail](#features-in-detail)
   - [Analysis](#1-analysis) · [Hot cues and memory cues](#2-hot-cues-and-memory-cues) ·
     [Structure and vocals](#3-structure-and-vocals) · [Loops](#4-loops) · [Mixing and transitions](#5-mixing-and-transitions) ·
-    [Mix order](#6-suggested-mix-order) · [Library](#7-library) · [Export](#8-export-to-your-dj-software) ·
+    [Mix order](#6-suggested-mix-order) · [Library](#7-library) · [Export](#8-export-to-dj-software) ·
     [Settings, updates, language](#9-settings-updates-and-language)
 - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Privacy and safety](#privacy-and-safety)
 - [For developers](#for-developers)
 
 ## Principles
-- **CueKoda prepares, the DJ decides.** Every suggestion shows its confidence (high / medium / low) and why
-  it was made. You can change all of it.
-- **Your corrections are kept.** Cues you moved, renamed or locked, sections you fixed, vocal parts you
-  adjusted: all of it survives re-analysis.
-- **Nothing leaves your computer.** Analysis is 100% local. Audio files are never uploaded, modified, moved
+- **Editable suggestions.** Every suggestion shows its confidence (high / medium / low) and why
+  it was made.
+- **Persistent edits.** Re-analysis preserves manually edited cues, sections and vocal passages.
+- **Local analysis.** Analysis is 100% local. Audio files are never uploaded, modified, moved
   or deleted.
 
 ## Download and install
@@ -63,8 +59,7 @@ Installers are rebuilt on every code update and published in the
   **Open Anyway**.
 - **Windows**: at the SmartScreen warning, **More info** › **Run anyway**.
 
-**Updates** — CueKoda checks public GitHub releases. You can also download the installer from Releases
-and install it manually.
+**Updates** — CueKoda checks public GitHub releases. Installers are also available from GitHub Releases for manual updates.
 
 ## Get started in 4 steps
 1. **Import**: drop files or a folder onto the window, or use "+ Files" / "+ Folder". Formats: MP3, WAV,
@@ -72,8 +67,8 @@ and install it manually.
 2. **Analyse**: analysis starts on its own, several tracks at a time. Each row shows the current stage and
    percentage.
 3. **Check and correct**: click a track, listen, drag cues on the waveform, fix BPM, grid or key if needed.
-   The **Reliability** column tells you what to check first.
-4. **Export**: "Export…", pick your software, save the file, follow the import steps shown.
+   The **Reliability** column indicates which tracks to review first.
+4. **Export**: "Export…", select a format, save the file and follow the import instructions.
 
 ## Features in detail
 
@@ -104,14 +99,14 @@ level** and a **reason** ("bass entry: +12 dB in the low end").
 - ±1 beat / ±1 bar buttons, rename, recolour, 🔒 lock, ✕ delete.
 - **"+ Cue here"** adds a cue of the chosen type (Vocal by default, for when the vocal comes back) on the
   first free pad. When all 8 pads are taken, it becomes a **memory cue**.
-- **Memory cues**: cues without a pad, listed under the pads, which you can move onto a pad at any time.
+- **Memory cues**: cues without a pad, listed under the pads, with the option to assign them to a pad.
   They export as rekordbox memory cues and Traktor stored cues.
 - **Vocal cues** — Built-in profiles exclude Vocal suggestions. Enable them in a custom profile or add a
   Vocal cue manually.
-- **Overlapping cues** — You can only add a cue at a free position. Moving a cue onto another cue flags
+- **Overlapping cues** — New cues require an unoccupied position. Moving a cue onto another cue flags
   the duplicate on the pads and in the export preview.
-- Undo / redo (⌘Z / ⇧⌘Z). Sections follow the Intro / Build / Drop / Break / Outro cues you move.
-- **Learning**: a cue type you almost always delete is no longer suggested (local statistics, can be reset).
+- Undo / redo (⌘Z / ⇧⌘Z). Sections follow movements of Intro, Build, Drop, Break and Outro cues.
+- **Learning**: local deletion statistics adjust suggestions and can be reset.
 
 ### 3. Structure and vocals
 <img src="docs/screenshots/en/structure.png" alt="Structure tab: editable sections and correctable vocal parts" width="100%">
@@ -119,8 +114,7 @@ level** and a **reason** ("bass entry: +12 dB in the low end").
 - **Sections**: change type and name, move the start to the bar, split at the playhead, merge. The coloured
   band on the waveform updates.
 - **Vocals**: add a part at the playhead, move its start and end, "Vocal ends here", "Vocal pause here",
-  mark it clear or faint, create a Vocal cue in one click. Your vocal parts replace automatic detection on
-  every re-analysis.
+  mark it clear or faint, create a Vocal cue in one click. Manually edited vocal passages take precedence on re-analysis.
 
 ### 4. Loops
 Suggested loops (intro, outro, pre-drop, breakdown start), 4 to 64 beats long, with looped preview and
@@ -134,24 +128,22 @@ approval. Only approved loops are exported by default. Key **L**: 16-beat loop a
 - **Compatible tracks**: key (same, adjacent, relative, energy boost…), BPM gap (half / double time
   included), energy, length of the transition windows. Each match is scored and explained, with warnings
   (two sung parts overlapping, uncertain key…).
-- **🎧 Transition**: plays the end of the current track into the start of the other one. The tempo is
+- **Transition preview**: plays the end of the current track into the start of the other one. The tempo is
   matched without changing the key, beats are aligned on Mix Out / Mix In, and the crossfade lasts 16 bars.
-  Beyond a ±8% tempo gap CueKoda refuses rather than mangling the sound.
+  The preview is unavailable when the tempo gap exceeds ±8%.
 
 ### 6. Suggested mix order
 <img src="docs/screenshots/en/order.png" alt="Suggested mix order: scored and explained transitions, a hard one flagged" width="100%">
 
-A low-key "Mix order…" button above the list suggests an order for the tracks shown. Filter first to work
-on a selection. Nothing is applied or exported: it is a starting point, and **building the set stays your
-job**.
+“Mix order…” proposes an order for the tracks shown. The proposed order can be edited before export.
 
 - **Energy arc**: gradual rise (peak at three quarters, then a slight cool-down), waves, or free (key and
   tempo only).
-- **Opener**: let CueKoda choose, or pick your first track.
+- **Opener**: automatic or manual selection of the starting track.
 - Each transition is **scored out of 100 and explained**. **Hard** transitions (clashing keys, tempo gap
   > 8%) are highlighted.
 - Move tracks up / down, listen to each transition (🎧), open a track, **copy the list**.
-- **Export this set…**: the list goes to your DJ software as a named playlist, in your order.
+- **Export this set…**: creates a named playlist in the displayed order.
 
 ### 7. Library
 - Sortable, filterable list (title, artist, key, BPM) with Camelot key colours, energy, a cue thumbnail and
@@ -159,14 +151,14 @@ job**.
 - **Watched folders**: a file copied into a watched folder is analysed automatically once the copy has
   finished.
 - **Duplicates**: exact duplicates, the same recording in another format, related versions (remix, edit),
-  found with the acoustic fingerprint. Nothing is deleted; you decide.
-- **DJ profiles**: EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, or your own (BPM range,
+  found with the acoustic fingerprint. Detection leaves the source files intact.
+- **DJ profiles**: EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, and custom profiles (BPM range,
   cues to place, colours, loops).
 - **EDM — fixed pads** assigns pads A through H to Intro, Build 1, Drop 1, Break, Build 2, Drop 2,
   Outro and Mix Out. If a cue is missing, its pad stays free.
 - **Review** — Use “To review” to find tracks worth checking and “Missing files” to see unavailable
   paths. Mark tracks as checked after listening.
-- **References**: "Validate as reference" saves a track you checked by ear. References measure the
+- **References**: "Validate as reference" saves a track reviewed by listening. References measure the
   engine's accuracy (`npm run eval`).
 
 Use the **metronome** to check the grid by ear, with an accented downbeat.
@@ -180,15 +172,12 @@ Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click
 Open **More › Compare re-analysis…** to listen to changed tracks before and after and restore the
 previous analysis for each track.
 
-**Crates** saves your selections as local, ordered lists. Add tracks from their context menu, reorder
-the crate, then filter the library to it or export it as a named playlist. Remove from crate keeps
-the track in your library. Export also accepts the current multi-selection.
+**Crates** stores selections as local, ordered lists. Tracks can be added through the context menu. A crate can filter the library or be exported as a named playlist. Export also accepts the current selection.
 
-### 8. Export to your DJ software
+### 8. Export to DJ software
 <img src="docs/screenshots/en/export.png" alt="CueKoda export dialog" width="100%">
 
-A single **"Export…"** button. Pick your software, see what will and will not be transferred, save the file,
-then follow the import steps.
+The **“Export…”** dialog lists the fields transferred and displays import instructions for the selected software.
 
 | Software | File written | BPM / grid / key | Hot cues, names | Colours | Memory cues | Loops |
 |---|---|---|---|---|---|---|
@@ -200,20 +189,19 @@ then follow the import steps.
 
 **Useful options**:
 - **"E8 · 8B · Vocal" comment** (on by default): energy, Camelot key and vocals written to the Comments field,
-  so you can sort and filter your collection right in your DJ software. "Vocal" or "Instru" is only written on
+  for sorting and filtering in the DJ software. "Vocal" or "Instru" is only written on
   clear evidence.
-- **Export a set**: from "Mix order…", "Export this set…" creates a named playlist with the tracks in the order
-  you arranged.
+- **Export a set**: from "Mix order…", "Export this set…" creates a named playlist with the tracks in the displayed order.
 
 In Traktor, AutoGrid occupies button 1. CueKoda fills buttons 2–8 in pad order, skipping cues
 at the first downbeat. The Traktor button preview shows all eight buttons and the stored markers for the
-current export options. Approve the loops you want before exporting.
+current export options. Only approved loops are exported by default.
 
 Use **“Import collection…”** to bring a rekordbox XML or Traktor NML collection into CueKoda. Imported
-cues are locked and suggestions fill free pads. You can also adopt the BPM and first grid marker.
+cues are locked and suggestions fill free pads. Import can also apply the BPM and first grid marker.
 See the [export and import matrix](docs/MATRICE_EXPORT.md) (French).
 
-Export safety: CueKoda writes a **new collection file** and never touches your DJ software's database
+Export safety: CueKoda writes a **new collection file** and leaves the DJ software database intact
 (`master.db`, `collection.nml`). An existing file is backed up first.
 
 ### 9. Settings, updates and language
@@ -224,7 +212,7 @@ Export safety: CueKoda writes a **new collection file** and never touches your D
   SHA-256 digest. The digest checks download integrity. See [distribution decisions](docs/DISTRIBUTION.md) (French).
   - **Windows**: silent install, then restart.
   - **macOS**: the old version goes to the Trash, the new one takes its place and restarts.
-- **Language**: French or English. Your cue names are never translated; they are your data.
+- **Language**: French or English. Cue names are preserved in their original language.
 - **Theme**: dark (default), light or system. Also: number of parallel analyses, watched folders, learning,
   profiles.
 
@@ -253,9 +241,9 @@ For example, **5A** and **10m** both mean **C minor**. Search accepts both codes
 
 ## Privacy and safety
 - Local analysis: no file and no library data is ever sent online.
-- The only network connection is the update check on GitHub, which you can turn off.
+- The optional update check connects to GitHub.
 - Audio files are never modified, moved or deleted. Duplicates are flagged, never removed.
-- Exports write a new file and back up the old one; your DJ software's database is never modified directly.
+- Exports write a new file and back up any existing destination file. The DJ software database is left intact.
 
 ## For developers
 
@@ -272,7 +260,7 @@ npm start
 | `npm run test:all` | Typecheck, unit tests, end-to-end test on synthetic tracks |
 | `npm run test:regression` | Re-analyses `samples/` and compares with `tests/baselines/samples.json` |
 | `npm run smoke` | Starts the real Electron app (hidden window) and drives the UI |
-| `npm run eval` | Measures engine accuracy on the tracks you validated as references |
+| `npm run eval` | Measures engine accuracy on tracks validated as references |
 | `npm run eval:dj` | Evaluates the DJ corrections on three tracks supplied locally in `samples/` |
 | `npm run offset-test` | Generates click tracks and XML/NML collections for measuring import offsets |
 | `npm run dist:mac` / `dist:win` | Builds the installers locally |
@@ -298,9 +286,7 @@ src/test/       unit, end-to-end, regression, diagnostics
 `voice_instrumental-musicnn-msd-2` model from the Music Technology Group (UPF). See the [licence](#licence).
 
 ## Licence
-CueKoda is free software under the **GNU AGPL v3 or later** ([LICENSE](LICENSE)): you may use, study, modify
-and redistribute it, provided you also publish the source code of your modified versions, including when
-they are offered as an online service. Copyright © 2026 Hadr1en.
+CueKoda is free software under the **GNU AGPL v3 or later** ([LICENSE](LICENSE)). The licence governs use, modification and distribution, including source availability for modified versions offered as a network service. Copyright © 2026 Hadr1en.
 
 Third-party components, each under its own licence: Essentia.js (AGPL-3.0), ffmpeg-static (GPL binary),
 TensorFlow.js (Apache-2.0), music-metadata (MIT) and Electron (MIT). The `voice_instrumental-musicnn-msd-2` vocal model from

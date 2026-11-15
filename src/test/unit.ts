@@ -1101,7 +1101,7 @@ test('English UI: dictionary and patterns', () => {
     ['13 morceau(x) : BPM et grille (premier temps) pour chacun', '13 tracks: BPM and grid (first downbeat) for each'],
     ['1 memory cue(s) sans pad (cues mémorisés Traktor)', '1 memory cue without a pad (Traktor stored cues)'],
     ['Analyse terminée : 10 analysé(s), 1 erreur(s) en 42 s', 'Analysis done: 10 analyzed, 1 error in 42 s'],
-    ['BPM fixé à 128 — ré-analyse en cours (vos cues sont conservés)', 'BPM set to 128 — re-analyzing (your cues are kept)'],
+    ['BPM fixé à 128 — réanalyse en cours (repères conservés)', 'BPM set to 128 — re-analysing (cues preserved)'],
     ['⚠ Dossier introuvable (/Music/In)', '⚠ Folder not found (/Music/In)'],
     ['Mise à jour impossible : fichier incomplet (100 / 200 octets)', 'Update failed: incomplete file (100 / 200 bytes)'],
   ];

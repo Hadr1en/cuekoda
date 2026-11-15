@@ -142,7 +142,7 @@ export const ADAPTERS: ExportAdapter[] = [
     howToImport: [
       'Engine DJ Desktop › Préférences › Library : activer la bibliothèque rekordbox et indiquer le fichier XML exporté par CueKoda.',
       'Les morceaux apparaissent sous « rekordbox » dans la colonne de gauche : les importer (glisser) dans la Collection Engine DJ.',
-      'Engine DJ peut aussi lire une collection Traktor : si vous préférez, exportez pour Traktor et indiquez ce fichier NML.',
+      'Engine DJ peut également importer un fichier Traktor NML.',
       'Le libellé exact des menus peut varier selon la version d’Engine DJ.',
     ],
   }),

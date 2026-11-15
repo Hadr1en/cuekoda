@@ -2,8 +2,7 @@
 
 Légende · ✓ transféré · ≈ partiel · ✗ non transféré.
 
-L'export se fait depuis un seul bouton « Exporter… » : on choisit le logiciel, CueKoda écrit le fichier
-qu'il sait lire et affiche les étapes d'import.
+Le dialogue « Exporter… » génère un fichier dans le format sélectionné et affiche les étapes d’import correspondantes.
 
 | Donnée | rekordbox (XML) | Traktor Pro (NML) |
 |---|---|---|---|
@@ -21,12 +20,12 @@ qu'il sait lire et affiche les étapes d'import.
 
 Dans Traktor, un fichier sous `/Volumes/X/…` est exporté avec `VOLUME="X"` et un chemin relatif à ce volume.
 Au premier temps, CueKoda exporte le repère AutoGrid seul et le signale dans l’aperçu.
-Dans CueKoda, valide les boucles souhaitées avant l’export avec l’option par défaut « validées uniquement ».
+Avec l’option par défaut « validées uniquement », seules les boucles validées dans CueKoda sont exportées.
 
 ## Importer une collection dans CueKoda
 
 « Importer collection… » lit un XML rekordbox ou un NML Traktor. Les morceaux sont rapprochés par leur
-chemin. Tu peux limiter l'import aux morceaux de ta bibliothèque ou ajouter les fichiers audio accessibles.
+chemin. L’import peut se limiter aux morceaux de la bibliothèque ou inclure les fichiers audio accessibles.
 Les cues importés sont verrouillés, les boucles reprises sont validées et les suggestions occupent les pads libres.
 L'option BPM et grille relance l'analyse avec le BPM importé et le premier repère de grille disponible.
 
@@ -51,7 +50,7 @@ Chacun de ces logiciels choisit les données qu’il lit dans le fichier rekordb
 - La fusion avec des hot cues existants est gérée par le logiciel DJ au moment de l'import : CueKoda ne peut
   pas la garantir (voir les étapes d'import affichées dans la fenêtre d'export).
 
-## Procédure de validation à faire (manuelle)
+## Procédure de validation manuelle
 1. Exporter 3 morceaux (dont un avec boucles validées).
 2. rekordbox : importer via la vue « rekordbox xml », vérifier BPM, grille (temps 1), clé, 8 pads, noms,
    couleurs, memory cues et boucles.

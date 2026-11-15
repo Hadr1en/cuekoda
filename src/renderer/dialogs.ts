@@ -135,7 +135,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
         target === 'rekordbox' || adapter.via === 'rekordbox'
           ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
           : null,
-        h('label', { title: 'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.' },
+        h('label', { title: 'Ajoute les informations d’énergie au commentaire. Le commentaire existant est remplacé si l’écrasement est autorisé lors de l’import.' },
           h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
           ' Énergie, clé et voix dans le commentaire'),
         h('label', {}, 'Boucles : ',
@@ -194,7 +194,7 @@ export function openDuplicates() {
   const byPath = new Map(doneResults().map((r) => [r.path, r]));
   dlg.replaceChildren(
     h('h2', { id: 'dlg-dupes-title' }, 'Doublons et versions liées'),
-    h('p', { class: 'muted' }, 'Aucun fichier n’est supprimé ni déplacé par CueKoda : comparez, puis décidez vous-même.'),
+    h('p', { class: 'muted' }, 'La détection de doublons préserve les fichiers à leur emplacement d’origine.'),
     groups.length
       ? h('div', { class: 'dupes' }, ...groups.map((g) =>
           h('section', { class: `dupe dupe-${g.kind}` },
@@ -340,7 +340,7 @@ export function openSettings(onChanged: () => void) {
           ...LOOP_KINDS.map(([k, l]) => h('label', {}, h('input', { type: 'checkbox', checked: profile.loopKinds.includes(k), disabled: !editable,
             onchange: (e: Event) => set('loopKinds', (e.target as HTMLInputElement).checked ? [...profile.loopKinds, k] : profile.loopKinds.filter((x) => x !== k)) }), ` ${l}`)),
         ),
-        h('p', { class: 'muted' }, 'Le profil s’applique aux prochaines analyses. Utilisez « Ré-analyser » pour l’appliquer aux morceaux existants (vos corrections sont conservées).'),
+        h('p', { class: 'muted' }, 'Le profil s’applique aux prochaines analyses. La commande « Ré-analyser » l’applique aux morceaux existants et conserve les corrections manuelles.'),
       ),
 
       h('section', { class: 'set' },
@@ -366,9 +366,9 @@ export function openSettings(onChanged: () => void) {
       ),
 
       h('section', { class: 'set' },
-        h('h3', {}, 'Apprentissage à partir de vos corrections'),
+        h('h3', {}, 'Apprentissage à partir des corrections'),
         h('label', {}, h('input', { type: 'checkbox', checked: s.learningEnabled, onchange: (e: Event) => void save({ learningEnabled: (e.target as HTMLInputElement).checked }).then(render) }), ' Activer (statistiques locales)'),
-        h('p', { class: 'muted' }, 'Un type de cue que vous supprimez dans au moins 80 % des cas (sur 5 propositions ou plus) n’est plus proposé.'),
+        h('p', { class: 'muted' }, 'Un type de cue supprimé dans au moins 80 % des cas est exclu des suggestions après au moins cinq propositions.'),
         h('ul', { class: 'summary' }, ...(state.learning.length ? state.learning : ['Aucune correction enregistrée pour l’instant.']).map((l) => h('li', {}, l))),
         h('button', { type: 'button', class: 'btn small ghost', onclick: async () => { state.learning = await api.resetLearning(); render(); toast('Apprentissage réinitialisé'); } }, 'Réinitialiser l’apprentissage'),
       ),
@@ -378,7 +378,7 @@ export function openSettings(onChanged: () => void) {
         h('p', {}, `Version ${state.appVersion}${state.appBuild ? ` (build ${state.appBuild})` : ' (build de développement : pas de mise à jour automatique)'}`),
         h('label', {}, h('input', { type: 'checkbox', checked: s.autoUpdateCheck !== false, onchange: (e: Event) => void save({ autoUpdateCheck: (e.target as HTMLInputElement).checked }).then(render) }),
           ' Vérifier au démarrage s’il existe une nouvelle version'),
-        h('p', { class: 'muted' }, 'Seul GitHub est contacté (aucune donnée de votre bibliothèque n’est envoyée). Rien n’est installé sans votre clic ; le fichier téléchargé est vérifié (taille et empreinte SHA-256). macOS : l’ancienne version part à la Corbeille.'),
+        h('p', { class: 'muted' }, 'La vérification des mises à jour contacte GitHub sans transmettre les données de la bibliothèque. L’installation requiert une confirmation et vérifie la taille et l’empreinte SHA-256. Sur macOS, l’ancienne version est placée dans la Corbeille.'),
         h('div', { class: 'hrow' },
           h('button', { type: 'button', class: 'btn small', onclick: async () => { await api.checkUpdate(); render(); } }, 'Vérifier maintenant'),
           h('span', { id: 'set-update-status' }, updateText(state.update)),
@@ -393,7 +393,7 @@ export function openSettings(onChanged: () => void) {
             h('option', { value: 'system', selected: (s.language ?? 'system') === 'system' }, 'Système'),
             h('option', { value: 'fr', selected: s.language === 'fr' }, 'Français'),
             h('option', { value: 'en', selected: s.language === 'en' }, 'English'))),
-        h('p', { class: 'muted' }, 'Les noms des cues exportés vers vos logiciels DJ ne sont pas traduits : ce sont vos données.'),
+        h('p', { class: 'muted' }, 'L’export conserve les noms des cues dans leur langue de saisie.'),
       ),
 
       h('section', { class: 'set' },
@@ -507,7 +507,7 @@ export function openSetOrder(o: {
           const text = order.map((p, i) => { const t = byPath.get(p)!; return `${i + 1}. ${t.artist ? `${t.artist} – ` : ''}${t.title} (${t.bpm.toFixed(1)} BPM, ${keyLabel(t.key)})`; }).join('\n');
           void navigator.clipboard.writeText(text).then(() => toast('Liste copiée'));
         } }, 'Copier la liste'),
-        h('button', { type: 'button', class: 'btn small primary', title: 'Exporter ces morceaux, dans cet ordre, comme une playlist pour ton logiciel DJ',
+        h('button', { type: 'button', class: 'btn small primary', title: 'Exporter les morceaux affichés en playlist dans l’ordre actuel',
           onclick: () => openExport(null, { name: `Set CueKoda ${new Date().toISOString().slice(0, 10)}`, paths: [...order] }) }, 'Exporter ce set…'),
       ),
       h('table', { class: 'caps order' },

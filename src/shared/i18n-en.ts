@@ -81,7 +81,7 @@ export const EN_EXACT: Record<string, string> = {
   'Morceau précédent': 'Previous track',
   'Morceau suivant': 'Next track',
   'Filtrer la bibliothèque': 'Filter the library',
-  'Suggestion d’ordre de mix pour les morceaux affichés (à toi de décider)': 'Suggested mix order for the tracks shown (your call)',
+  'Proposition d’ordre de mix modifiable pour les morceaux affichés': 'Editable mix order for the tracks shown',
   'Ordre de mix…': 'Mix order…',
   '↻ Ré-analyser': '↻ Re-analyze',
   'Retirer de la bibliothèque (les fichiers ne sont pas touchés)': 'Remove from the library (files are not touched)',
@@ -138,7 +138,7 @@ export const EN_EXACT: Record<string, string> = {
   ambiguë: 'ambiguous',
   Reprendre: 'Resume',
   ...Object.fromEntries(Object.entries(STAGE).filter(([k]) => k !== 'tempo' && k !== 'structure')),
-  ' · l’analyse précédente reste affichée, tes corrections seront conservées': ' · the previous analysis stays on screen, your corrections will be kept',
+  ' · l’analyse précédente reste affichée et les corrections manuelles sont conservées': ' · the previous analysis remains visible and manual edits are preserved',
   'Tempo, grille, structure, voix puis tonalité : les cues apparaîtront à la fin de l’analyse.':
     'Tempo, grid, structure, vocals, then key: the cues will appear when the analysis is done.',
 
@@ -152,7 +152,7 @@ export const EN_EXACT: Record<string, string> = {
   'Grille +10 ms': 'Grid +10 ms',
   'Temps 1 décalé d’un temps': 'Downbeat shifted by one beat',
   'Clé automatique': 'Automatic key',
-  'ré-analyse en cours (vos cues sont conservés)': 're-analyzing (your cues are kept)',
+  'réanalyse en cours (repères conservés)': 're-analysing (cues preserved)',
 
   // ================================================================ tab: hot cues
   'Placé manuellement': 'Placed manually',
@@ -160,8 +160,8 @@ export const EN_EXACT: Record<string, string> = {
   'Ce cue est verrouillé': 'This cue is locked',
   libre: 'free',
   '+ ici': '+ here',
-  'Modifié par vous : conservé lors des ré-analyses': 'Edited by you: kept when re-analyzing',
-  'Modifié par vous': 'Edited by you',
+  'Modification manuelle conservée lors des réanalyses': 'Manual edit preserved on re-analysis',
+  'Modifié manuellement': 'Edited manually',
   perso: 'edited',
   doublon: 'duplicate',
   'Même position qu’un autre cue : ce pad est en double': 'Same position as another cue: this pad is a duplicate',
@@ -208,7 +208,7 @@ export const EN_EXACT: Record<string, string> = {
   'Longueur du nouveau passage vocal': 'New vocal part length',
   Voix: 'Vocals',
   'voix ?': 'vocals?',
-  'Passages vocaux corrigés par vous : conservés lors des ré-analyses.': 'Vocal parts corrected by you: kept when re-analyzing.',
+  'Les passages vocaux corrigés manuellement sont conservés lors des réanalyses.': 'Manual vocal edits are preserved on re-analysis.',
   '+ Passage vocal à la lecture': '+ Vocal part at the playhead',
   'Le passage vocal en cours s’arrête à la mesure de lecture': 'The current vocal part ends at the playhead bar',
   'Aucun passage vocal avant la position de lecture': 'No vocal part before the playhead',
@@ -294,13 +294,13 @@ export const EN_EXACT: Record<string, string> = {
   'depuis le cache': 'from cache',
   'Afficher le fichier': 'Show file',
   'Ré-analyser sans cache (corrections conservées)': 'Re-analyze without cache (corrections kept)',
-  'Votre ressenti d’énergie (optionnel)': 'Your energy rating (optional)',
+  'Évaluation manuelle de l’énergie (facultative)': 'Manual energy rating (optional)',
   'Énergie ressentie : —': 'Perceived energy: —',
   'Référence de qualité': 'Quality reference',
   'Quand ce morceau est vérifié à l’oreille et corrigé (BPM, temps 1, clé, cues, sections), enregistrez-le comme référence. ':
     'Once this track has been checked by ear and corrected (BPM, downbeat, key, cues, sections), save it as a reference. ',
-  '« npm run eval » ré-analyse ensuite les références sans vos corrections et mesure la justesse du moteur.':
-    '“npm run eval” then re-analyzes the references without your corrections and measures the engine’s accuracy.',
+  '« npm run eval » réanalyse les fichiers de référence et compare les résultats aux annotations.':
+    '“npm run eval” re-analyses the reference files and compares the results with the annotations.',
   'Référence enregistrée : elle servira à évaluer le moteur': 'Reference saved: it will be used to evaluate the engine',
   'Mettre à jour la référence': 'Update reference',
   '✓ Valider comme référence': '✓ Save as reference',
@@ -333,7 +333,7 @@ export const EN_EXACT: Record<string, string> = {
   "Étendre la sélection dans la bibliothèque": "Extend the library selection",
   "Retirer les morceaux sélectionnés dans la bibliothèque, ou supprimer le cue sélectionné": "Remove selected tracks in the library or delete the selected cue",
   "Aucune voix détectée": "No vocals detected",
-  "Ajuste les passages vocaux à la mesure près. CueKoda conserve tes corrections.": "Adjust vocal sections to the bar. CueKoda keeps your edits.",
+  "Les passages vocaux peuvent être ajustés à la mesure près. Les corrections sont conservées.": "Vocal passages can be adjusted by the bar. Manual edits are preserved.",
   "Inclus dans le fichier rekordbox XML": "Included in the rekordbox XML file",
   "POSITION_MARK 0–7 dans le fichier XML": "POSITION_MARK 0–7 in the XML file",
   "Pads exportés à la suite sur les boutons 2–8 ; bouton 1 réservé à AutoGrid": "Pad cues fill buttons 2–8 in order; button 1 is reserved for AutoGrid",
@@ -439,20 +439,20 @@ export const EN_EXACT: Record<string, string> = {
     'AutoGrid marker on the first downbeat (single tempo: tempo changes are not transferred)',
   'Attribut NAME': 'NAME attribute',
   'Importer collection…': 'Import collection…',
-  'Lire une collection rekordbox (XML) ou Traktor (NML) : vos cues deviennent des cues verrouillés, CueKoda ne remplit que les pads libres':
-    'Read a rekordbox (XML) or Traktor (NML) collection: your cues become locked cues, CueKoda only fills the free pads',
+  'Importer une collection rekordbox (XML) ou Traktor (NML). Les repères importés sont verrouillés et les suggestions occupent les pads libres.':
+    'Import a rekordbox (XML) or Traktor (NML) collection. Imported cues are locked and suggestions use free pads.',
   Tous: 'All',
   'À vérifier': 'To review',
   'Fichiers introuvables': 'Missing files',
   'Morceaux affichés': 'Tracks shown',
   '✓ Vérifié': '✓ Checked',
   'Valider et passer au suivant': 'Mark checked and go to next track',
-  'Le morceau a changé pendant la correction. Réessayez.': 'The track changed while you were editing. Try again.',
+  'Le morceau a changé pendant la correction. Réessayez.': 'The track changed during editing. Try again.',
   'Marquer vérifié': 'Mark as checked',
   'Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)': 'Mark this track as checked by ear (it leaves the “To review” list)',
   'Fichier introuvable à cet emplacement': 'File not found at this location',
   'Fichier introuvable à cet emplacement (déplacé, renommé ou disque débranché)': 'File not found at this location (moved, renamed or drive disconnected)',
-  'Vérifié par vous': 'Checked by you',
+  'Contrôlé à l’écoute': 'Reviewed by listening',
   'analyse en échec': 'analysis failed',
   'tempo incertain': 'uncertain tempo',
   'premier temps incertain': 'uncertain downbeat',
@@ -485,8 +485,8 @@ export const EN_EXACT: Record<string, string> = {
     'Engine DJ Desktop › Preferences › Library: enable the rekordbox library and point it to the XML file exported by CueKoda.',
   'Les morceaux apparaissent sous « rekordbox » dans la colonne de gauche : les importer (glisser) dans la Collection Engine DJ.':
     'The tracks appear under “rekordbox” in the left column: import them (drag) into the Engine DJ Collection.',
-  'Engine DJ peut aussi lire une collection Traktor : si vous préférez, exportez pour Traktor et indiquez ce fichier NML.':
-    'Engine DJ can also read a Traktor collection: if you prefer, export for Traktor and point it to that NML file.',
+  'Engine DJ peut également importer un fichier Traktor NML.':
+    'Engine DJ can also import a Traktor NML file.',
   'Le libellé exact des menus peut varier selon la version d’Engine DJ.': 'The exact menu labels may vary with the Engine DJ version.',
   'VirtualDJ › Paramètres › Options : renseigner le chemin du fichier rekordbox XML (option « rekordboxXml » / bibliothèques tierces).':
     'VirtualDJ › Settings › Options: enter the path of the rekordbox XML file (“rekordboxXml” option / third-party libraries).',
@@ -502,8 +502,8 @@ export const EN_EXACT: Record<string, string> = {
   'Doublon exact': 'Exact duplicate',
   'Même enregistrement, autre encodage': 'Same recording, different encoding',
   'Versions liées': 'Related versions',
-  'Aucun fichier n’est supprimé ni déplacé par CueKoda : comparez, puis décidez vous-même.':
-    'CueKoda never deletes or moves any file: compare, then decide for yourself.',
+  'La détection de doublons préserve les fichiers à leur emplacement d’origine.':
+    'Duplicate detection leaves source files in their original locations.',
   Afficher: 'Show',
   'Aucun doublon trouvé parmi les morceaux analysés.': 'No duplicates found among the analyzed tracks.',
   'Contenu identique (même empreinte SHA-256)': 'Identical content (same SHA-256 hash)',
@@ -549,8 +549,8 @@ export const EN_EXACT: Record<string, string> = {
   exclure: 'exclude',
   Monter: 'Move up',
   Descendre: 'Move down',
-  'Le profil s’applique aux prochaines analyses. Utilisez « Ré-analyser » pour l’appliquer aux morceaux existants (vos corrections sont conservées).':
-    'The profile applies to the next analyses. Use “Re-analyze” to apply it to existing tracks (your corrections are kept).',
+  'Le profil s’applique aux prochaines analyses. La commande « Ré-analyser » l’applique aux morceaux existants et conserve les corrections manuelles.':
+    'The profile applies to subsequent analyses. “Re-analyze” applies it to existing tracks and preserves manual edits.',
   Performances: 'Performance',
   'Analyse locale uniquement (CPU) : aucun fichier n’est envoyé en ligne. Les résultats sont mis en cache : un fichier inchangé n’est pas ré-analysé.':
     'Local analysis only (CPU): no file is uploaded. Results are cached: an unchanged file is not re-analyzed.',
@@ -560,24 +560,24 @@ export const EN_EXACT: Record<string, string> = {
   'Analyser automatiquement les nouveaux fichiers': 'Automatically analyze new files',
   'Un fichier est pris en compte une fois sa copie terminée. Les fichiers sources ne sont jamais déplacés ni modifiés.':
     'A file is picked up once it has finished copying. Source files are never moved or modified.',
-  'Apprentissage à partir de vos corrections': 'Learning from your corrections',
+  'Apprentissage à partir des corrections': 'Learning from manual edits',
   'Activer (statistiques locales)': 'Enable (local statistics)',
-  'Un type de cue que vous supprimez dans au moins 80 % des cas (sur 5 propositions ou plus) n’est plus proposé.':
-    'A cue type you delete in at least 80 % of cases (out of 5 or more suggestions) is no longer suggested.',
+  'Un type de cue supprimé dans au moins 80 % des cas est exclu des suggestions après au moins cinq propositions.':
+    'A cue type deleted at least 80% of the time is excluded from suggestions after at least five proposals.',
   'Aucune correction enregistrée pour l’instant.': 'No corrections recorded yet.',
   'Apprentissage réinitialisé': 'Learning reset',
   'Réinitialiser l’apprentissage': 'Reset learning',
   'Mises à jour': 'Updates',
   'Vérifier au démarrage s’il existe une nouvelle version': 'Check for a new version at startup',
-  'Seul GitHub est contacté (aucune donnée de votre bibliothèque n’est envoyée). Rien n’est installé sans votre clic ; le fichier téléchargé est vérifié (taille et empreinte SHA-256). macOS : l’ancienne version part à la Corbeille.':
-    'Only GitHub is contacted (no data from your library is sent). Nothing is installed without your click; the downloaded file is verified (size and SHA-256 hash). macOS: the old version goes to the Trash.',
+  'La vérification des mises à jour contacte GitHub sans transmettre les données de la bibliothèque. L’installation requiert une confirmation et vérifie la taille et l’empreinte SHA-256. Sur macOS, l’ancienne version est placée dans la Corbeille.':
+    'Update checks contact GitHub without sending library data. Installation requires confirmation and checks file size and the SHA-256 digest. On macOS, the previous version is moved to the Trash.',
   'Vérifier maintenant': 'Check now',
   'Installer et redémarrer': 'Install and restart',
   'Langue / Language': 'Language',
   'Langue de l’interface': 'Interface language',
   Système: 'System',
-  'Les noms des cues exportés vers vos logiciels DJ ne sont pas traduits : ce sont vos données.':
-    'Cue names exported to your DJ software are not translated: they are your data.',
+  'L’export conserve les noms des cues dans leur langue de saisie.':
+    'Export preserves cue names in their original language.',
   Apparence: 'Appearance',
   Thème: 'Theme',
   Sombre: 'Dark',
@@ -681,10 +681,10 @@ export const EN_EXACT: Record<string, string> = {
   // ================================================================ comment tags, set export
   'Exporter le set vers…': 'Export the set to…',
   'Nom de la playlist': 'Playlist name',
-  'Pour trier et filtrer par énergie dans ton logiciel DJ. Remplace le commentaire du morceau si tu acceptes d’écraser ses informations à l’import.':
-    'To sort and filter by energy in your DJ software. Replaces the track’s comment if you accept to overwrite its information on import.',
+  'Ajoute les informations d’énergie au commentaire. Le commentaire existant est remplacé si l’écrasement est autorisé lors de l’import.':
+    'Adds energy information to the comment. The existing comment is replaced if overwrite is allowed on import.',
   'Énergie, clé et voix dans le commentaire': 'Energy, key and vocals in the comment',
-  'Exporter ces morceaux, dans cet ordre, comme une playlist pour ton logiciel DJ': 'Export these tracks, in this order, as a playlist for your DJ software',
+  'Exporter les morceaux affichés en playlist dans l’ordre actuel': 'Export the displayed tracks as a playlist in the current order',
   'Exporter ce set…': 'Export this set…',
   'Commentaire « E8 · 1d · Vocal »': 'Comment “E8 · 1d · Vocal”',
   'Commentaire « E8 · 8B · Vocal »': 'Comment “E8 · 8B · Vocal”',
@@ -712,7 +712,7 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^(⚠ )?(Nouveau fichier : .+?|Dossier introuvable|Surveillance interrompue : .+?|Impossible de surveiller ce dossier : .+?) \((.+)\)$/s,
     (_, warn, msg, folder) => `${warn ?? ''}${tl(msg)} (${folder})`],
   // correction toast: "<label> — ré-analyse en cours …"
-  [/^(.+) — ré-analyse en cours \(vos cues sont conservés\)$/, (_, l) => `${tl(l)} — re-analyzing (your cues are kept)`],
+  [/^(.+) — réanalyse en cours \(repères conservés\)$/, (_, l) => `${tl(l)} — re-analysing (cues preserved)`],
   // compatible tracks: "reasons · … (⚠ cautions)"
   [/^(.*) \(⚠ (.+)\)$/s, (_, head, c) => `${tl(head)} (⚠ ${c.split(', ').map(tl).join(', ')})`],
   [/^(\s*)⚠ (.+)$/s, (_, sp, c) => `${sp}⚠ ${c.split(', ').map(tl).join(', ')}`],
@@ -738,8 +738,8 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^(\d+) erreur\(s\)$/, (_, n) => pl(n, 'error')],
   [/^(\d+) annulé\(s\)$/, '$1 cancelled'],
   [/^(\d+) fichier\(s\) ajouté\(s\) à la file d’analyse$/, (_, n) => `${pl(n, 'file')} added to the analysis queue`],
-  [/^Ré-analyser (\d+) morceaux avec le profil actuel \? Vos cues modifiés ou verrouillés sont conservés\.$/,
-    'Re-analyze $1 tracks with the current profile? Your edited or locked cues are kept.'],
+  [/^Ré-analyser (\d+) morceaux avec le profil actuel \? Les cues modifiés ou verrouillés sont conservés\.$/,
+    'Re-analyze $1 tracks with the current profile? Edited or locked cues are preserved.'],
 
   // ---------------------------------------------------------------- detail header, corrections
   [/^(.+) \(alternative plausible\)$/, '$1 (plausible alternative)'],
@@ -895,7 +895,7 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
     (_, n, o, m) => `${pl(n, 'track')} found on this computer, ${o} not in CueKoda yet (${m} not found).\nTheir cues become locked cues on their pads; CueKoda only fills the free pads. The collection file is not modified.`],
   [/^Importé de (rekordbox|Traktor) \(cue du DJ, verrouillé\)$/, 'Imported from $1 (DJ’s cue, locked)'],
   [/^Importée de (rekordbox|Traktor)$/, 'Imported from $1'],
-  [/^Fichier retrouvé : (.+) — vos corrections le suivent$/, 'File found again: $1 — your corrections follow it'],
+  [/^Fichier retrouvé : (.+) — corrections conservées$/, 'File found again: $1 — manual edits preserved'],
   [/^Import impossible : (.*)$/s, (_, e) => `Import failed: ${tl(e)}`],
   [/^Collection (rekordbox|traktor) : (\d+) morceau\(x\), (\d+) cue\(s\) importé\(s\) et verrouillé\(s\)(?:, (\d+) ajouté\(s\) à l’analyse)?(?: · (\d+) introuvable\(s\) sur cet ordinateur)?$/,
     (_, src, n, c, a, m) => `${src} collection: ${pl(n, 'track')}, ${pl(c, 'cue')} imported and locked${a ? `, ${a} added to the analysis` : ''}${m ? ` · ${m} not found on this computer` : ''}`],

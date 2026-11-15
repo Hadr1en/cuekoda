@@ -6,8 +6,8 @@
 </p>
 
 <p align="center">
-  <b>La préparation de tes morceaux, faite pour toi. Les décisions restent les tiennes.</b><br>
-  BPM · grille · tonalité Camelot · structure · énergie · hot cues · boucles → rekordbox, Traktor et les autres
+  <b>Analyse locale, préparation des pistes et export vers les logiciels DJ.</b><br>
+  <a href="https://hadr1en.github.io/cuekoda/">Site officiel</a> · <a href="docs/GUIDE_UTILISATEUR.md">Guide utilisateur</a>
 </p>
 
 <p align="center">
@@ -22,10 +22,7 @@
   <img src="docs/screenshots/fr/detail.png" alt="CueKoda : bibliothèque, waveform avec sections, courbe d'énergie et hot cues" width="100%">
 </p>
 
-CueKoda est une application **de préparation musicale pour DJ** (macOS et Windows). Ce n'est pas un logiciel
-de mix : tu lui donnes des fichiers audio, il les analyse, et il te rend des morceaux annotés que tu importes
-dans **rekordbox, Traktor, Engine DJ, VirtualDJ ou djay Pro**. Il est pensé pour l'EDM (house, big room,
-progressive, techno, trance…) mais fonctionne aussi en open format.
+CueKoda est une application **de préparation musicale pour DJ** sur macOS et Windows. Elle analyse les fichiers audio, propose des repères modifiables et exporte les collections au format **rekordbox XML** ou **Traktor NML**. Les profils couvrent notamment les musiques électroniques et l’open format.
 
 ## Sommaire
 - [Principes](#principes)
@@ -34,18 +31,16 @@ progressive, techno, trance…) mais fonctionne aussi en open format.
 - [Fonctionnalités en détail](#fonctionnalités-en-détail)
   - [Analyse](#1-analyse) · [Hot cues et memory cues](#2-hot-cues-et-memory-cues) ·
     [Structure et voix](#3-structure-et-voix) · [Boucles](#4-boucles) · [Mix et transitions](#5-mix-et-transitions) ·
-    [Ordre de mix](#6-suggestion-dordre-de-mix) · [Bibliothèque](#7-bibliothèque) · [Export](#8-export-vers-ton-logiciel-dj) ·
+    [Ordre de mix](#6-suggestion-dordre-de-mix) · [Bibliothèque](#7-bibliothèque) · [Export](#8-export-vers-les-logiciels-dj) ·
     [Réglages, mises à jour, langue](#9-réglages-mises-à-jour-et-langue)
 - [Raccourcis clavier](#raccourcis-clavier)
 - [Confidentialité et sécurité](#confidentialité-et-sécurité)
 - [Pour les développeurs](#pour-les-développeurs)
 
 ## Principes
-- **CueKoda prépare, le DJ décide.** Chaque suggestion indique sa confiance (forte / moyenne / faible) et
-  la raison pour laquelle elle a été faite. Tout est modifiable.
-- **Tes corrections sont sacrées.** Un cue déplacé, renommé ou verrouillé, une section corrigée, un passage
-  vocal ajusté : tout survit aux ré-analyses.
-- **Rien ne sort de ta machine.** L'analyse est 100 % locale. Les fichiers audio ne sont jamais envoyés,
+- **Suggestions modifiables.** Les suggestions de repères indiquent leur niveau de confiance et leur justification lorsqu’elle est disponible.
+- **Persistance des corrections.** Les réanalyses conservent les repères, sections et passages vocaux corrigés manuellement.
+- **Analyse locale.** L'analyse est 100 % locale. Les fichiers audio ne sont jamais envoyés,
   modifiés, déplacés ni supprimés.
 
 ## Télécharger et installer
@@ -59,21 +54,20 @@ Les installeurs sont reconstruits à chaque mise à jour du code et publiés dan
 | Windows 10 / 11 64 bits | `CueKoda-<version>-windows-setup.exe` |
 
 **Premier lancement :** l'application n'est pas encore signée par Apple ni par Microsoft.
-- **macOS** : glisse CueKoda dans Applications, ouvre-le une fois, puis Réglages Système › Confidentialité
+- **macOS** : ouvrir le DMG, copier CueKoda dans Applications et lancer l’application. En cas de blocage et après vérification de la provenance, ouvrir Réglages Système › Confidentialité
   et sécurité › **Ouvrir quand même**.
-- **Windows** : à l'avertissement SmartScreen, **Informations complémentaires** › **Exécuter quand même**.
+- **Windows** : lancer l’installateur. Si SmartScreen affiche un avertissement, vérifier la provenance avant de sélectionner **Informations complémentaires** › **Exécuter quand même**.
 
-**Mises à jour** — CueKoda vérifie les releases publiques de GitHub. Tu peux aussi télécharger
-l'installeur depuis les Releases et l'installer manuellement.
+**Mises à jour** — CueKoda vérifie les releases publiques de GitHub. Les installateurs publiés sur GitHub permettent également une mise à jour manuelle.
 
 ## Prise en main en 4 étapes
-1. **Importer** : glisse des fichiers ou un dossier dans la fenêtre, ou utilise « + Fichiers » / « + Dossier ».
+1. **Importer** : déposer des fichiers ou un dossier dans la fenêtre, ou utiliser « + Fichiers » / « + Dossier ».
    Formats : MP3, WAV, AIFF, FLAC, M4A / AAC, OGG, Opus, WMA.
 2. **Analyser** : l'analyse démarre seule, plusieurs morceaux en parallèle. Chaque ligne affiche l'étape et
    le pourcentage.
-3. **Vérifier et corriger** : clique un morceau, écoute, déplace les cues sur la waveform, corrige BPM,
+3. **Vérifier et corriger** : ouvrir un morceau, contrôler la grille à l’écoute, déplacer les cues et corriger le BPM,
    grille ou tonalité si besoin. La colonne **Fiabilité** indique quoi vérifier en priorité.
-4. **Exporter** : « Exporter… », choisis ton logiciel, enregistre le fichier, suis les étapes d'import affichées.
+4. **Exporter** : ouvrir « Exporter… », choisir le format, enregistrer le fichier et suivre les étapes d’import affichées.
 
 ## Fonctionnalités en détail
 
@@ -106,13 +100,11 @@ confiance** et une **raison** (« entrée de la basse : +12 dB dans les graves �
   premier pad libre. Quand les 8 pads sont pris, il devient une **memory cue**.
 - **Memory cues** : cues sans pad, listées sous les pads, qu'on peut placer sur un pad à tout moment.
   Elles s'exportent en memory cues rekordbox et en cues mémorisés Traktor.
-- **Cues Vocal** — Les profils intégrés excluent les suggestions Vocal. Tu peux les réactiver dans un
-  profil personnalisé ou les ajouter à la main.
+- **Cues Vocal** — Les profils intégrés excluent les suggestions Vocal. Les suggestions Vocal peuvent être activées dans un profil personnalisé. L’ajout manuel reste disponible.
 - **Cues superposés** — L'ajout est bloqué à une position déjà occupée. Un déplacement qui crée un doublon
   est signalé sur les pads et dans l'aperçu d'export.
-- Annuler / rétablir (⌘Z / ⇧⌘Z). Les sections suivent les cues Intro / Build / Drop / Break / Outro que tu déplaces.
-- **Apprentissage** : un type de cue que tu supprimes presque toujours n'est plus proposé (statistiques
-  locales, réinitialisables).
+- Annuler / rétablir (⌘Z / ⇧⌘Z). Les sections suivent les déplacements des cues Intro, Build, Drop, Break et Outro.
+- **Apprentissage** : les statistiques locales de suppression modulent les suggestions et peuvent être réinitialisées.
 
 ### 3. Structure et voix
 <img src="docs/screenshots/fr/structure.png" alt="Onglet Structure : sections éditables et passages vocaux corrigeables" width="100%">
@@ -120,8 +112,7 @@ confiance** et une **raison** (« entrée de la basse : +12 dB dans les graves �
 - **Sections** : changer le type et le nom, déplacer le début à la mesure près, scinder à la position de
   lecture, fusionner. Le bandeau coloré de la waveform se met à jour.
 - **Voix** : ajouter un passage à la lecture, déplacer début et fin, « Fin de voix ici », « Pause dans la
-  voix ici », choisir nette ou faible, créer un cue Vocal en un clic. Tes passages remplacent la détection
-  automatique à chaque ré-analyse.
+  voix ici », choisir nette ou faible, créer un cue Vocal en un clic. Les passages corrigés manuellement remplacent la détection automatique lors des réanalyses.
 
 ### 4. Boucles
 Boucles suggérées (intro, outro, avant le drop, début de breakdown), avec longueur réglable de 4 à 64 temps,
@@ -136,24 +127,22 @@ Boucles suggérées (intro, outro, avant le drop, début de breakdown), avec lon
 - **Morceaux compatibles** : tonalité (même, voisine, relative, energy boost…), écart de BPM (demi / double
   tempo compris), énergie, longueur des fenêtres de transition. Chaque proposition est notée et expliquée,
   avec ses mises en garde (deux passages chantés qui se superposent, tonalité incertaine…).
-- **🎧 Transition** : écoute la fin du morceau courant enchaînée avec le début de l'autre. Le tempo est calé
+- **Aperçu de transition** : lecture de la fin du morceau courant et du début du morceau suivant. Le tempo est calé
   sans changer la tonalité, les temps sont alignés au Mix Out / Mix In et le fondu dure 16 mesures. CueKoda
-  refuse au-delà de ±8 % d'écart de tempo plutôt que de déformer le son.
+  désactive cet aperçu lorsque l’écart de tempo dépasse ±8 %.
 
 ### 6. Suggestion d'ordre de mix
 <img src="docs/screenshots/fr/order.png" alt="Suggestion d'ordre de mix : enchaînements notés et justifiés, enchaînement difficile signalé" width="100%">
 
-Bouton discret « Ordre de mix… » au-dessus de la liste : CueKoda propose un ordre pour les morceaux affichés
-(filtre d'abord pour travailler sur une sélection). Rien n'est appliqué ni exporté : c'est une piste de
-départ, **construire le set reste ton travail**.
+La commande « Ordre de mix… » propose un ordre pour les morceaux affichés. La proposition est modifiable avant l’export.
 
 - **Arc d'énergie** : montée progressive (pic aux trois quarts puis légère redescente), vagues, ou libre
   (tonalité et tempo seulement).
-- **Ouverture** : laisse CueKoda choisir ou impose ton premier morceau.
+- **Ouverture** : choix automatique ou manuel du premier morceau.
 - Chaque enchaînement est **noté sur 100 et justifié**. Les enchaînements **difficiles** (clés qui
   s'opposent, écart de tempo > 8 %) sont surlignés.
-- Monte / descends les morceaux, écoute chaque transition (🎧), ouvre un morceau, **copie la liste**.
-- **Exporter ce set…** : la liste part dans ton logiciel DJ comme une playlist nommée, dans ton ordre.
+- La liste permet de réordonner les morceaux, d’écouter les transitions, d’ouvrir une piste et de copier la sélection.
+- **Exporter ce set…** : création d’une playlist nommée dans l’ordre affiché.
 
 ### 7. Bibliothèque
 - Liste triable et filtrable (titre, artiste, clé, BPM), avec la clé en couleur Camelot, l'énergie, une
@@ -161,34 +150,29 @@ départ, **construire le set reste ton travail**.
 - **Dossiers surveillés** : un fichier copié dans un dossier surveillé est analysé automatiquement, une fois
   sa copie terminée.
 - **Doublons** : doublons exacts, même enregistrement dans un autre format, versions liées (remix, edit),
-  grâce à l'empreinte acoustique. Rien n'est supprimé, tu décides.
-- **Profils DJ** : EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, ou tes propres profils
+  grâce à l'empreinte acoustique. La détection préserve les fichiers sources.
+- **Profils DJ** : EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, et profils personnalisés
   (plage BPM, cues à placer, couleurs, boucles).
 - **EDM — pads fixes** — Réserve les pads A à H à Intro, Build 1, Drop 1, Break, Build 2, Drop 2, Outro
   et Mix Out. Si un repère manque, son pad reste libre.
 - **Révision** — Filtre « À vérifier » pour les morceaux à contrôler et « Fichiers introuvables »
-  pour les chemins manquants. Marque les morceaux contrôlés à l'oreille comme vérifiés.
-- **Références** : « Valider comme référence » enregistre un morceau que tu as vérifié à l'oreille. Ces
+  pour les chemins manquants. Un contrôle à l’écoute peut être enregistré pour chaque morceau.
+- **Références** : « Valider comme référence » enregistre un morceau contrôlé à l’écoute. Ces
   références servent à mesurer la justesse du moteur (`npm run eval`).
 
 Le **métronome** permet de vérifier la grille à l’oreille, avec un clic accentué sur le temps 1.
 **Contrôle express** permet d’écouter quatre mesures au métronome au début, au premier drop et à la fin.
-Quand cette vue a le focus, utilise **1 / 2 / 3** pour écouter, **T** pour placer le temps 1 et **V**
-pour valider et passer à la prochaine piste affichée.
+Dans cette vue, les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place le temps 1 et **V** valide la piste et ouvre la suivante.
 
-Sélectionne les morceaux avec les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
-Dans **Plus › Comparer la réanalyse…**, retrouve les BPM, grilles ou cues modifiés. Écoute l’avant et
-l’après, puis rétablis l’analyse précédente par morceau depuis la comparaison.
+La sélection utilise les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
+Dans **Plus › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
 
-**Bacs…** enregistre tes sélections dans des listes locales. Ajoute les morceaux par clic droit,
-range-les dans ton ordre, puis affiche le bac dans la bibliothèque ou exporte-le en playlist nommée.
-Retirer du bac conserve le morceau dans la bibliothèque. Tu peux aussi exporter directement une sélection.
+**Bacs…** enregistre des sélections ordonnées dans des listes locales. Le menu contextuel permet d’ajouter des morceaux à un bac. Un bac peut filtrer la bibliothèque ou être exporté sous forme de playlist nommée. Une sélection peut aussi être exportée directement.
 
-### 8. Export vers ton logiciel DJ
+### 8. Export vers les logiciels DJ
 <img src="docs/screenshots/fr/export.png" alt="Fenêtre d’export de CueKoda" width="100%">
 
-Un seul bouton **« Exporter… »** : choisis ton logiciel, vois ce qui sera transféré et ce qui ne le sera
-pas, enregistre le fichier, suis les étapes d'import.
+Le dialogue **« Exporter… »** affiche les données transférées et les étapes d’import propres à chaque logiciel.
 
 | Logiciel | Fichier écrit | BPM / grille / clé | Hot cues, noms | Couleurs | Memory cues | Boucles |
 |---|---|---|---|---|---|---|
@@ -200,32 +184,28 @@ pas, enregistre le fichier, suis les étapes d'import.
 
 **Options utiles** :
 - **Commentaire « E8 · 8B · Vocal »** (activé par défaut) : énergie, clé Camelot et voix écrites dans le champ
-  Commentaire, pour trier et filtrer ta collection directement dans ton logiciel DJ. « Vocal » ou « Instru »
+  Commentaire, pour le tri et le filtrage dans le logiciel DJ. « Vocal » ou « Instru »
   n'est écrit que si la détection est nette.
 - **Exporter un set** : depuis « Ordre de mix… », « Exporter ce set… » crée une playlist nommée, avec les
-  morceaux dans l'ordre que tu as arrangé.
+  morceaux dans l’ordre de la liste.
 
 Dans Traktor, AutoGrid occupe le bouton 1. CueKoda remplit les boutons 2 à 8 dans l’ordre des pads
 et écarte les cues superposés à AutoGrid. L’aperçu des boutons Traktor affiche le nom et la position
-des huit boutons et les repères mémorisés selon les options d’export. Valide les boucles souhaitées avant l’export.
+des huit boutons et les repères mémorisés selon les options d’export. Par défaut, seules les boucles validées sont exportées.
 
-Pour reprendre une collection dans CueKoda, clique sur **« Importer collection… »** et choisis un XML
-rekordbox ou un NML Traktor. Tes cues importés sont verrouillés. Les suggestions remplissent les pads libres.
-Tu peux aussi reprendre le BPM et le premier repère de grille. Voir la [matrice d'export et d'import](docs/MATRICE_EXPORT.md).
+**« Importer collection… »** lit un XML rekordbox ou un NML Traktor. Les cues importés sont verrouillés et les suggestions occupent les pads libres. Le BPM et le premier repère de grille peuvent également être repris. Voir la [matrice d'export et d'import](docs/MATRICE_EXPORT.md).
 
-Sécurité de l'export : CueKoda écrit un **nouveau fichier de collection**, sans jamais toucher à la base de
-ton logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord sauvegardé à côté.
+Sécurité de l'export : CueKoda écrit un **nouveau fichier de collection**, sans modifier la base du logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord sauvegardé à côté.
 
 ### 9. Réglages, mises à jour et langue
 <img src="docs/screenshots/fr/settings.png" alt="Réglages : mises à jour automatiques et langue de l'interface" width="100%">
 
 - **Mises à jour** — La vérification au démarrage (désactivable) et « Vérifier maintenant » utilisent les
   releases publiques GitHub, sans transmettre de données de bibliothèque. Quand une version est disponible,
-  l'installation exige ton clic, la taille attendue et une empreinte SHA-256 valide. Ce contrôle couvre
-  l'intégrité du téléchargement. Voir les [décisions de distribution](docs/DISTRIBUTION.md).
+  l’installation requiert une confirmation et un fichier conforme à la taille attendue et à l’empreinte SHA-256 publiée. Voir les [décisions de distribution](docs/DISTRIBUTION.md).
   - **Windows** : installation silencieuse puis redémarrage.
   - **macOS** : l'ancienne version part à la Corbeille, la nouvelle prend sa place et redémarre.
-- **Langue** : français ou anglais. Les noms de tes cues ne sont jamais traduits, ce sont tes données.
+- **Langue** : français ou anglais. Les noms des cues sont conservés dans la langue de saisie.
 - **Thème** sombre (par défaut), clair ou système ; nombre d'analyses en parallèle ; dossiers surveillés ;
   apprentissage ; profils.
 
@@ -256,7 +236,7 @@ Par exemple, **5A** et **10m** désignent tous deux **do mineur**. La recherche 
 - Analyse locale : aucun fichier ni aucune donnée de bibliothèque n'est envoyé en ligne.
 - Seule connexion réseau : la vérification des mises à jour sur GitHub (désactivable).
 - Aucun fichier audio n'est jamais modifié, déplacé ni supprimé. Les doublons sont signalés, jamais effacés.
-- Les exports écrivent un nouveau fichier et sauvegardent l'ancien ; la base de ton logiciel DJ n'est jamais
+- Les exports écrivent un nouveau fichier et sauvegardent l'ancien ; la base du logiciel DJ n'est jamais
   modifiée directement.
 
 ## Pour les développeurs
@@ -274,7 +254,7 @@ npm start
 | `npm run test:all` | Typecheck, tests unitaires, test de bout en bout sur morceaux synthétiques |
 | `npm run test:regression` | Ré-analyse `samples/` et compare à `tests/baselines/samples.json` |
 | `npm run smoke` | Lance la vraie app Electron (fenêtre invisible) et pilote l'interface |
-| `npm run eval` | Mesure la justesse du moteur sur tes morceaux validés comme références |
+| `npm run eval` | Mesure la justesse du moteur sur les morceaux validés comme références |
 | `npm run eval:dj` | Évalue les corrections DJ sur trois morceaux fournis localement dans `samples/` |
 | `npm run offset-test` | Génère des pistes de clics et des collections XML/NML pour mesurer les décalages à l'import |
 | `npm run dist:mac` / `dist:win` | Construit les installeurs en local |
@@ -304,9 +284,7 @@ src/test/       unitaires, bout en bout, non-régression, diagnostics
 [matrice d'export](docs/MATRICE_EXPORT.md) · [audit et état des fonctionnalités](docs/AUDIT_ET_PLAN.md)
 
 ## Licence
-CueKoda est un logiciel libre sous **GNU AGPL v3 ou ultérieure** ([LICENSE](LICENSE)) : tu peux l'utiliser,
-l'étudier, le modifier et le redistribuer, à condition de publier aussi le code source de tes versions
-modifiées, y compris quand elles sont proposées comme service en ligne. Copyright © 2026 Hadr1en.
+CueKoda est un logiciel libre sous **GNU AGPL v3 ou ultérieure** ([LICENSE](LICENSE)). La licence encadre l’utilisation, la modification et la redistribution. Elle prévoit des obligations de mise à disposition du code source pour les versions modifiées proposées comme service en ligne. Copyright © 2026 Hadr1en.
 
 Composants tiers, chacun sous sa propre licence : Essentia.js (AGPL-3.0), ffmpeg-static (binaire GPL),
 TensorFlow.js (Apache-2.0), music-metadata (MIT) et Electron (MIT). Le modèle vocal `voice_instrumental-musicnn-msd-2` du
