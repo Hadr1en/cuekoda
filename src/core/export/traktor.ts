@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import type { AnalysisResult } from '../types';
+import { SAME_POSITION_SEC } from '../cues';
 import { formatKey, traktorKeyIndex } from '../key';
 import { esc, exportedLoops } from './rekordbox';
 import { commentTag, type ExportOptions } from './index';
@@ -29,6 +30,13 @@ export function traktorLocation(p: string, macVolume: string): { dir: string; fi
  * shares the grid marker's button.
  */
 export const traktorHotcue = (slot: number): number => (slot < 0 || slot >= 7 ? -1 : slot + 1);
+
+/** AutoGrid already marks the first downbeat. Preserve the pad numbers of the remaining cues. */
+export function traktorCues(track: AnalysisResult): AnalysisResult['cues'] {
+  const gridStart = Math.max(0, track.grid.firstDownbeatSec);
+  return track.cues.filter((cue) =>
+    cue.slot <= 7 && Math.abs(Math.max(0, cue.timeSec) - gridStart) >= SAME_POSITION_SEC);
+}
 
 /**
  * Traktor collection (NML 19).
@@ -69,8 +77,7 @@ export function buildTraktorNml(
     lines.push(
       `<CUE_V2 NAME="AutoGrid" DISPL_ORDER="0" TYPE="4" START="${ms(t.grid.firstDownbeatSec)}" LEN="0" REPEATS="-1" HOTCUE="0"></CUE_V2>`,
     );
-    for (const c of t.cues) {
-      if (c.slot > 7) continue;
+    for (const c of traktorCues(t)) {
       // slot < 0 = memory cue: a stored cue point with no hotcue button (HOTCUE="-1")
       lines.push(
         `<CUE_V2 NAME="${esc(c.name)}" DISPL_ORDER="0" TYPE="0" START="${ms(c.timeSec)}" LEN="0" REPEATS="-1" HOTCUE="${traktorHotcue(c.slot)}"></CUE_V2>`,

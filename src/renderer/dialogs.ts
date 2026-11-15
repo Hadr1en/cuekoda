@@ -51,7 +51,6 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
         ),
       ),
       h('p', { class: 'muted' }, `Format : ${adapter.formatName}`),
-      adapter.validated && adapter.validatedNote ? h('p', { class: 'note ok' }, `✓ ${adapter.validatedNote}.`) : null,
       adapter.status === 'available' && !adapter.validated
         ? h('p', { class: 'note warn' }, adapter.via
           ? `${adapter.name} sait lire une collection rekordbox XML, mais cet import n’a pas encore été vérifié avec CueKoda. Testez d’abord sur quelques morceaux.`

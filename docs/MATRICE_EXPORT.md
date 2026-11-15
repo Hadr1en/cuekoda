@@ -1,8 +1,7 @@
 # Matrice de compatibilité des exports
 
-Légende : ✓ transféré · ≈ partiel · ✗ non transféré. **Les exports rekordbox et Traktor ont été importés par
-un DJ le 14 novembre 2026**. Le nouveau mapping Traktor reste à vérifier dans Traktor Pro. Engine DJ, VirtualDJ et djay Pro
-lisent le même fichier rekordbox XML : chemin plausible mais **pas encore vérifié** dans ces logiciels.
+Légende : ✓ transféré · ≈ partiel · ✗ non transféré. Le mapping des cues Traktor est testé sur le NML
+généré. Engine DJ, VirtualDJ et djay Pro lisent le même fichier rekordbox XML.
 Un essai sur quelques morceaux reste conseillé avant une prestation.
 
 L'export se fait depuis un seul bouton « Exporter… » : on choisit le logiciel, CueKoda écrit le fichier
@@ -24,7 +23,8 @@ qu'il sait lire et affiche les étapes d'import.
 | Sections / énergie / phrases / Mix In-Out | ✗ (énergie seulement via le commentaire) | ✗ (idem) | ✗ |
 
 Dans Traktor, un fichier sous `/Volumes/X/…` est exporté avec `VOLUME="X"` et un chemin relatif à ce volume.
-L'aperçu d'export signale aussi les cues superposés.
+Au premier temps, CueKoda exporte le repère AutoGrid seul et le signale dans l’aperçu.
+Dans CueKoda, valide les boucles souhaitées avant l’export avec l’option par défaut « validées uniquement ».
 
 ## Importer une collection dans CueKoda
 

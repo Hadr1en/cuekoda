@@ -201,7 +201,8 @@ Serato stores its cues **inside the audio files themselves**. Writing them would
 CueKoda never does. Details and the checking procedure: [export matrix](docs/MATRICE_EXPORT.md) (French).
 
 In Traktor, AutoGrid occupies button 1. Pads A–G map to buttons 2–8, and pad H becomes a stored cue.
-The generated NML is covered by automated tests. The mapping still needs checking in Traktor Pro.
+AutoGrid is the sole marker at the first downbeat. Accept the loops you want in CueKoda before exporting
+with the default “accepted only” option.
 
 Use **“Import collection…”** to bring a rekordbox XML or Traktor NML collection into CueKoda. Imported
 cues are locked and suggestions fill free pads. You can also adopt the BPM and first grid marker.
@@ -224,8 +225,7 @@ Export safety: CueKoda writes a **new collection file** and never touches your D
 
 ## Reliability and limits
 CueKoda is upfront about what it can do:
-- **DJ checks** — An export was imported into rekordbox and Traktor. The
-  [evaluation report](docs/EVALUATION.md) measures cue accuracy on three EDM tracks corrected by ear.
+- The [evaluation report](docs/EVALUATION.md) measures cue accuracy on three EDM tracks corrected by ear.
 - **Still to confirm** — The new Traktor mapping, import offsets by audio format, Engine DJ, VirtualDJ
   and djay Pro imports, Windows updates and energy calibration.
 - **Experimental**: vocal detection (some vocals may be missed). Verse / chorus is only suggested on strong

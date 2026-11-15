@@ -744,8 +744,6 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^via (.+) XML · non vérifié$/, 'via $1 XML · not verified'],
   [/^Format : (.+)$/, (_, f) => `Format: ${tl(f)}`],
   [/^rekordbox XML \(lu par (.+)\)$/, 'rekordbox XML (read by $1)'],
-  [/^✓ Import vérifié dans (.+) par un DJ \((.+)\)\.$/, '✓ Import verified in $1 by a DJ ($2).'],
-  [/^Import vérifié dans (.+) par un DJ \((.+)\)$/, 'Import verified in $1 by a DJ ($2)'],
   [/^(.+) sait lire une collection rekordbox XML, mais cet import n’a pas encore été vérifié avec CueKoda\. Testez d’abord sur quelques morceaux\.$/,
     '$1 can read a rekordbox XML collection, but this import has not been verified with CueKoda yet. Try a few tracks first.'],
   [/^Écrits comme pour rekordbox ; repris selon ce que (.+) lit de ce fichier$/, 'Written as for rekordbox; imported depending on what $1 reads from this file'],
@@ -763,6 +761,7 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^(\d+) hot cue\(s\) avec noms \(couleurs non transférables\)$/, (_, n) => `${pl(n, 'hot cue')} with names (colors cannot be transferred)`],
   [/^(\d+) memory cue\(s\) aux positions des hot cues$/, (_, n) => `${pl(n, 'memory cue')} at the hot cue positions`],
   [/^(\d+) memory cue\(s\) sans pad( \(cues mémorisés Traktor\))?$/, (_, n, t) => `${pl(n, 'memory cue')} without a pad${t ? ' (Traktor stored cues)' : ''}`],
+  [/^(\d+) cue\(s\) au premier temps déjà couvert\(s\) par AutoGrid$/, (_, n) => `${pl(n, 'cue')} at the first downbeat already covered by AutoGrid`],
   [/^Fichier au format rekordbox XML, à indiquer dans (.+)$/, 'File in rekordbox XML format, to select in $1'],
   [/^(\d+) boucle\(s\) \((.+)\)$/, (_, n, m) => `${pl(n, 'loop')} (${tl(m)})`],
 
