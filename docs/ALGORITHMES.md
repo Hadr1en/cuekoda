@@ -7,7 +7,9 @@ doivent pas être lus comme des probabilités.
 ## Décodage et métadonnées — `decode.ts`, `analyzer.ts`
 - ffmpeg décode tout format courant en mono 44,1 kHz ; **dans la même passe**, le filtre `ebur128` mesure
   la loudness intégrée (LUFS), la plage de loudness (LRA) et le true peak sur les canaux d'origine.
-- RMS et facteur de crête sont calculés sur le mixage mono.
+- RMS et facteur de crête sont calculés sur le signal d’analyse. Si les canaux s’annulent au
+  mixage mono et que le signal stéréo est audible, le moteur reprend le canal gauche et le signale.
+  Un fichier sans signal exploitable reçoit une erreur explicite.
 - Les tags (titre, artiste, BPM/clé déjà tagués, format, codec, canaux, débit) viennent de
   music-metadata et sont affichés **séparément** des résultats d'analyse.
 - Fichier illisible ou < 5 s → erreur explicite ; fichier > 20 min (mix) → ignoré.
@@ -16,7 +18,10 @@ doivent pas être lus comme des probabilités.
 1. Estimation grossière par Essentia `RhythmExtractor2013` sur 2 min centrales (Essentia exige 44,1 kHz).
 2. Repli dans la plage BPM du profil (×2 / ÷2).
 3. **Validation** : score d'alignement de grille sur l'enveloppe d'attaques pour les ratios ×1, ×3/2, ×2/3,
-   ×4/3, ×3/4. Essentia n'est remplacé que si un autre candidat s'aligne ≥ 15 % mieux, jamais arbitrairement.
+   ×4/3, ×3/4. Un autre candidat peut l’emporter s’il s’aligne au moins 15 % mieux. Les profils EDM
+   sans bornes explicites comparent aussi la récurrence des attaques à 2, 4 et 8 temps entre candidats
+   dont les pulsations s’alignent déjà. Ce critère favorise une mesure cohérente lorsque le motif
+   syncopé donne aussi une grille plausible en rapport 3:2.
 4. Affinage au centième par régression robuste (Theil-Sen) des attaques mesurées dans le domaine temporel,
    puis arrondi à un tempo entier / demi-entier seulement si l'ajustement est aussi bon.
 5. **Stabilité** : tempo de chaque segment de 64 temps estimé **indépendamment** (alignement de grille à ±8 %
@@ -263,4 +268,6 @@ rapporté séparément, avec l'écart en temps pour chaque cue raté à ±40 ms.
 
 `npm run eval:dj` évalue les corrections de trois morceaux dans `tests/ground-truth/dj-corrections.json`.
 Voir [le rapport d'évaluation](EVALUATION.md). Le CLI peut aussi charger les références GiantSteps Tempo,
-GiantSteps Key et Harmonix avec les fichiers audio fournis localement.
+GiantSteps Key, Harmonix, Ballroom et BRID avec les fichiers audio fournis localement. Les métriques
+de temps et de premiers temps de Ballroom et de BRID sont limitées à la fenêtre annotée. Le détail
+JSON indique le nombre de temps par mesure de référence pour analyser les résultats hors 4/4.

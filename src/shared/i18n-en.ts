@@ -603,6 +603,8 @@ export const EN_EXACT: Record<string, string> = {
     'No vocals detected (heavily processed or buried vocals can escape detection)',
   'Heuristique seule': 'Heuristic only',
   'modèle vocal absent': 'vocal model missing',
+  'Les canaux s’annulent en mono : analyse sur le canal gauche.': 'The channels cancel in mono. Analysis uses the left channel.',
+  'Aucun signal audio exploitable après conversion mono.': 'No usable audio signal after conversion to mono.',
   'audio trop court ou illisible (< 5 s)': 'audio too short or unreadable (< 5 s)',
 
   // ================================================================ main process (export, watch folders)
@@ -627,6 +629,7 @@ export const EN_EXACT: Record<string, string> = {
 };
 
 export const EN_PATTERNS: [RegExp, Rep][] = [
+  [/^Tempo ([\d.]+) remplacé par ([\d.]+) \(motif rythmique récurrent\)$/, (_, a, b) => `Tempo ${a} replaced by ${b} (recurring rhythmic pattern)`],
   [/^⚠ Fichiers introuvables écartés \((\d+)\) : (.+)$/, (_, n, tracks) => `⚠ Missing files excluded (${n}): ${tracks}`],
   [/^⚠ Morceaux sans analyse écartés : (\d+)$/, (_, n) => `⚠ Unanalyzed tracks excluded: ${n}`],
   [/^⚠ Tempo variable : Traktor ne reçoit qu’un tempo pour (\d+) morceau\(x\)$/, (_, n) => `⚠ Variable tempo: Traktor receives a single tempo for ${n} track(s)`],

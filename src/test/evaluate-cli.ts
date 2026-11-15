@@ -2,7 +2,7 @@
  * Engine evaluation against reference annotations (spec §21).
  *   npm run eval                                   → references saved by the app (user data folder)
  *   npm run eval -- --refs <file|dir> [--audio <dir>] → e.g. tests/ground-truth (files found by name in --audio)
- *   npm run eval -- --dataset giantsteps-tempo|giantsteps-key|harmonix --annotations <dir> --audio <dir>
+ *   npm run eval -- --dataset giantsteps-tempo|giantsteps-key|harmonix|ballroom|brid --annotations <dir> --audio <dir>
  *   options: --limit <n>, --write docs/EVALUATION.md, --json <file>
  * Each file is re-analysed from scratch (no corrections, no cache) and compared. Cues count as found only
  * on the right beat (±40 ms) and with the same kind; ±1 beat is reported separately.
@@ -51,10 +51,12 @@ async function main() {
   const dataset = opt('--dataset') as DatasetId | '';
   let refs: Reference[];
   let label: string;
+  let annotationsWithoutAudio = 0;
   if (dataset) {
     if (!DATASETS.includes(dataset)) { console.error(`--dataset : ${DATASETS.join(' | ')}`); process.exit(2); }
     const { refs: r, withoutAudio } = loadDataset(dataset, opt('--annotations'), opt('--audio'));
     refs = r;
+    annotationsWithoutAudio = withoutAudio;
     label = `jeu de données ${dataset}`;
     if (withoutAudio) console.log(`${withoutAudio} annotation(s) sans fichier audio correspondant (ignorées)`);
     if (!refs.length) {
@@ -79,7 +81,7 @@ async function main() {
   refs = refs.slice(0, limit);
   const evals: TrackEvaluation[] = [];
   const missing: string[] = [];
-  let failed = 0;
+  const failures: { fileName: string; message: string }[] = [];
   for (const ref of refs) {
     if (!ref.path || !fs.existsSync(ref.path)) {
       missing.push(ref.fileName);
@@ -90,7 +92,7 @@ async function main() {
       det = await analyzeFile(ref.path, { profileId: ref.profileId ?? 'edm' }); // fresh: no overrides, no user edits, no cache
     } catch (e) {
       console.log(`${ref.fileName}: échec de l'analyse (${(e as Error).message})`);
-      failed++;
+      failures.push({ fileName: ref.fileName, message: (e as Error).message });
       continue;
     }
     const e = evaluateTrack(det, ref);
@@ -110,7 +112,7 @@ async function main() {
   }
   if (dataset && !evals.length) {
     console.error(`Aucune analyse réussie pour ${dataset}.`);
-    process.exit(2);
+    process.exitCode = 2;
   }
   const s = summarize(evals);
   const c = s.counts;
@@ -129,7 +131,7 @@ async function main() {
     `# Évaluation du moteur CueKoda v${ENGINE_VERSION}`,
     '',
     `${s.tracks} morceau(x) — ${label}${missing.length ? ` (${missing.length} introuvable(s) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''})` : ''}.`,
-    ...(dataset ? [`${refs.length} analyse(s) tentée(s), ${failed} échec(s) de l'analyse.`] : []),
+    ...(dataset ? [`${refs.length - missing.length} analyse(s) tentée(s), ${failures.length} échec(s) de l'analyse.`] : []),
     'Les références du DJ ne sont pas exhaustives : pour les cues, le rappel compte plus que la précision.',
     '',
     '| Mesure | Morceaux | Résultat |',
@@ -143,7 +145,10 @@ async function main() {
     fs.writeFileSync(write, lines.join('\n'));
     console.log(`→ ${write}`);
   }
-  if (json) fs.writeFileSync(json, JSON.stringify({ engine: ENGINE_VERSION, summary: s, tracks: evals }, null, 2));
+  if (json) fs.writeFileSync(json, JSON.stringify({
+    engine: ENGINE_VERSION, summary: s, tracks: evals,
+    coverage: { attempted: refs.length - missing.length, annotationsWithoutAudio, missing, failures },
+  }, null, 2));
 }
 
 main().catch((e) => {

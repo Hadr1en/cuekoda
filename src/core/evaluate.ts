@@ -1,6 +1,6 @@
 import { gridBeats } from './beatgrid';
 import { camelotRelation } from './matching';
-import type { AnalysisResult, CueKind, SectionType, VocalInfo } from './types';
+import type { AnalysisResult, Confidence, CueKind, SectionType, VocalInfo } from './types';
 
 /**
  * Reference annotations (spec §21): the state of a track AFTER the DJ checked it by ear and corrected it.
@@ -26,6 +26,10 @@ export interface Reference {
   /** Annotated beat / downbeat times (s) */
   beats?: number[];
   downbeats?: number[];
+  /** Known annotated span, for datasets that exclude leading and trailing audio from beat evaluation. */
+  beatWindow?: [startSec: number, endSec: number];
+  /** Meter inferred from the annotation, for stratified reporting. */
+  beatsPerBar?: number;
   /** Where the annotation comes from (DJ, dataset name) */
   source?: string;
   vocalSegments?: { startSec: number; endSec: number }[];
@@ -69,11 +73,11 @@ export interface CueMiss {
 
 export interface TrackEvaluation {
   fileName: string;
-  bpm?: { reference: number; detected: number; errorPct: number; octaveError: boolean };
+  bpm?: { reference: number; detected: number; errorPct: number; octaveError: boolean; confidence?: Confidence };
   /** Phase error of the grid, in ms (−beat/2 … +beat/2), and whether the bar start is the same beat */
   grid?: { phaseErrorMs: number; downbeatOk: boolean };
   /** Beat / downbeat tracking against annotated beat times (Harmonix-style): share of beats within ±70 ms */
-  beats?: { fMeasure: number; downbeatF: number };
+  beats?: { fMeasure: number; downbeatF: number; referenceBeatsPerBar?: number };
   /** MIREX key score: 1 exact, 0.5 fifth, 0.3 relative, 0.2 parallel, 0 otherwise */
   key?: { reference: string; detected: string; score: number };
   /**
@@ -147,7 +151,7 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
   if (ref.bpm) {
     const bpmErr = ((det.bpm - ref.bpm) / ref.bpm) * 100;
     const octave = [0.5, 2, 1 / 3, 3, 2 / 3, 1.5].some((k) => Math.abs(det.bpm / ref.bpm! - k) < 0.02);
-    out.bpm = { reference: ref.bpm, detected: det.bpm, errorPct: bpmErr, octaveError: Math.abs(bpmErr) > 2 && octave };
+    out.bpm = { reference: ref.bpm, detected: det.bpm, errorPct: bpmErr, octaveError: Math.abs(bpmErr) > 2 && octave, confidence: det.tempo?.confidence };
   }
   // Annotated beat times give a more meaningful comparison than extrapolating
   // a constant 4/4 grid from the reference's median tempo.
@@ -159,8 +163,10 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
     out.grid = { phaseErrorMs: phase, downbeatOk: Math.abs(barRel - Math.round(barRel)) < 0.5 / 4 };
   }
   if (ref.beats?.length) {
-    const g = gridBeats(det);
+    const [start, end] = ref.beatWindow ?? [0, det.durationSec];
+    const g = gridBeats(det).filter(({ timeSec }) => timeSec >= start - BEAT_TOL_SEC && timeSec <= end + BEAT_TOL_SEC);
     out.beats = {
+      ...(ref.beatsPerBar !== undefined ? { referenceBeatsPerBar: ref.beatsPerBar } : {}),
       fMeasure: fMeasure(ref.beats, g.map((b) => b.timeSec), BEAT_TOL_SEC),
       downbeatF: ref.downbeats?.length ? fMeasure(ref.downbeats, g.filter((b) => b.downbeat).map((b) => b.timeSec), BEAT_TOL_SEC) : 0,
     };
