@@ -203,7 +203,8 @@ Serato range ses cues **dans les fichiers audio eux-mêmes** : les écrire modif
 CueKoda ne fait jamais. Détails et procédure de vérification : [matrice d'export](docs/MATRICE_EXPORT.md).
 
 Dans Traktor, AutoGrid occupe le bouton 1. Les pads A–G vont sur les boutons 2–8 et le pad H devient un
-cue mémorisé. Ce mapping est testé sur le NML généré et reste à vérifier dans Traktor Pro.
+cue mémorisé. AutoGrid marque le premier temps à lui seul. Valide les boucles souhaitées dans CueKoda
+avant l’export avec l’option par défaut « validées uniquement ».
 
 Pour reprendre une collection dans CueKoda, clique sur **« Importer collection… »** et choisis un XML
 rekordbox ou un NML Traktor. Tes cues importés sont verrouillés. Les suggestions remplissent les pads libres.
@@ -227,8 +228,7 @@ ton logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord
 
 ## Fiabilité et limites
 CueKoda est honnête sur ce qu'il sait faire :
-- **Essais DJ** — Un export a été importé dans rekordbox et Traktor. Le
-  [rapport d'évaluation](docs/EVALUATION.md) mesure les cues sur trois morceaux EDM corrigés à l'oreille.
+- Le [rapport d'évaluation](docs/EVALUATION.md) mesure les cues sur trois morceaux EDM corrigés à l'oreille.
 - **À confirmer** — Nouveau mapping Traktor, décalage à l'import selon le format audio, imports Engine DJ,
   VirtualDJ et djay Pro, mise à jour sous Windows et calibration de l'énergie.
 - **Expérimental** : détection vocale (des voix peuvent être manquées) ; couplet / refrain proposés

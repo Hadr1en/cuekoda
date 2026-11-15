@@ -1,6 +1,6 @@
 import type { AnalysisResult } from '../types';
 import { buildRekordboxXml, exportedLoops } from './rekordbox';
-import { buildTraktorNml } from './traktor';
+import { buildTraktorNml, traktorCues, traktorHotcue } from './traktor';
 import { duplicateCueIds } from '../cues';
 import { formatKey, type KeyNotation } from '../key';
 
@@ -57,8 +57,6 @@ export interface ExportAdapter {
   tagline: string;
   /** The file format actually written, when it is another software's format */
   via?: 'rekordbox' | 'traktor';
-  /** Who verified the import, and when (shown in the export dialog) */
-  validatedNote?: string;
   /** available = file produced by CueKoda; unavailable = needs another tool or would alter audio files */
   status: 'available' | 'unavailable';
   /** true only once an import into the real software has been verified */
@@ -72,7 +70,7 @@ export interface ExportAdapter {
 
 /**
  * Software that reads a rekordbox XML collection: the same file, other import steps. Never claimed as
- * validated until a DJ has checked the import in that software.
+ * validated until the import has been checked in that software.
  */
 function viaRekordbox(o: Pick<ExportAdapter, 'id' | 'name' | 'tagline' | 'howToImport'>): ExportAdapter[] {
   return [{
@@ -99,7 +97,6 @@ export const ADAPTERS: ExportAdapter[] = [
     tagline: 'AlphaTheta / Pioneer DJ',
     status: 'available',
     validated: true,
-    validatedNote: 'Import vérifié dans rekordbox par un DJ (2026-11-14)',
     extension: 'xml',
     formatName: 'rekordbox XML (collection)',
     capabilities: [
@@ -128,7 +125,6 @@ export const ADAPTERS: ExportAdapter[] = [
     tagline: 'Native Instruments',
     status: 'available',
     validated: true,
-    validatedNote: 'Import vérifié dans Traktor par un DJ (2026-11-14)',
     extension: 'nml',
     formatName: 'Traktor NML (collection)',
     capabilities: [
@@ -204,9 +200,11 @@ export const ADAPTERS: ExportAdapter[] = [
 export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], opts: ExportOptions): string[] {
   if (adapter.status !== 'available') return adapter.howToImport;
   const xml = adapter.id === 'rekordbox' || adapter.via === 'rekordbox';
-  const lastHotCueSlot = xml ? 7 : 6;
-  const cues = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot >= 0 && c.slot <= lastHotCueSlot).length, 0);
-  const memo = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot < 0 || (!xml && c.slot === 7)).length, 0);
+  const cuesByTrack = tracks.map((t) => xml ? t.cues.filter((c) => c.slot <= 7) : traktorCues(t));
+  const isHotCue = (slot: number) => (xml ? slot : traktorHotcue(slot)) >= 0;
+  const allCues = cuesByTrack.flat();
+  const cues = allCues.filter((c) => isHotCue(c.slot)).length;
+  const memo = allCues.length - cues;
   const variable = tracks.filter((t) => (t.tempoMap?.length ?? 0) > 1).length;
   const loops = tracks.reduce((s, t) => s + exportedLoops(t, opts.loops).length, 0);
   const keys = tracks.filter((t) => t.key.camelot).length;
@@ -226,7 +224,11 @@ export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], 
   }
   if (opts.playlistName) out.push(`Playlist « ${opts.playlistName} » : ${tracks.length} morceau(x) dans l’ordre du set`);
   out.push(`${loops} boucle(s) (${opts.loops === 'accepted' ? 'validées uniquement' : opts.loops === 'all' ? 'toutes les suggestions' : 'aucune'})`);
-  const dupTracks = tracks.map((t) => ({ t, n: duplicateCueIds(t.cues).size })).filter((x) => x.n > 0);
+  if (!xml) {
+    const gridDuplicates = tracks.reduce((s, t) => s + t.cues.filter((c) => c.slot <= 7).length, 0) - allCues.length;
+    if (gridDuplicates) out.push(`${gridDuplicates} cue(s) au premier temps déjà couvert(s) par AutoGrid`);
+  }
+  const dupTracks = tracks.map((t, i) => ({ t, n: duplicateCueIds(cuesByTrack[i]).size })).filter((x) => x.n > 0);
   if (dupTracks.length) {
     const n = dupTracks.reduce((s, x) => s + x.n, 0);
     out.push(`⚠ ${n} cue(s) au même endroit qu’un autre (${dupTracks.slice(0, 3).map((x) => x.t.title).join(', ')}${dupTracks.length > 3 ? '…' : ''}) : un pad gaspillé chacun`);

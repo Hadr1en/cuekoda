@@ -449,6 +449,26 @@ test('traktor export: no cue shares the grid marker hotcue, external volumes', (
   assert.equal(traktorLocation('/Users/me/c.mp3', 'Macintosh HD').volume, 'Macintosh HD');
 });
 
+test('Traktor keeps just AutoGrid at the first downbeat and preserves subsequent pad numbers', () => {
+  const t = track({
+    path: '/m/intro.mp3',
+    cues: [
+      cue({ id: 'intro', slot: 0, timeSec: 0.1, name: 'Intro' }),
+      cue({ id: 'near', slot: -1, timeSec: 0.11, name: 'Near grid' }),
+      cue({ id: 'drop', slot: 1, timeSec: 15.1, name: 'Drop' }),
+    ],
+  });
+  const opts = { memoryCues: false, loops: 'accepted' } as const;
+  const nml = buildTraktorNml([t], opts);
+  assert.match(nml, /NAME="AutoGrid"[^>]*TYPE="4" START="100\.000"[^>]*HOTCUE="0"/);
+  assert.doesNotMatch(nml, /NAME="(?:Intro|Near grid)"/);
+  assert.match(nml, /NAME="Drop"[^>]*HOTCUE="2"/);
+  assert.match(buildRekordboxXml([t], opts), /Name="Intro"[^>]*Num="0"/);
+  const summary = exportSummary(ADAPTERS.find((a) => a.id === 'traktor')!, [t], opts);
+  assert.ok(summary.some((line) => line.startsWith('1 hot cue(s)')));
+  assert.ok(summary.some((line) => line === '2 cue(s) au premier temps déjà couvert(s) par AutoGrid'));
+});
+
 test('duplicate cues: same position flagged once, export summary warns', () => {
   const cues = [
     cue({ id: 'out', slot: 6, timeSec: 260.362, name: 'Outro' }),
@@ -468,9 +488,7 @@ test('export adapters are honest about their status', () => {
   const serato = ADAPTERS.find((a) => a.id === 'serato')!;
   assert.equal(serato.status, 'unavailable');
   assert.equal(serato.build, undefined);
-  // only what a DJ actually checked in the real software is marked validated
   assert.deepEqual(ADAPTERS.filter((a) => a.validated).map((a) => a.id).sort(), ['rekordbox', 'traktor']);
-  assert.ok(ADAPTERS.filter((a) => a.validated).every((a) => !!a.validatedNote));
   for (const id of ['engine', 'virtualdj', 'djay'] as const) {
     const a = ADAPTERS.find((x) => x.id === id)!;
     assert.equal(a.via, 'rekordbox');

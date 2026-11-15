@@ -111,7 +111,6 @@ export interface AdapterInfo {
   name: string;
   tagline: string;
   via?: 'rekordbox' | 'traktor';
-  validatedNote?: string;
   status: 'available' | 'unavailable';
   validated: boolean;
   formatName: string;
