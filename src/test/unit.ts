@@ -31,7 +31,7 @@ import { withVocals } from '../core/mix';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
 import { suggestOrder } from '../core/setorder';
 import { MAC_SWAP_SCRIPT, evaluateRelease, parseBuild, type GithubRelease } from '../shared/update';
-import { automaticWorkerLimit, normalizeWorkerLimit } from '../shared/parallelism';
+import { automaticWorkerLimit, normalizeWorkerLimit, restoreWorkerLimit } from '../shared/parallelism';
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
@@ -702,14 +702,21 @@ function makeQueue(max = 2) {
 }
 const job = (path: string) => ({ path, options: {}, force: false });
 
-test('parallel analysis scales with available CPUs and preserves manual limits', () => {
-  assert.deepEqual([1, 2, 4, 6, 8, 12, 32].map(automaticWorkerLimit), [1, 2, 3, 4, 4, 6, 8]);
+test('parallel analysis uses available CPUs within the memory budget', () => {
+  const gib = 1024 ** 3;
+  assert.deepEqual([1, 2, 4, 6, 8, 12, 32].map((cores) => automaticWorkerLimit(cores, 32 * gib)), [1, 2, 3, 4, 6, 8, 12]);
+  assert.deepEqual([2, 4, 8, 16].map((ram) => automaticWorkerLimit(12, ram * gib)), [1, 2, 6, 8]);
+});
+
+test('only legacy settings equal to the previous default return to automatic', () => {
   assert.equal(normalizeWorkerLimit(null, 12), null);
   assert.equal(normalizeWorkerLimit(undefined, 12), null);
   assert.equal(normalizeWorkerLimit(NaN, 12), null);
-  assert.equal(normalizeWorkerLimit(1, 12), 1);
-  assert.equal(normalizeWorkerLimit(6, 12), 6);
   assert.equal(normalizeWorkerLimit(12, 4), 4);
+  assert.equal(restoreWorkerLimit(4, 12, 4), null);
+  assert.equal(restoreWorkerLimit(1, 12, 4), 1);
+  assert.equal(restoreWorkerLimit(6, 12, 4), 6);
+  assert.equal(restoreWorkerLimit(4, 12), 4);
 });
 
 test('queue: parallel limit, a failing file does not block the others, summary at the end', () => {

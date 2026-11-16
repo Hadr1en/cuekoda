@@ -8,6 +8,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { analyzeFile } from '../core/analyzer';
+import { decodeAudio } from '../core/decode';
 import { prepareTrack } from '../core/preparation';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml } from '../core/export/traktor';
@@ -400,6 +401,10 @@ async function main() {
     console.log('\n▶ silence et stéréo en opposition de phase');
     const silence = path.join(dir, 'silence.wav');
     writeWav(silence, new Float32Array(SR * 8));
+    const capped = await decodeAudio(silence, SR, { maxDurationSec: 7 }).then(() => '', (e: Error) => e.message);
+    check('Décodage arrêté au-delà de la limite de durée', /fichier de plus de/.test(capped), capped);
+    const exact = await decodeAudio(silence, SR, { maxDurationSec: 8 });
+    check('Décodage complet à la limite de durée', exact.samples.length === 8 * SR, String(exact.samples.length));
     const error = await analyzeFile(silence).then(() => '', (e: Error) => e.message);
     check('Silence sans faux BPM ni tonalité', error.startsWith('Aucun signal audio exploitable'), error);
     const phase = path.join(dir, 'phase.wav');

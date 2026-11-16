@@ -33,6 +33,11 @@ export interface Decoded {
   decodeError?: string;
 }
 
+interface DecodeOptions {
+  channel?: 'left';
+  maxDurationSec?: number;
+}
+
 function parseEbuR128(log: string): EbuR128 {
   const summary = log.slice(log.lastIndexOf('Summary:'));
   const num = (re: RegExp) => {
@@ -53,35 +58,53 @@ function parseEbuR128(log: string): EbuR128 {
  * Decodes any audio file ffmpeg understands into mono float32 PCM and, in the same pass,
  * measures EBU R128 loudness and true peak (ffmpeg `ebur128` filter) on the original channels.
  */
-export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE, channel?: 'left'): Promise<Decoded> {
+export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE, options: DecodeOptions = {}): Promise<Decoded> {
   return new Promise((resolve, reject) => {
+    const { channel, maxDurationSec = Infinity } = options;
+    const sampleBytes = Float32Array.BYTES_PER_ELEMENT;
+    const firstExcessByte = (Math.floor(maxDurationSec * sampleRate) + 1) * sampleBytes;
     const args = [
       '-hide_banner', '-nostats', '-v', 'info', '-nostdin',
+      // The analysis queue already parallelizes independent tracks.
+      '-filter_threads', '1', '-threads:a', '1',
       '-i', file, '-vn',
       '-af', 'ebur128=peak=true:framelog=quiet' + (channel === 'left' ? ',pan=mono|c0=c0' : ''),
       '-ac', '1', '-ar', String(sampleRate), '-f', 'f32le', 'pipe:1',
     ];
-    const proc = spawn(ffmpegPath(), args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const proc = spawn(ffmpegPath(), args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     const chunks: Buffer[] = [];
+    let decodedBytes = 0;
     let log = '';
-    proc.stdout.on('data', (c: Buffer) => chunks.push(c));
+    proc.stdout.on('data', (chunk: Buffer) => {
+      if (decodedBytes >= firstExcessByte) return;
+      decodedBytes += chunk.length;
+      if (decodedBytes < firstExcessByte) {
+        chunks.push(chunk);
+        return;
+      }
+      chunks.length = 0;
+      reject(new Error(`fichier de plus de ${maxDurationSec / 60} min (mix DJ ?) — ignoré`));
+      proc.kill();
+    });
     proc.stderr.on('data', (c: Buffer) => {
       log += c.toString();
       if (log.length > 200_000) log = log.slice(-100_000); // keep the tail (summary is at the end)
     });
     proc.on('error', reject);
     proc.on('close', (code) => {
-      const buf = Buffer.concat(chunks);
-      const n = Math.floor(buf.length / 4);
+      if (decodedBytes >= firstExcessByte) return;
+      const buf = Buffer.concat(chunks, decodedBytes);
+      chunks.length = 0;
+      const n = Math.floor(buf.length / sampleBytes);
       const lastErr = () => (log.trim().split('\n').filter((l) => /error|invalid/i.test(l)).pop() ?? log.trim().split('\n').pop() ?? '').slice(0, 200);
       if (code !== 0 && n === 0) {
         return reject(new Error(`fichier illisible ou corrompu (ffmpeg ${code}) : ${lastErr()}`));
       }
       if (n < sampleRate * 5) return reject(new Error('audio trop court ou illisible (< 5 s)'));
       // PCM is little-endian on all supported platforms. Most concatenated buffers are aligned.
-      const out = buf.byteOffset % Float32Array.BYTES_PER_ELEMENT === 0
+      const out = buf.byteOffset % sampleBytes === 0
         ? new Float32Array(buf.buffer, buf.byteOffset, n)
-        : new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + n * Float32Array.BYTES_PER_ELEMENT));
+        : new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + n * sampleBytes));
       resolve({ samples: out, loudness: parseEbuR128(log), decodeError: code !== 0 ? `ffmpeg ${code} : ${lastErr()}` : undefined });
     });
   });

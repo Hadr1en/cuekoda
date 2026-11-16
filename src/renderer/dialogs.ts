@@ -10,7 +10,6 @@ import type { AdapterInfo, Settings } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, keyLabel, state } from './state';
 import { $, camelotColor, fmtTime, h, hexOf, rgbOf, toast } from './util';
 import { tr } from '../shared/i18n';
-import { automaticWorkerLimit } from '../shared/parallelism';
 
 const closeBtn = (dlg: HTMLDialogElement) =>
   h('button', { type: 'button', class: 'btn ghost', onclick: () => dlg.close() }, 'Fermer');
@@ -273,13 +272,12 @@ export function openSettings(onChanged: () => void) {
       h('label', { class: 'pf' }, label,
         h('input', { type: 'number', min, max, value: String(profile[k]), disabled: !editable, onchange: (e: Event) => set(k, Number((e.target as HTMLInputElement).value)) }));
     const parallelLabel = h('span');
-    const automaticWorkers = automaticWorkerLimit(state.cores);
     const showParallelLimit = (value: number) => {
       parallelLabel.textContent = tr(`Analyses en parallèle : ${value} / ${state.cores} cœurs logiques`);
     };
     const refreshParallelLimit = () => {
       const manualLimit = state.settings.maxWorkers;
-      parallelSlider.valueAsNumber = manualLimit ?? automaticWorkers;
+      parallelSlider.valueAsNumber = manualLimit ?? state.automaticWorkers;
       showParallelLimit(parallelSlider.valueAsNumber);
       parallelAutomatic.checked = manualLimit === null;
     };

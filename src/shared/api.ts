@@ -134,6 +134,7 @@ export interface InitialState {
   adapters: AdapterInfo[];
   learning: string[];
   cores: number;
+  automaticWorkers: number;
   /** fileHash → date of the DJ-verified reference */
   references: Record<string, string>;
   appVersion: string;

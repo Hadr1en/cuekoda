@@ -24,7 +24,7 @@ import { computePeaks, type Peaks } from '../core/peaks';
 import { checkNeuralModels } from '../core/neuralModels';
 import { Updater } from './updater';
 import { resolveLang, translate } from '../shared/i18n';
-import { automaticWorkerLimit, normalizeWorkerLimit } from '../shared/parallelism';
+import { automaticWorkerLimit, normalizeWorkerLimit, restoreWorkerLimit } from '../shared/parallelism';
 
 /** Native dialog texts follow the UI language. */
 const uiText = (s: string) => translate(s, resolveLang(settingsStore.data.language, app.getLocale()));
@@ -35,7 +35,9 @@ const send = (channel: string, payload: unknown) => win?.webContents.send(channe
 // --- persistent state ---------------------------------------------------------
 const userData = () => app.getPath('userData');
 const cores = os.availableParallelism();
-const automaticWorkers = automaticWorkerLimit(cores);
+const automaticWorkers = automaticWorkerLimit(cores, os.totalmem());
+const legacyWorkerDefault = Math.max(1, Math.min(4, os.cpus().length - 1));
+type StoredSettings = Settings & { workerLimitVersion?: 1 };
 const DEFAULT_SETTINGS: Settings = {
   profileId: 'edm',
   customProfiles: [],
@@ -51,7 +53,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 let library: LibraryStore<AnalysisResult, TrackRecord>;
-let settingsStore: JsonStore<Settings>;
+let settingsStore: JsonStore<StoredSettings>;
 let crateStore: JsonStore<{ crates: PrepCrate[] }>;
 let updater: Updater;
 let learningStore: JsonStore<LearningStats>;
@@ -321,6 +323,7 @@ function registerIpc() {
     adapters: adapterInfo(),
     learning: describe(learningStore.data),
     cores,
+    automaticWorkers,
     references: referenceIndex(),
     appVersion: app.getVersion(),
     appBuild: updater.currentBuild,
@@ -1241,10 +1244,11 @@ app.whenReady().then(async () => {
   library = new LibraryStore<AnalysisResult, TrackRecord>(path.join(userData(), 'library.json'));
   // files moved / renamed / on a disconnected drive: flagged, never removed from the library
   for (const r of Object.values(library.data.tracks)) r.missing = !fs.existsSync(r.path) || undefined;
-  settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
+  settingsStore = new JsonStore<StoredSettings>(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
   const settings = settingsStore.data;
   settings.profileId = activePreparationProfile(settings.profileId, settings.customProfiles);
-  settings.maxWorkers = normalizeWorkerLimit(settings.maxWorkers, cores);
+  settings.maxWorkers = restoreWorkerLimit(settings.maxWorkers, cores, settings.workerLimitVersion === 1 ? undefined : legacyWorkerDefault);
+  settings.workerLimitVersion = 1;
   crateStore = new JsonStore(path.join(userData(), 'crates.json'), { crates: [] });
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
   referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });
