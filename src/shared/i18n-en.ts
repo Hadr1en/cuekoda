@@ -59,7 +59,17 @@ export const EN_EXACT: Record<string, string> = {
   Fichiers: 'Files',
   '+ Fichiers': '+ Files',
   '+ Dossier': '+ Folder',
-  'Profil DJ : règles de cues, couleurs, boucles et plage BPM': 'DJ profile: cue rules, colors, loops and BPM range',
+  'Choisir les suggestions de cues, de boucles et de transitions': 'Choose cue, loop and transition suggestions',
+  'Profil de préparation': 'Preparation profile',
+  'Équilibré': 'Balanced',
+  'Transitions longues': 'Long transitions',
+  'Pads fixes': 'Fixed pads',
+  'Appliquer le profil à la sélection': 'Apply profile to selection',
+  'Profil sélectionné pour les prochaines suggestions.': 'Profile selected for upcoming suggestions.',
+  'Le BPM, la tonalité et la grille sont calculés automatiquement. Le profil détermine les suggestions de cues, de boucles et de transitions.':
+    'BPM, key and beatgrid are calculated automatically. The profile controls cue, loop and transition suggestions.',
+  'Pour actualiser les suggestions des morceaux déjà analysés, sélectionnez-les puis choisissez « Appliquer le profil à la sélection ». Les cues vérifiés, modifiés ou verrouillés et les boucles acceptées sont conservés.':
+    'To refresh suggestions for existing tracks, select them and choose “Apply profile to selection”. Reviewed, edited or locked cues and accepted loops are preserved.',
   Profil: 'Profile',
   profil: 'profile',
   Annuler: 'Cancel',
@@ -313,8 +323,6 @@ export const EN_EXACT: Record<string, string> = {
   'Retirer ce morceau de la bibliothèque CueKoda ? Le fichier audio n’est pas supprimé.':
     'Remove this track from the CueKoda library? The audio file is not deleted.',
   'Aucun nouveau fichier audio (déjà dans la bibliothèque ?)': 'No new audio files (already in the library?)',
-  'Profil appliqué aux prochaines analyses — « Ré-analyser » pour l’appliquer aux morceaux existants':
-    'Profile applied to the next analyses — “Re-analyze” to apply it to existing tracks',
 
   // ================================================================ export dialog
   Fermer: 'Close',
@@ -532,7 +540,6 @@ export const EN_EXACT: Record<string, string> = {
   // ================================================================ settings dialog
   'Avant le drop': 'Pre-drop',
   'Début de breakdown': 'Breakdown start',
-  'Profil DJ': 'DJ profile',
   'Dupliquer pour personnaliser': 'Duplicate to customize',
   'Supprimer ce profil': 'Delete this profile',
   'Profil intégré (lecture seule) — dupliquez-le pour le modifier.': 'Built-in profile (read-only) — duplicate it to edit it.',
@@ -549,8 +556,6 @@ export const EN_EXACT: Record<string, string> = {
   exclure: 'exclude',
   Monter: 'Move up',
   Descendre: 'Move down',
-  'Le profil s’applique aux prochaines analyses. La commande « Ré-analyser » l’applique aux morceaux existants et conserve les corrections manuelles.':
-    'The profile applies to subsequent analyses. “Re-analyze” applies it to existing tracks and preserves manual edits.',
   Performances: 'Performance',
   'Analyse locale uniquement (CPU) : aucun fichier n’est envoyé en ligne. Les résultats sont mis en cache : un fichier inchangé n’est pas ré-analysé.':
     'Local analysis only (CPU): no file is uploaded. Results are cached: an unchanged file is not re-analyzed.',
@@ -738,8 +743,12 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^(\d+) erreur\(s\)$/, (_, n) => pl(n, 'error')],
   [/^(\d+) annulé\(s\)$/, '$1 cancelled'],
   [/^(\d+) fichier\(s\) ajouté\(s\) à la file d’analyse$/, (_, n) => `${pl(n, 'file')} added to the analysis queue`],
-  [/^Ré-analyser (\d+) morceaux avec le profil actuel \? Les cues modifiés ou verrouillés sont conservés\.$/,
-    'Re-analyze $1 tracks with the current profile? Edited or locked cues are preserved.'],
+  [/^Ré-analyser (\d+) morceaux \? Les cues modifiés ou verrouillés sont conservés\.$/,
+    'Re-analyze $1 tracks? Edited or locked cues are preserved.'],
+
+  [/^Suggestions actualisées pour (\d+) morceau\(x\)\.$/, (_, n) => `Suggestions refreshed for ${pl(n, 'track')}.`],
+  [/^Morceaux à réanalyser pour actualiser les suggestions · (\d+)$/,
+    (_, n) => `Re-analyze ${pl(n, 'track')} to refresh their suggestions.`],
 
   // ---------------------------------------------------------------- detail header, corrections
   [/^(.+) \(alternative plausible\)$/, '$1 (plausible alternative)'],

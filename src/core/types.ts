@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.4.11';
+export const ENGINE_VERSION = '0.5.0';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
@@ -313,6 +313,7 @@ export interface AnalysisResult extends TrackInfo {
   loudness?: LoudnessInfo;
   energy?: EnergyInfo;
   phrases?: PhraseInfo;
+  preparation?: import('./preparation').PreparationData;
   sections?: Section[];
   cues: HotCue[];
   loops?: Loop[];

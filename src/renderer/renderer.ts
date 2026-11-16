@@ -4,7 +4,7 @@ import { gridAudition, gridBeats, type GridBeat } from '../core/beatgrid';
 import { openComparison } from './comparison';
 import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
 import { allKeys, formatKey } from '../core/key';
-import { CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
+import { BUILTIN_PROFILES, CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
 import { cueAt, duplicateCueIds } from '../core/cues';
 import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
@@ -241,6 +241,7 @@ function syncTrackSelection() {
   setText($('selection-count'), `${count} sélectionné${count > 1 ? 's' : ''}`);
   $<HTMLButtonElement>('btn-remove').disabled = count === 0;
   $<HTMLButtonElement>('btn-reanalyze').disabled = ![...markedPaths].some((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)));
+  $<HTMLButtonElement>('btn-apply-preparation').disabled = ![...markedPaths].some((p) => state.tracks.get(p)?.status === 'done');
 }
 
 function replaceTrackSelection(next: Set<string>) {
@@ -288,6 +289,7 @@ function openTrackActions(path: string, x: number, y: number) {
     type: 'button', class: 'btn ghost', disabled, onclick: () => { trackActions.hidePopover(); action(); },
   }, label);
   trackActions.replaceChildren(
+    button('Appliquer le profil à la sélection', () => void applyPreparation(), !selectedPaths().some((p) => state.tracks.get(p)?.status === 'done')),
     button('Ré-analyser', () => void reanalyzeSelected(), !selectedPaths().some((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)))),
     button('Ajouter à un bac…', () => showCrates()),
     button('Exporter la sélection…', () => openExport(state.selected, undefined, selectedInViewOrder()),
@@ -551,13 +553,14 @@ function renderDetail() {
   if (!r) return;
   if (wave.track !== r) wave.set(r, true);
   $('d-title').textContent = r.title;
-  const profile = tr(allProfiles().find((p) => p.id === r.profileId)?.name ?? r.profileId ?? '—');
+  const profile = allProfiles().find((p) => p.id === r.profileId)
+    ?? BUILTIN_PROFILES.find((p) => p.id === r.profileId);
   $('d-sub').replaceChildren(
     ...(r.artist ? [h('span', { class: 'd-artist' }, document.createTextNode(r.artist))] : []),
     h('span', {}, `${fmtBpm(r.bpm)} BPM`),
     r.key.camelot ? keyBadge(r.key) : '',
     r.energy ? h('span', {}, `${tr('énergie')} ${r.energy.score}/10`) : '',
-    h('span', {}, profile),
+    profile ? h('span', { title: 'Profil de préparation' }, profile.name) : '',
   );
   $('time-total').textContent = `/ ${fmtDur(r.durationSec)}`;
   waveCanvas.setAttribute('aria-valuemax', String(Math.round(r.durationSec)));
@@ -1696,8 +1699,20 @@ selectAll.addEventListener('change', () => markAllVisible(selectAll.checked));
 async function reanalyzeSelected() {
   const paths = selectedPaths().filter((p) => !state.tracks.get(p)?.missing && !isBusy(state.tracks.get(p)));
   if (!paths.length) return;
-  if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux avec le profil actuel ? Les cues modifiés ou verrouillés sont conservés.`))) return;
+  if (paths.length > 1 && !confirm(tr(`Ré-analyser ${paths.length} morceaux ? Les cues modifiés ou verrouillés sont conservés.`))) return;
   latestComparison = await api.reanalyze(paths, true);
+}
+
+async function applyPreparation() {
+  const paths = selectedPaths().filter((p) => state.tracks.get(p)?.status === 'done');
+  if (!paths.length) return;
+  const { applied, needsAnalysis } = await api.applyPreparationProfile(paths);
+  if (applied) latestComparison = undefined;
+  const messages = [
+    applied ? tr(`Suggestions actualisées pour ${applied} morceau(x).`) : '',
+    needsAnalysis ? tr(`Morceaux à réanalyser pour actualiser les suggestions · ${needsAnalysis}`) : '',
+  ].filter(Boolean);
+  if (messages.length) toast(messages.join(' '));
 }
 
 let removing = false;
@@ -1733,6 +1748,7 @@ async function removeSelected() {
   }
 }
 $('btn-reanalyze').addEventListener('click', () => void reanalyzeSelected());
+$('btn-apply-preparation').addEventListener('click', () => void applyPreparation());
 $('btn-remove').addEventListener('click', () => void removeSelected());
 
 // Close the overflow before opening a secondary dialog.
@@ -1757,7 +1773,7 @@ $('btn-dupes').addEventListener('click', openDuplicates);
 $('btn-settings').addEventListener('click', () => openSettings(() => { fillProfiles(); renderDetail(); }));
 $('profile').addEventListener('change', async (e) => {
   state.settings = await api.setSettings({ profileId: (e.target as HTMLSelectElement).value });
-  toast('Profil appliqué aux prochaines analyses — « Ré-analyser » pour l’appliquer aux morceaux existants');
+  toast('Profil sélectionné pour les prochaines suggestions.');
 });
 
 function fillProfiles() {

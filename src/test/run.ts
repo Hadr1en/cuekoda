@@ -8,6 +8,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { analyzeFile } from '../core/analyzer';
+import { prepareTrack } from '../core/preparation';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml } from '../core/export/traktor';
 import { AnalysisResult } from '../core/types';
@@ -409,7 +410,25 @@ async function main() {
     check('Canal de secours signalé', result.warnings.some((w) => w.includes('canal gauche')), result.warnings.join(' · '));
   }
 
-  // ---- CLI tempo bounds override their own side of the DJ profile ---------------------------
+  // ---- preparation profiles share one musical analysis -------------------------------------
+  {
+    console.log('\n▶ analyse commune et profils de préparation');
+    const base = results[0];
+    const profile = (await import('../core/profiles')).findProfile('techno');
+    const separate = await analyzeFile(base.path, { profile });
+    const refreshed = prepareTrack(base, profile);
+    const music = (r: AnalysisResult) => JSON.stringify([r.bpm, r.tempo, r.grid, r.key, r.tempoMap, r.energy, r.phrases]);
+    const markers = (r: AnalysisResult) => JSON.stringify({
+      cues: r.cues.map(({ id, ...cue }) => cue),
+      loops: r.loops?.map(({ id, ...loop }) => loop),
+    });
+    check('Analyse musicale identique avec deux profils', music(base) === music(separate), `${base.bpm} BPM · ${base.key.camelot}`);
+    check('Application du profil à partir de l’analyse enregistrée', music(base) === music(refreshed)
+      && refreshed.profileId === profile.id && markers(separate) === markers(refreshed), profile.name);
+    check('Le profil change les suggestions', markers(base) !== markers(refreshed), profile.name);
+  }
+
+  // ---- CLI tempo bounds override common defaults ------------------------------------------
   {
     console.log('\n▶ bornes de tempo en ligne de commande');
     const cli = path.join(__dirname, '..', 'cli', 'cli.js');
@@ -422,9 +441,9 @@ async function main() {
     };
     const upper = bpmWith('techno', '--max-bpm', '180');
     check('Borne haute explicite prise en compte', Math.abs(upper - 174) < 0.05, `${upper} BPM`);
-    const lower = bpmWith('house', '--min-bpm', '90');
-    check('Borne haute du profil conservée avec une borne basse explicite', Math.abs(lower - 87) < 0.05, `${lower} BPM`);
-    const invalid = spawnSync(process.execPath, [cli, file, '--profile', 'house', '--max-bpm', '100'], { encoding: 'utf8' });
+    const lower = bpmWith('house', '--min-bpm', '70');
+    check('Borne basse explicite prise en compte', Math.abs(lower - 87) < 0.05, `${lower} BPM`);
+    const invalid = spawnSync(process.execPath, [cli, file, '--profile', 'house', '--max-bpm', '80'], { encoding: 'utf8' });
     check('Plage de tempo invalide signalée', invalid.status === 1 && invalid.stderr.includes('Plage de tempo invalide'), invalid.stderr.trim());
   }
 
@@ -477,7 +496,7 @@ async function main() {
     const bad = path.join(dir, 'corrompu.mp3');
     fs.writeFileSync(bad, Buffer.from('this is not audio at all'.repeat(100)));
     const good = path.join(dir, `${SPECS[1].spec.name}.wav`);
-    const runBatch = (files: string[]) =>
+    const runBatch = (files: string[], profileId = 'edm') =>
       new Promise<{ log: string[]; summary: { done: number; cached: number; errors: number } }>((resolve) => {
         const log: string[] = [];
         const q = new AnalysisQueue(
@@ -485,7 +504,7 @@ async function main() {
           {
             start: () => {},
             progress: () => {},
-            result: (p, _r, cached) => log.push(`ok ${path.basename(p)}${cached ? ' cache' : ''}`),
+            result: (p, r, cached) => log.push(`ok ${path.basename(p)} ${r.profileId}${cached ? ' cache' : ''}`),
             error: (p, m) => log.push(`err ${path.basename(p)}: ${m}`),
             cancelled: () => {},
             state: () => {},
@@ -497,13 +516,14 @@ async function main() {
           () => ({ cacheDir }),
           2,
         );
-        for (const f of files) q.enqueue({ path: f, options: { profileId: 'edm' }, force: false });
+        for (const f of files) q.enqueue({ path: f, options: { profileId }, force: false });
       });
     console.log('\n▶ file d’analyse (workers réels)');
     const first = await runBatch([bad, good]);
     check('Fichier corrompu isolé', first.log.some((l) => l.startsWith('err corrompu')) && first.log.some((l) => l.startsWith('ok fast')), first.log.join(' | '));
-    const second = await runBatch([good]);
-    check('Résultat repris du cache', second.log[0]?.endsWith('cache') && second.summary.cached === 1, second.log.join(' | '));
+    const second = await runBatch([good], 'edm-fixed');
+    check('Analyse reprise du cache avec le nouveau profil', second.log[0]?.endsWith('edm-fixed cache')
+      && second.summary.cached === 1, second.log.join(' | '));
     for (const file of fs.readdirSync(cacheDir).filter((name) => name.endsWith('.json'))) {
       fs.writeFileSync(path.join(cacheDir, file), '{"interrompu":');
     }

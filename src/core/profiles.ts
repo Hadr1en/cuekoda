@@ -8,9 +8,6 @@ export interface Profile {
   id: string;
   name: string;
   builtin: boolean;
-  /** Tempo folding window (max must be ≤ 2 × min) */
-  minBpm: number;
-  maxBpm: number;
   /** Maximum number of hot cues to place (1..8) */
   maxCues: number;
   /** Cue kinds by priority — when there are more candidates than pads, the first ones win */
@@ -98,9 +95,7 @@ export const BUILTIN_PROFILES: Profile[] = [
   {
     ...base,
     id: 'edm',
-    name: 'EDM',
-    minBpm: 90,
-    maxBpm: 180,
+    name: 'Équilibré',
     cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'kickout', 'mixin', 'vocal'],
     loopBeats: [4, 8, 16, 32],
     loopKinds: ['intro', 'predrop', 'outro'],
@@ -110,9 +105,7 @@ export const BUILTIN_PROFILES: Profile[] = [
   {
     ...base,
     id: 'edm-fixed',
-    name: 'EDM — pads fixes',
-    minBpm: 90,
-    maxBpm: 180,
+    name: 'Pads fixes',
     cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'kickout', 'mixin', 'vocal'],
     slotOrder: 'template',
     padTemplate: DEFAULT_PAD_TEMPLATE,
@@ -125,8 +118,6 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'house',
     name: 'House',
-    minBpm: 110,
-    maxBpm: 135,
     cuePriority: ['intro', 'groove', 'outro', 'mixin', 'mixout', 'break', 'drop', 'build', 'kickout', 'vocal'],
     loopBeats: [16, 32],
     loopKinds: ['intro', 'outro'],
@@ -137,8 +128,6 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'techhouse',
     name: 'Tech House',
-    minBpm: 115,
-    maxBpm: 135,
     cuePriority: ['intro', 'groove', 'break', 'drop', 'outro', 'mixin', 'mixout', 'build', 'kickout', 'vocal'],
     loopBeats: [8, 16, 32],
     loopKinds: ['intro', 'outro', 'predrop'],
@@ -148,10 +137,7 @@ export const BUILTIN_PROFILES: Profile[] = [
   {
     ...base,
     id: 'techno',
-    name: 'Techno',
-    // A full octave keeps fast techno in the same tempo family as its half-time estimate.
-    minBpm: 100,
-    maxBpm: 200,
+    name: 'Transitions longues',
     maxCues: 6,
     cuePriority: ['intro', 'groove', 'break', 'outro', 'mixin', 'mixout', 'drop', 'kickout', 'build', 'vocal'],
     loopBeats: [16, 32],
@@ -164,8 +150,6 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'trance',
     name: 'Trance',
-    minBpm: 120,
-    maxBpm: 150,
     cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'mixin', 'kickout', 'vocal'],
     loopBeats: [8, 16, 32],
     loopKinds: ['intro', 'predrop', 'outro'],
@@ -176,8 +160,6 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'hiphop',
     name: 'Hip-Hop',
-    minBpm: 70,
-    maxBpm: 140,
     cuePriority: ['vocal', 'drop', 'break', 'intro', 'outro', 'mixin', 'mixout', 'groove'],
     excludeKinds: ['kickout', 'build', 'vocal'],
     loopBeats: [4, 8],
@@ -191,8 +173,6 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'openformat',
     name: 'Open Format',
-    minBpm: 80,
-    maxBpm: 160,
     cuePriority: ['intro', 'drop', 'break', 'vocal', 'outro', 'mixin', 'mixout', 'groove', 'build'],
     loopBeats: [4, 8, 16],
     loopKinds: ['intro', 'outro'],
@@ -200,6 +180,14 @@ export const BUILTIN_PROFILES: Profile[] = [
     vocabulary: 'generic',
   },
 ];
+
+export const PREPARATION_PROFILES = BUILTIN_PROFILES.filter(({ id }) =>
+  id === 'edm' || id === 'techno' || id === 'edm-fixed');
+
+export function activePreparationProfile(id: string, custom: Profile[]): string {
+  if (custom.some((p) => p.id === id) || PREPARATION_PROFILES.some((p) => p.id === id)) return id;
+  return id === 'house' || id === 'techhouse' ? 'techno' : 'edm';
+}
 
 export const CUSTOM_TEMPLATE: Profile = { ...BUILTIN_PROFILES[0], id: 'custom', name: 'Custom', builtin: false };
 
@@ -209,13 +197,8 @@ export function findProfile(id: string | undefined, custom: Profile[] = []): Pro
 
 /** Ensures a (possibly user-edited) profile is usable. */
 export function sanitizeProfile(p: Profile): Profile {
-  const minBpm = Math.max(40, Math.min(200, p.minBpm || 90));
-  let maxBpm = Math.max(minBpm + 10, Math.min(260, p.maxBpm || 180));
-  if (maxBpm > minBpm * 2) maxBpm = minBpm * 2; // folding window cannot exceed one octave
   return {
     ...p,
-    minBpm,
-    maxBpm,
     maxCues: Math.max(1, Math.min(8, Math.round(p.maxCues || 8))),
     minCueSpacingBars: Math.max(1, Math.min(32, Math.round(p.minCueSpacingBars || 4))),
     colors: { ...DEFAULT_COLORS, ...(p.colors ?? {}) },

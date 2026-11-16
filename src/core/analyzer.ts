@@ -2,17 +2,14 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { decodeAudio, mp3WithoutGaplessHeader } from './decode';
 import { analyseBands, decimate2 } from './dsp';
-import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo, technoBassPhase } from './rhythm';
+import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo, corroboratedBassPhase } from './rhythm';
 import { allKeys, electronicKeyFromVotes, keyFromMusical, keyFromTonic, type KeyVote } from './key';
 import { camelotRelation } from './matching';
-import { analyzeStructure, buildSections, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
+import { analyzeStructure, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
 import { computeEnergy } from './energy';
 import { computeFingerprint } from './fingerprint';
 import { buildTempoMap, type TempoMarker } from './tempomap';
-import { cueCandidates, selectCues } from './cues';
-import { breakBetweenDrops, refineElectroCues } from './electroCue';
-import { suggestLoops } from './loops';
-import { suggestMix } from './mix';
+import { prepareTrack } from './preparation';
 import { detectVocals } from './vocals';
 import { predictVoice, vocalModelError } from './vocalModel';
 import { predictTempo } from './neuralTempo';
@@ -252,9 +249,7 @@ export async function analyzeFile(
   const opt = { ...DEFAULT_OPTIONS, ...options };
   const progress = opt.onProgress ?? (() => {});
   const profile = sanitizeProfile(opt.profile ?? findProfile(opt.profileId));
-  // Each explicit CLI bound replaces the corresponding profile bound.
-  const minBpm = options.minBpm ?? profile.minBpm;
-  const maxBpm = options.maxBpm ?? profile.maxBpm;
+  const { minBpm, maxBpm } = opt;
   if (!Number.isFinite(minBpm) || !Number.isFinite(maxBpm) || minBpm <= 0 || maxBpm <= minBpm) {
     throw new Error('Plage de tempo invalide : le BPM maximal doit être supérieur au BPM minimal (positif).');
   }
@@ -308,14 +303,10 @@ export async function analyzeFile(
   progress('tempo', 0.3);
   const x = decimate2(full);
   const bands = analyseBands(x, SR_DSP);
-  const edmProfile = profile.id === 'edm' || profile.id === 'edm-fixed';
-  const technoProfile = profile.builtin && profile.id === 'techno';
-  const usesProfileRange = options.minBpm === undefined && options.maxBpm === undefined;
-  const preferRepeatedBars = edmProfile && usesProfileRange;
-  const canUseNeuralTempo = usesProfileRange && (edmProfile || technoProfile);
+  const automaticRange = options.minBpm === undefined && options.maxBpm === undefined;
   const fromRaw = (raw: number) => {
-    const tempo = chooseTempo(bands, raw, minBpm, maxBpm, preferRepeatedBars);
-    const rechecked = preferRepeatedBars ? recheckEdmTempo(bands, tempo.bpm) : { bpm: tempo.bpm, halfTime: undefined };
+    const tempo = chooseTempo(bands, raw, minBpm, maxBpm, automaticRange);
+    const rechecked = automaticRange ? recheckEdmTempo(bands, tempo.bpm) : { bpm: tempo.bpm, halfTime: undefined };
     return { raw, tempo, rechecked };
   };
   let grid: ReturnType<typeof estimateGrid>;
@@ -326,7 +317,7 @@ export async function analyzeFile(
     progress('grille', 0.5);
     grid = estimateGrid(x, SR_DSP, bands, ov.bpm, { fixedBpm: true, fixedPhaseSec: ov.firstDownbeatSec });
   } else {
-    const proposal = canUseNeuralTempo ? await predictTempo(x) : undefined;
+    const proposal = automaticRange ? await predictTempo(x) : undefined;
     let verifiedGrid: ReturnType<typeof estimateGrid> | undefined;
     if (proposal !== undefined) {
       const candidate = fromRaw(proposal);
@@ -357,12 +348,11 @@ export async function analyzeFile(
   const folded = rawBpm ? foldBpm(rawBpm, minBpm, maxBpm) : bpm;
   const alternativeBpm = halfTime !== undefined && Math.abs(halfTime / bpm - 0.5) < 0.015
     ? Math.round(halfTime * 100) / 100 : undefined;
-  const highGridConfidence = edmProfile ? 0.8 : 0.7;
   const tempoLevel: Confidence = ov.bpm
     ? 'high'
     : alternativeBpm !== undefined || grid.variable || grid.confidence < 0.4
       ? 'low'
-      : grid.confidence >= highGridConfidence && Math.abs(folded - bpm) < 1.5
+      : grid.confidence >= 0.8 && Math.abs(folded - bpm) < 1.5
         ? 'high'
         : 'medium';
   const alternatives = [alternativeBpm ?? bpm / 2, bpm * 2, ...(rawBpm && Math.abs(folded - bpm) >= 1.5 ? [folded] : [])]
@@ -387,14 +377,12 @@ export async function analyzeFile(
     firstDownbeatSec = ((ov.firstDownbeatSec % barLen) + barLen) % barLen;
     downbeatConfidence = 'high';
   } else {
-    if (!ov.bpm && technoProfile) {
-      const bassPhase = technoBassPhase(bands, grid);
-      if (bassPhase !== undefined) grid.firstBeatSec = bassPhase;
-    }
+    const bassPhase = !ov.bpm ? corroboratedBassPhase(bands, grid) : undefined;
+    if (bassPhase !== undefined) grid.firstBeatSec = bassPhase;
     const probe = computeBarFeatures(bands, grid.firstBeatSec, barLen, durSec);
     const audible = firstAudibleBar(probe);
     const firstAudibleSec = grid.firstBeatSec + audible * barLen;
-    const downbeatMode = grid.variable ? 'standard' : technoProfile ? 'techno' : edmProfile ? 'edm' : 'standard';
+    const downbeatMode = grid.variable ? 'standard' : bassPhase !== undefined ? 'bass-aligned' : 'common';
     const db = pickDownbeatOffset(bands, bpm, grid.firstBeatSec, firstAudibleSec, durSec, downbeatMode);
     firstDownbeatSec = grid.firstBeatSec + db.offset * P;
     downbeatConfidence = db.confident ? 'high' : 'low';
@@ -421,33 +409,6 @@ export async function analyzeFile(
   progress('voix', 0.72);
   const voiceModel = await predictVoice(full);
   const vocals = detectVocals(x, SR_DSP, firstDownbeatSec, barLen, feats.nBars, durSec, structure.origin, voiceModel, vocalModelError());
-  const sections = buildSections(structure, feats, energy.curve, durSec, profile.vocabulary, vocals);
-  const g = { d0: firstDownbeatSec, barLen };
-  const mix = suggestMix(structure, phrases, energy.curve, profile, g, vocals);
-  const phraseOrigin = phrases.lengthBars ? phrases.originBar : structure.phraseOrigin;
-  const edmCues = edmProfile && !grid.variable
-    && tempoLevel !== 'low';
-  const { primary, alternate } = edmCues
-    ? refineElectroCues(feats, structure, profile.id === 'edm')
-    : { primary: structure.landmarks, alternate: undefined };
-  let cues = selectCues(cueCandidates(primary, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds);
-  const preserveOtherCues = (alternative: typeof cues) => {
-    if (cues.every((cue) => cue.kind === 'break' || alternative.some(
-      (next) => next.kind === cue.kind && next.timeSec === cue.timeSec,
-    ))) cues = alternative;
-  };
-  if (alternate) preserveOtherCues(selectCues(
-    cueCandidates(alternate, mix, vocals, phraseOrigin), profile, g, opt.suppressKinds,
-  ));
-  if (edmCues && profile.id === 'edm') {
-    const betweenDrops = breakBetweenDrops(feats, structure, cues, profile.minCueSpacingBars);
-    if (betweenDrops) preserveOtherCues(selectCues([
-      ...cues.filter((cue) => cue.kind !== 'break'),
-      betweenDrops,
-    ], profile, g, opt.suppressKinds));
-  }
-  const loops = suggestLoops(structure, profile, g);
-  if (cues.length <= 1) warnings.push('Structure peu marquée — peu de hot cues proposés');
   if (process.env.CUEKODA_DEBUG) {
     console.error(`# ${path.basename(file)} bpm=${bpm.toFixed(3)} d0=${firstDownbeatSec.toFixed(3)} origin=${structure.origin}`);
     feats.energyDb.forEach((e, b) =>
@@ -464,9 +425,8 @@ export async function analyzeFile(
   if (manualKey) {
     key = { ...manualKey, method: 'manual', level: 'high', ambiguous: false, alternatives: [] };
   } else {
-    const electronic = profile.vocabulary === 'edm' || profile.id === 'techno';
-    const neural = electronic ? await predictKey(full) : undefined;
-    const profileEstimate = electronic && (!neural || neural.confidence < 0.25 || neural.confidence >= 0.8)
+    const neural = await predictKey(full);
+    const profileEstimate = !neural || neural.confidence < 0.25 || neural.confidence >= 0.8
       ? detectElectronicKey(x, durSec, SR_DSP) : undefined;
     const keepProfiles = neural && neural.confidence < 0.25 && profileEstimate?.level === 'high';
     if (neural && !keepProfiles) {
@@ -490,7 +450,7 @@ export async function analyzeFile(
       const alts = (key.alternatives ?? []).map((a) => a.camelot).join(', ');
       warnings.push(`Tonalité ambiguë${alts ? ` (aussi plausible : ${alts})` : ''}`);
     }
-    const changes = electronic ? detectKeyChanges(x, durSec, key, SR_DSP) : detectKeyChanges(full, durSec, key);
+    const changes = detectKeyChanges(x, durSec, key, SR_DSP);
     if (changes.length) {
       key.changes = changes;
       const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -500,13 +460,11 @@ export async function analyzeFile(
 
   const { wave, waveLow, waveMid, waveHigh } = waveform(x, opt.wavePoints);
   await assertAudioRevision(file, source);
-  progress('terminé', 1);
 
-  return {
+  const result = prepareTrack({
     ...info,
     engineVersion: ENGINE_VERSION,
     fileHash: source.fileHash,
-    profileId: profile.id,
     bpm,
     tempo,
     grid: { bpm, firstDownbeatSec, confidence: grid.confidence, downbeatConfidence },
@@ -516,10 +474,8 @@ export async function analyzeFile(
     fingerprint,
     tempoMap,
     phrases,
-    sections,
-    cues,
-    loops,
-    mix,
+    cues: [],
+    preparation: { feats, structure },
     vocals,
     overrides: Object.keys(ov).length ? ov : undefined,
     wave,
@@ -527,6 +483,9 @@ export async function analyzeFile(
     waveMid,
     waveHigh,
     warnings,
-    analysisMs: Date.now() - t0,
-  };
+    analysisMs: 0,
+  }, profile, opt.suppressKinds);
+  result.analysisMs = Date.now() - t0;
+  progress('terminé', 1);
+  return result;
 }

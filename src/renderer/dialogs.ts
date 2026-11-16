@@ -254,9 +254,9 @@ const LOOP_KINDS: [LoopKind, string][] = [['intro', 'Intro'], ['outro', 'Outro']
 
 export function openSettings(onChanged: () => void) {
   const dlg = $<HTMLDialogElement>('dlg-settings');
-  const s = state.settings;
+  let s = state.settings;
   const save = async (patch: Partial<typeof s>) => {
-    state.settings = await api.setSettings(patch);
+    s = state.settings = await api.setSettings(patch);
     onChanged();
   };
 
@@ -267,7 +267,7 @@ export function openSettings(onChanged: () => void) {
       const list = s.customProfiles.map((p) => (p.id === profile.id ? sanitizeProfile({ ...p, [k]: v }) : p));
       void save({ customProfiles: list }).then(render);
     };
-    const num = (k: 'minBpm' | 'maxBpm' | 'maxCues' | 'minCueSpacingBars' | 'transitionBars', label: string, min: number, max: number) =>
+    const num = (k: 'maxCues' | 'minCueSpacingBars' | 'transitionBars', label: string, min: number, max: number) =>
       h('label', { class: 'pf' }, label,
         h('input', { type: 'number', min, max, value: String(profile[k]), disabled: !editable, onchange: (e: Event) => set(k, Number((e.target as HTMLInputElement).value)) }));
 
@@ -275,9 +275,10 @@ export function openSettings(onChanged: () => void) {
       h('h2', { id: 'dlg-settings-title' }, 'Réglages'),
 
       h('section', { class: 'set' },
-        h('h3', {}, 'Profil DJ'),
+        h('h3', {}, 'Profil de préparation'),
+        h('p', { class: 'muted' }, 'Le BPM, la tonalité et la grille sont calculés automatiquement. Le profil détermine les suggestions de cues, de boucles et de transitions.'),
         h('div', { class: 'hrow' },
-          h('select', { 'aria-label': 'Profil', onchange: (e: Event) => void save({ profileId: (e.target as HTMLSelectElement).value }).then(render) },
+          h('select', { 'aria-label': 'Profil de préparation', onchange: (e: Event) => void save({ profileId: (e.target as HTMLSelectElement).value }).then(render) },
             ...allProfiles().map((p) => h('option', { value: p.id, selected: p.id === profile.id }, p.name + (p.builtin ? '' : ' (perso)')))),
           h('button', {
             type: 'button', class: 'btn small',
@@ -293,8 +294,6 @@ export function openSettings(onChanged: () => void) {
         !editable ? h('p', { class: 'muted' }, 'Profil intégré (lecture seule) — dupliquez-le pour le modifier.') : null,
         h('div', { class: 'grid2' },
           editable ? h('label', { class: 'pf' }, 'Nom', h('input', { type: 'text', value: profile.name, onchange: (e: Event) => set('name', (e.target as HTMLInputElement).value) })) : null,
-          num('minBpm', 'BPM min', 40, 200),
-          num('maxBpm', 'BPM max', 60, 260),
           num('maxCues', 'Nombre de hot cues', 1, 8),
           num('minCueSpacingBars', 'Écart minimal (mesures)', 1, 32),
           num('transitionBars', 'Durée de transition (mesures)', 4, 64),
@@ -340,7 +339,7 @@ export function openSettings(onChanged: () => void) {
           ...LOOP_KINDS.map(([k, l]) => h('label', {}, h('input', { type: 'checkbox', checked: profile.loopKinds.includes(k), disabled: !editable,
             onchange: (e: Event) => set('loopKinds', (e.target as HTMLInputElement).checked ? [...profile.loopKinds, k] : profile.loopKinds.filter((x) => x !== k)) }), ` ${l}`)),
         ),
-        h('p', { class: 'muted' }, 'Le profil s’applique aux prochaines analyses. La commande « Ré-analyser » l’applique aux morceaux existants et conserve les corrections manuelles.'),
+        h('p', { class: 'muted' }, 'Pour actualiser les suggestions des morceaux déjà analysés, sélectionnez-les puis choisissez « Appliquer le profil à la sélection ». Les cues vérifiés, modifiés ou verrouillés et les boucles acceptées sont conservés.'),
       ),
 
       h('section', { class: 'set' },

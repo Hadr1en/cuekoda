@@ -22,7 +22,7 @@
   <img src="docs/screenshots/fr/detail.png" alt="CueKoda : bibliothèque, waveform avec sections, courbe d'énergie et hot cues" width="100%">
 </p>
 
-CueKoda est une application **de préparation musicale pour DJ** sur macOS et Windows. Elle analyse les fichiers audio, propose des repères modifiables et exporte les collections au format **rekordbox XML** ou **Traktor NML**. Les profils couvrent notamment les musiques électroniques et l’open format.
+CueKoda est une application **de préparation musicale pour DJ** sur macOS et Windows. Elle analyse les fichiers audio, propose des repères modifiables et exporte les collections au format **rekordbox XML** ou **Traktor NML**.
 
 ## Sommaire
 - [Principes](#principes)
@@ -76,7 +76,7 @@ Les installeurs sont reconstruits à chaque mise à jour du code et publiés dan
 
 | Donnée | Ce que fait CueKoda |
 |---|---|
-| **BPM** | Estimation, choix demi / double tempo selon le profil (plage BPM), stabilité, confiance. Correction manuelle, ÷2 et ×2. |
+| **BPM** | Estimation, choix demi / double tempo d’après le signal, stabilité, confiance. Correction manuelle, ÷2 et ×2. |
 | **Grille et temps 1** | Phase calée à ~2 ms près sur les attaques. Le temps 1 est voté sur les changements de section et sur les **entrées de kick / basse**. Le résultat est marqué « incertain » quand le vote est serré. Corrections : « Temps 1 ici », ±10 ms, +1 temps. |
 | **Tempo variable** | Détection des changements de tempo et carte de tempo (un marqueur par plage), exportée vers rekordbox. |
 | **Tonalité** | Notation musicale, **Camelot** et Open Key. L'analyse complémentaire signale les ambiguïtés et leurs alternatives. Les changements de tonalité détectés sont signalés dans Infos. |
@@ -151,9 +151,9 @@ La commande « Ordre de mix… » propose un ordre pour les morceaux affichés. 
   sa copie terminée.
 - **Doublons** : doublons exacts, même enregistrement dans un autre format, versions liées (remix, edit),
   grâce à l'empreinte acoustique. La détection préserve les fichiers sources.
-- **Profils DJ** : EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, et profils personnalisés
-  (plage BPM, cues à placer, couleurs, boucles).
-- **EDM — pads fixes** — Réserve les pads A à H à Intro, Build 1, Drop 1, Break, Build 2, Drop 2, Outro
+- **Profils de préparation** — Équilibré, Transitions longues, Pads fixes et profils personnalisés.
+  Ils règlent les cues, les boucles et les transitions. Le BPM, la tonalité et la grille suivent la même analyse.
+- **Pads fixes** — Réserve les pads A à H à Intro, Build 1, Drop 1, Break, Build 2, Drop 2, Outro
   et Mix Out. Si un repère manque, son pad reste libre.
 - **Révision** — Filtre « À vérifier » pour les morceaux à contrôler et « Fichiers introuvables »
   pour les chemins manquants. Un contrôle à l’écoute peut être enregistré pour chaque morceau.
@@ -262,7 +262,7 @@ npm start
 La ligne de commande utilise le même moteur :
 
 ```bash
-npm run build && node dist/cli/cli.js ~/Music/MonDossier --profile house --out sortie
+npm run build && node dist/cli/cli.js ~/Music/MonDossier --profile techno --out sortie
 ```
 
 **Architecture**

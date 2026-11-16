@@ -22,7 +22,7 @@
   <img src="docs/screenshots/en/detail.png" alt="CueKoda: library, waveform with sections, energy curve and hot cues" width="100%">
 </p>
 
-CueKoda is a **track-preparation application for DJs** on macOS and Windows. It analyses audio locally, suggests editable cues and exports collections as **rekordbox XML** or **Traktor NML**. Built-in profiles cover electronic music and open-format sets.
+CueKoda is a **track-preparation application for DJs** on macOS and Windows. It analyses audio locally, suggests editable cues and exports collections as **rekordbox XML** or **Traktor NML**.
 
 ## Contents
 - [Principles](#principles)
@@ -77,7 +77,7 @@ Installers are rebuilt on every code update and published in the
 
 | Data | What CueKoda does |
 |---|---|
-| **BPM** | Estimate, half / double time chosen from the profile's BPM range, stability, confidence. Manual correction, ÷2 and ×2. |
+| **BPM** | Estimate, half / double time chosen from the audio, stability, confidence. Manual correction, ÷2 and ×2. |
 | **Beatgrid and downbeat** | Phase locked to about 2 ms on the attacks. The downbeat is voted from section changes and from **kick / bass entries**, and marked "uncertain" when the vote is close. Corrections: "Downbeat here", ±10 ms, +1 beat. |
 | **Variable tempo** | Detects tempo changes and builds a tempo map (one marker per range), exported to rekordbox. |
 | **Key** | Musical notation, **Camelot** and Open Key. A second pass flags ambiguous keys and lists alternatives. Detected key changes appear in Info. |
@@ -152,9 +152,9 @@ approval. Only approved loops are exported by default. Key **L**: 16-beat loop a
   finished.
 - **Duplicates**: exact duplicates, the same recording in another format, related versions (remix, edit),
   found with the acoustic fingerprint. Detection leaves the source files intact.
-- **DJ profiles**: EDM, House, Tech House, Techno, Trance, Hip-Hop, Open Format, and custom profiles (BPM range,
-  cues to place, colours, loops).
-- **EDM — fixed pads** assigns pads A through H to Intro, Build 1, Drop 1, Break, Build 2, Drop 2,
+- **Preparation profiles** — Balanced, Long transitions, Fixed pads and custom profiles. They control
+  cue, loop and transition suggestions. BPM, key and beatgrid use the same analysis.
+- **Fixed pads** assigns pads A through H to Intro, Build 1, Drop 1, Break, Build 2, Drop 2,
   Outro and Mix Out. If a cue is missing, its pad stays free.
 - **Review** — Use “To review” to find tracks worth checking and “Missing files” to see unavailable
   paths. Mark tracks as checked after listening.

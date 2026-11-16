@@ -10,7 +10,8 @@ import { collectAudioFiles } from '../core/scan';
 import { ADAPTERS, exportSummary, type ExportOptions } from '../core/export/index';
 import { traktorPlan } from '../core/export/traktor';
 import { mergeWithPrevious } from '../core/merge';
-import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
+import { prepareTrack } from '../core/preparation';
+import { activePreparationProfile, PREPARATION_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { describe, emptyStats, recordDeleted, recordMoved, recordSuggested, suppressedKinds, type LearningStats } from '../core/learning';
 import { AUDIO_EXTENSIONS, type AnalysisResult, type CueKind, type Overrides } from '../core/types';
 import type { AdapterInfo, ExportPreview, ExportResponse, ImportSummary, InitialState, Settings, TrackEdits, TrackRecord } from '../shared/api';
@@ -312,7 +313,7 @@ function registerIpc() {
     crates: crateStore.data.crates,
     tracks: Object.values(records()).sort((a, b) => a.addedAt - b.addedAt),
     settings: settingsStore.data,
-    builtinProfiles: BUILTIN_PROFILES,
+    builtinProfiles: PREPARATION_PROFILES,
     queue: queue.state(),
     adapters: adapterInfo(),
     learning: describe(learningStore.data),
@@ -380,6 +381,30 @@ function registerIpc() {
       enqueue(p, force);
     }
     return batch;
+  });
+
+  ipcMain.handle('apply-preparation-profile', (_e, paths: string[]) => {
+    const profile = currentProfile();
+    const learn = settingsStore.data.learningEnabled ? suppressedKinds(learningStore.data) : [];
+    const batch = Date.now();
+    let applied = 0;
+    let needsAnalysis = 0;
+    for (const p of new Set(paths)) {
+      const record = records()[p];
+      if (record?.status !== 'done' || !record.result || queue.has(p)) continue;
+      const fresh = prepareTrack(record.result, profile, learn);
+      if (fresh === record.result) { needsAnalysis++; continue; }
+      const merged = mergeWithPrevious(fresh, record.result, {
+        strictSlots: profile.slotOrder === 'template',
+        preserveCues: !!record.reviewedAt,
+      });
+      saveComparison(record, merged, batch, record.reviewedAt);
+      record.result = merged;
+      pushRecord(record, true);
+      applied++;
+    }
+    if (applied) library.save();
+    return { applied, needsAnalysis };
   });
 
   ipcMain.handle('analysis-comparison', (_e, p: string): AnalysisComparison | null => {
@@ -467,6 +492,7 @@ function registerIpc() {
     Object.assign(s, patch);
     s.maxWorkers = Math.max(1, Math.min(cores, Math.round(s.maxWorkers)));
     s.customProfiles = s.customProfiles.map(sanitizeProfile);
+    s.profileId = activePreparationProfile(s.profileId, s.customProfiles);
     settingsStore.save(0);
     queue.setMaxWorkers(s.maxWorkers);
     if ('watchFolders' in patch || 'watchPaused' in patch) syncWatch();
@@ -673,6 +699,25 @@ const SMOKE_UI_SCRIPT = `(async () => {
   out.liveTempoSort = document.querySelector('#tracks th[data-sort="bpm"]').getAttribute('aria-sort') === 'descending' &&
     bpms.every((bpm, index) => index === 0 || bpms[index - 1] >= bpm);
   rows[0].click();
+  const profileSelect = $('profile');
+  const trackTitle = $('d-title').textContent;
+  const readTrack = async () => (await window.cuekoda.init()).tracks.find((track) => track.result?.title === trackTitle)?.result;
+  const beforeProfile = await readTrack();
+  const activeProfile = profileSelect.value;
+  const setProfile = async (id) => {
+    profileSelect.value = id;
+    profileSelect.dispatchEvent(new Event('change'));
+    await wait(120);
+    $('btn-apply-preparation').click();
+    await wait(120);
+  };
+  await setProfile('edm-fixed');
+  const afterProfile = await readTrack();
+  out.preparationProfiles = [...profileSelect.options].map((option) => option.textContent);
+  out.preparationKeptMusic = !!beforeProfile && afterProfile?.profileId === 'edm-fixed'
+    && JSON.stringify([beforeProfile.bpm, beforeProfile.key, beforeProfile.grid])
+      === JSON.stringify([afterProfile.bpm, afterProfile.key, afterProfile.grid]);
+  await setProfile(activeProfile);
   if (rows.length > 1) {
     $('btn-next-track').click();
     out.nextTrack = rows[1].getAttribute('aria-current') === 'true';
@@ -1042,6 +1087,8 @@ app.whenReady().then(async () => {
   // files moved / renamed / on a disconnected drive: flagged, never removed from the library
   for (const r of Object.values(library.data.tracks)) r.missing = !fs.existsSync(r.path) || undefined;
   settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
+  const settings = settingsStore.data;
+  settings.profileId = activePreparationProfile(settings.profileId, settings.customProfiles);
   crateStore = new JsonStore(path.join(userData(), 'crates.json'), { crates: [] });
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
   referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });

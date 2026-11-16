@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { analyzeFile } from '../core/analyzer';
+import { prepareTrack } from '../core/preparation';
+import { findProfile, sanitizeProfile } from '../core/profiles';
 import { assertAudioRevision, hashAudioRevision } from '../core/hash';
 import { ENGINE_VERSION, type AnalysisResult, type AnalyzeOptions } from '../core/types';
 import { vocalModelAvailable } from '../core/vocalModel';
@@ -19,9 +21,7 @@ interface Job {
 /** Identify reusable analyses by audio content, engine version and analysis settings. */
 function cacheKey(fileHash: string, options: Partial<AnalyzeOptions>): string {
   const opts = JSON.stringify({
-    profile: options.profile ?? options.profileId,
     overrides: options.overrides ?? null,
-    suppress: options.suppressKinds ?? [],
     minBpm: options.minBpm,
     maxBpm: options.maxBpm,
     wavePoints: options.wavePoints,
@@ -39,6 +39,7 @@ function readCache(file: string, fileHash: string): AnalysisResult | undefined {
     if (value?.fileHash === fileHash && value.engineVersion === ENGINE_VERSION
       && Number.isFinite(value.bpm) && value.bpm > 0 && Number.isFinite(value.grid?.firstDownbeatSec)
       && typeof value.key?.musical === 'string' && typeof value.key.camelot === 'string'
+      && value.preparation?.feats && value.preparation.structure && value.energy && value.phrases
       && Array.isArray(value.cues) && Array.isArray(value.wave) && Array.isArray(value.waveLow)
       && Array.isArray(value.warnings)) return value;
   } catch {
@@ -55,7 +56,9 @@ parentPort!.on('message', async (m: Job) => {
       await assertAudioRevision(m.file, source);
       cached.path = m.file;
       cached.fileName = path.basename(m.file);
-      parentPort!.postMessage({ type: 'result', id: m.id, result: cached, cached: true });
+      const profile = sanitizeProfile(m.options.profile ?? findProfile(m.options.profileId));
+      const result = prepareTrack(cached, profile, m.options.suppressKinds);
+      parentPort!.postMessage({ type: 'result', id: m.id, result, cached: true });
       return;
     }
     const failures = neuralModelFailures();

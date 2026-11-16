@@ -4,9 +4,9 @@ L’analyse est effectuée localement. CueKoda conserve les fichiers audio à le
 
 ## 1. Importer
 Déposer des fichiers ou un dossier dans la fenêtre (ou « + Fichiers » / « + Dossier »). Formats : mp3, wav,
-flac, aiff, m4a, aac, ogg, opus, wma. Sélectionner le **profil** (EDM, House, Tech House, Techno,
-Trance, Hip-Hop, Open Format) : il règle la plage BPM, les types de cues prioritaires, les couleurs et les
-boucles.
+flac, aiff, m4a, aac, ogg, opus, wma. Le BPM, la tonalité et la grille sont calculés automatiquement.
+Le **profil de préparation** règle les suggestions de cues, de boucles et de transitions. Pour changer les
+suggestions d’un morceau déjà analysé, utilisez **Appliquer le profil à la sélection** dans son menu contextuel.
 
 ## 2. Analyser
 L'analyse démarre seule, en parallèle. En-tête : progression globale, **Pause / Reprendre**, **Annuler**,

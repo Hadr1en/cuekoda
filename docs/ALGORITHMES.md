@@ -16,10 +16,10 @@ doivent pas être lus comme des probabilités.
 
 ## Tempo — `rhythm.ts`
 1. Estimation grossière par Essentia `RhythmExtractor2013` sur 2 min centrales (Essentia exige 44,1 kHz).
-2. Repli dans la plage BPM du profil (×2 / ÷2).
+2. Repli dans la plage BPM commune (×2 / ÷2).
 3. **Validation** : score d'alignement de grille sur l'enveloppe d'attaques pour les ratios ×1, ×3/2, ×2/3,
-   ×4/3, ×3/4. Un autre candidat peut l’emporter s’il s’aligne au moins 15 % mieux. Les profils EDM
-   sans bornes explicites comparent aussi la récurrence des attaques à 2, 4 et 8 temps entre candidats
+   ×4/3, ×3/4. Un autre candidat peut l’emporter s’il s’aligne au moins 15 % mieux. L’analyse automatique
+   compare aussi la récurrence des attaques à 2, 4 et 8 temps entre candidats
    dont les pulsations s’alignent déjà. Ce critère ne relève le BPM que si le candidat plus rapide
    rend mieux compte du motif syncopé, par exemple lorsque le moteur sous-compte les temps en 3:2.
    Les candidats plus lents peuvent convertir artificiellement une mesure à trois temps en quatre.
