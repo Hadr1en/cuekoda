@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { decodeAudio, mp3WithoutGaplessHeader } from './decode';
 import { analyseBands, decimate2 } from './dsp';
-import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo } from './rhythm';
+import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo, technoBassPhase } from './rhythm';
 import { allKeys, electronicKeyFromVotes, keyFromMusical, keyFromTonic, type KeyVote } from './key';
 import { camelotRelation } from './matching';
 import { analyzeStructure, buildSections, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
@@ -309,9 +309,10 @@ export async function analyzeFile(
   const x = decimate2(full);
   const bands = analyseBands(x, SR_DSP);
   const edmProfile = profile.id === 'edm' || profile.id === 'edm-fixed';
+  const technoProfile = profile.builtin && profile.id === 'techno';
   const usesProfileRange = options.minBpm === undefined && options.maxBpm === undefined;
   const preferRepeatedBars = edmProfile && usesProfileRange;
-  const canUseNeuralTempo = usesProfileRange && (edmProfile || (profile.builtin && profile.id === 'techno'));
+  const canUseNeuralTempo = usesProfileRange && (edmProfile || technoProfile);
   const fromRaw = (raw: number) => {
     const tempo = chooseTempo(bands, raw, minBpm, maxBpm, preferRepeatedBars);
     const rechecked = preferRepeatedBars ? recheckEdmTempo(bands, tempo.bpm) : { bpm: tempo.bpm, halfTime: undefined };
@@ -386,6 +387,10 @@ export async function analyzeFile(
     firstDownbeatSec = ((ov.firstDownbeatSec % barLen) + barLen) % barLen;
     downbeatConfidence = 'high';
   } else {
+    if (!ov.bpm && technoProfile) {
+      const bassPhase = technoBassPhase(bands, grid);
+      if (bassPhase !== undefined) grid.firstBeatSec = bassPhase;
+    }
     const probe = computeBarFeatures(bands, grid.firstBeatSec, barLen, durSec);
     const audible = firstAudibleBar(probe);
     const firstAudibleSec = grid.firstBeatSec + audible * barLen;

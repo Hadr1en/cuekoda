@@ -345,6 +345,34 @@ export interface GridResult {
   variable: boolean;
 }
 
+/** Finds a steadier pulse in the bass when the general onset grid follows offbeat percussion. */
+export function technoBassPhase(bands: Bands, grid: GridResult): number | undefined {
+  if (grid.variable || bands.frames < 30 * bands.frameRate) return undefined;
+  const bins = 40;
+  const histograms = Array.from({ length: 3 }, () => new Float64Array(bins));
+  const bass = detrend(bands.fluxLow, Math.round(bands.frameRate * 0.5));
+  const period = 60 / grid.bpm;
+  for (let i = 0; i < bass.length; i++) {
+    const cycles = (frameTime(bands, i) - grid.firstBeatSec) / period;
+    const phase = cycles - Math.floor(cycles);
+    histograms[Math.floor(3 * i / bass.length)][Math.floor(bins * phase)] += bass[i];
+  }
+  const pool = Float64Array.from(histograms[0], (v, i) => v + histograms[1][i] + histograms[2][i]);
+  const power = (h: Float64Array, i: number) => h[(i + bins - 1) % bins] + h[i] + h[(i + 1) % bins];
+  let peak = 0;
+  for (let i = 1; i < bins; i++) {
+    if (power(pool, i) > power(pool, peak)) peak = i;
+  }
+  const shift = (peak + 0.5) / bins;
+  if (shift < 0.35 || shift > 0.65 || power(pool, peak) < 0.2 * pool.reduce((a, b) => a + b, 0)) return undefined;
+  // Require the same alternate pulse throughout the track, including before and after the break.
+  if (!histograms.every((h) => {
+    const current = Math.max(power(h, bins - 1), power(h, 0), power(h, 1));
+    return power(h, peak) > 0 && power(h, peak) >= 1.75 * current;
+  })) return undefined;
+  return (grid.firstBeatSec + shift * period) % period;
+}
+
 /**
  * Full grid estimation: comb fit on the onset envelope, then ms-accurate refinement with
  * the time-domain attack envelope (phase + tempo drift), then snap to "round" tempos
