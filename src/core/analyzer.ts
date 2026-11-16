@@ -394,7 +394,8 @@ export async function analyzeFile(
     const probe = computeBarFeatures(bands, grid.firstBeatSec, barLen, durSec);
     const audible = firstAudibleBar(probe);
     const firstAudibleSec = grid.firstBeatSec + audible * barLen;
-    const db = pickDownbeatOffset(bands, bpm, grid.firstBeatSec, firstAudibleSec, durSec, edmProfile && !grid.variable);
+    const downbeatMode = grid.variable ? 'standard' : technoProfile ? 'techno' : edmProfile ? 'edm' : 'standard';
+    const db = pickDownbeatOffset(bands, bpm, grid.firstBeatSec, firstAudibleSec, durSec, downbeatMode);
     firstDownbeatSec = grid.firstBeatSec + db.offset * P;
     downbeatConfidence = db.confident ? 'high' : 'low';
     if (!db.confident) warnings.push('Premier temps (downbeat) incertain — vérifie la grille');

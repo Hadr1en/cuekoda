@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.4.10';
+export const ENGINE_VERSION = '0.4.11';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
