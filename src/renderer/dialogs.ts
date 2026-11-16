@@ -6,7 +6,7 @@ import { ARC_LABEL, isWeakLink, suggestOrder, type ArcShape } from '../core/seto
 import { pairScore, tempoGapPct } from '../core/matching';
 import { CUE_KIND_LABEL, DEFAULT_COLORS, sanitizeProfile, type Profile } from '../core/profiles';
 import { findDuplicates } from '../core/duplicates';
-import type { AdapterInfo } from '../shared/api';
+import type { AdapterInfo, Settings } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, keyLabel, state } from './state';
 import { $, camelotColor, fmtTime, h, hexOf, rgbOf, toast } from './util';
 import { tr } from '../shared/i18n';
@@ -133,7 +133,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
           onchange: () => { scope = 'selection'; void render(); } }), ' Morceaux sélectionnés') : null,
         currentPath ? h('label', {}, h('input', { type: 'radio', name: 'scope', checked: scope === 'current', onchange: () => { scope = 'current'; void render(); } }), ' Morceau affiché seulement') : null,
         target === 'rekordbox' || adapter.via === 'rekordbox'
-          ? h('label', {}, h('input', { type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
+          ? h('label', {}, h('input', { id: 'export-memory-cues', type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
           : null,
         h('label', { title: 'Ajoute les informations d’énergie au commentaire. Le commentaire existant est remplacé si l’écrasement est autorisé lors de l’import.' },
           h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
@@ -166,6 +166,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
             try {
               const res = await api.exportCollection(adapter.id, preview.readyPaths, exportOptions);
               if (res.ok) {
+                if (res.exportOptions) state.settings.exportOptions = res.exportOptions;
                 dlg.close();
                 toast(`Exporté : ${res.file}${res.backup ? ` (ancien fichier sauvegardé : ${res.backup})` : ''}`, 8000);
                 return;
@@ -254,13 +255,13 @@ const LOOP_KINDS: [LoopKind, string][] = [['intro', 'Intro'], ['outro', 'Outro']
 
 export function openSettings(onChanged: () => void) {
   const dlg = $<HTMLDialogElement>('dlg-settings');
-  let s = state.settings;
-  const save = async (patch: Partial<typeof s>) => {
-    s = state.settings = await api.setSettings(patch);
+  const save = async (patch: Partial<Settings>) => {
+    state.settings = await api.setSettings(patch);
     onChanged();
   };
 
   const render = () => {
+    const s = state.settings;
     const profile = allProfiles().find((p) => p.id === s.profileId) ?? allProfiles()[0];
     const editable = !profile.builtin;
     const set = <K extends keyof Profile>(k: K, v: Profile[K]) => {
@@ -283,8 +284,8 @@ export function openSettings(onChanged: () => void) {
         await save({ maxWorkers: chosen });
         // Keep the control focused, and leave any new drag in progress alone.
         if (parallelSlider.valueAsNumber === chosen) {
-          parallelSlider.valueAsNumber = s.maxWorkers;
-          showParallelLimit(s.maxWorkers);
+          parallelSlider.valueAsNumber = state.settings.maxWorkers;
+          showParallelLimit(state.settings.maxWorkers);
         }
       },
     });
@@ -297,7 +298,7 @@ export function openSettings(onChanged: () => void) {
         h('p', { class: 'muted' }, 'CueKoda calcule le BPM, la tonalité et la grille. Le profil règle les suggestions de cues, de boucles et de transitions.'),
         h('div', { class: 'hrow' },
           h('select', { 'aria-label': 'Profil de préparation', onchange: (e: Event) => void save({ profileId: (e.target as HTMLSelectElement).value }).then(render) },
-            ...allProfiles().map((p) => h('option', { value: p.id, selected: p.id === profile.id }, p.name + (p.builtin ? '' : ' (perso)')))),
+            ...allProfiles().map((p) => h('option', { value: p.id, selected: p.id === profile.id }, p.name))),
           h('button', {
             type: 'button', class: 'btn small',
             onclick: () => {
@@ -324,7 +325,6 @@ export function openSettings(onChanged: () => void) {
             h('select', { disabled: !editable, onchange: (e: Event) => set('vocabulary', (e.target as HTMLSelectElement).value as Profile['vocabulary']) },
               h('option', { value: 'edm', selected: profile.vocabulary === 'edm' }, 'EDM (build, drop, breakdown)'),
               h('option', { value: 'generic', selected: profile.vocabulary === 'generic' }, 'générique (sans forcer de drop)'))),
-          h('label', { class: 'pf check' }, h('input', { type: 'checkbox', checked: profile.memoryCues, disabled: !editable, onchange: (e: Event) => set('memoryCues', (e.target as HTMLInputElement).checked) }), ' Memory cues à l’export'),
         ),
         h('h4', {}, 'Types de cues : priorité, exclusion et couleur'),
         h('table', { class: 'caps kinds' },
@@ -374,9 +374,9 @@ export function openSettings(onChanged: () => void) {
             h('button', { type: 'button', class: 'btn small ghost', onclick: () => void save({ watchFolders: s.watchFolders.filter((x) => x.path !== f.path) }).then(render) }, 'Retirer'),
           ))),
         h('div', { class: 'hrow' },
-          h('button', { type: 'button', class: 'btn small', onclick: async () => { state.settings = await api.addWatchFolder(); render(); } }, '+ Ajouter un dossier'),
-          h('label', {}, h('input', { type: 'checkbox', checked: s.watchPaused, onchange: (e: Event) => void save({ watchPaused: (e.target as HTMLInputElement).checked }).then(render) }), ' Suspendre la surveillance'),
-          h('label', {}, h('input', { type: 'checkbox', checked: s.autoAnalyzeWatched, onchange: (e: Event) => void save({ autoAnalyzeWatched: (e.target as HTMLInputElement).checked }).then(render) }), ' Analyser automatiquement les nouveaux fichiers'),
+          h('button', { id: 'watch-add-folder', type: 'button', class: 'btn small', onclick: async () => { state.settings = await api.addWatchFolder(); render(); } }, '+ Ajouter un dossier'),
+          h('label', {}, h('input', { id: 'watch-paused', type: 'checkbox', checked: s.watchPaused, onchange: (e: Event) => void save({ watchPaused: (e.target as HTMLInputElement).checked }).then(render) }), ' Suspendre la surveillance'),
+          h('label', {}, h('input', { id: 'watch-auto-analyze', type: 'checkbox', checked: s.autoAnalyzeWatched, onchange: (e: Event) => void save({ autoAnalyzeWatched: (e.target as HTMLInputElement).checked }).then(render) }), ' Analyser automatiquement les nouveaux fichiers'),
         ),
         h('p', { class: 'muted' }, 'Un fichier est pris en compte une fois sa copie terminée. Les fichiers sources ne sont jamais déplacés ni modifiés.'),
       ),
@@ -396,9 +396,9 @@ export function openSettings(onChanged: () => void) {
           ' Vérifier au démarrage s’il existe une nouvelle version'),
         h('p', { class: 'muted' }, 'La vérification des mises à jour contacte GitHub sans transmettre les données de la bibliothèque. L’installation requiert une confirmation et vérifie la taille et l’empreinte SHA-256. Sur macOS, l’ancienne version est placée dans la Corbeille.'),
         h('div', { class: 'hrow' },
-          h('button', { type: 'button', class: 'btn small', onclick: async () => { await api.checkUpdate(); render(); } }, 'Vérifier maintenant'),
-          h('span', { id: 'set-update-status' }, updateText(state.update)),
-          state.update.state === 'available' ? h('button', { type: 'button', class: 'btn small primary', onclick: () => void api.installUpdate() }, 'Installer et redémarrer') : '',
+          h('button', { id: 'set-update-check', type: 'button', class: 'btn small', disabled: updateBusy(state.update), onclick: () => void api.checkUpdate() }, 'Vérifier maintenant'),
+          h('span', { id: 'set-update-status', role: 'status' }, updateText(state.update)),
+          h('button', { id: 'set-update-install', type: 'button', class: 'btn small primary', hidden: state.update.state !== 'available', onclick: () => void api.installUpdate() }, 'Installer et redémarrer'),
         ),
       ),
 
@@ -441,10 +441,19 @@ export function updateText(u: UpdateStatus): string {
   }
 }
 
-/** Discreet header badge: only when there is something to do. */
+const updateBusy = (u: UpdateStatus) =>
+  u.state === 'checking' || u.state === 'downloading' || u.state === 'installing';
+
+/** Keep the settings controls and the optional header badge in sync. */
 export function renderUpdateBadge() {
   const el = $('update-badge');
   const u = state.update;
+  const status = document.getElementById('set-update-status');
+  if (status) status.textContent = tr(updateText(u));
+  const check = $<HTMLButtonElement>('set-update-check');
+  if (check) check.disabled = updateBusy(u);
+  const install = $('set-update-install');
+  if (install) install.hidden = u.state !== 'available';
   const show = u.state === 'available' || u.state === 'downloading' || u.state === 'installing' || u.state === 'manual';
   el.hidden = !show;
   if (!show) return;
@@ -454,8 +463,6 @@ export function renderUpdateBadge() {
     u.state === 'available' ? h('button', { type: 'button', class: 'btn small ghost', title: 'Voir ce qui change sur GitHub', onclick: () => api.openExternal(u.info.pageUrl) }, 'Notes') : '',
     u.state === 'available' ? h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Plus tard', onclick: () => { el.hidden = true; } }, '✕') : '',
   );
-  const st = document.getElementById('set-update-status');
-  if (st) st.textContent = tr(updateText(u));
 }
 
 // ================================================================= mix order (suggestion only)

@@ -31,8 +31,8 @@ export interface Profile {
   transitionBars: number;
   /** 'edm' names sections intro/build/drop/breakdown/outro; 'generic' avoids forcing an EDM shape */
   vocabulary: 'edm' | 'generic';
-  /** Write each hot cue also as a memory cue (rekordbox) */
-  memoryCues: boolean;
+  /** Cue analysis inherited when a preparation profile is duplicated. */
+  cueRefinement?: 'standard' | 'with-break-alternatives';
 }
 
 /** Initial palette from the specification: green intro, blue vocal, yellow break, violet build, red drop, cyan outro. */
@@ -76,7 +76,6 @@ const base = {
   colors: DEFAULT_COLORS,
   slotOrder: 'chronological' as const,
   minCueSpacingBars: 4,
-  memoryCues: true,
 };
 
 /** Fixed EDM layout: A Intro, B Build 1 (or the kick entry), C Drop 1, D Break, E Build 2, F Drop 2, G Outro, H Mix Out. */
@@ -96,6 +95,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'edm',
     name: 'Équilibré',
+    cueRefinement: 'with-break-alternatives',
     cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'kickout', 'mixin', 'vocal'],
     loopBeats: [4, 8, 16, 32],
     loopKinds: ['intro', 'predrop', 'outro'],
@@ -106,6 +106,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'edm-fixed',
     name: 'Pads fixes',
+    cueRefinement: 'standard',
     cuePriority: ['drop', 'build', 'break', 'intro', 'outro', 'groove', 'mixout', 'kickout', 'mixin', 'vocal'],
     slotOrder: 'template',
     padTemplate: DEFAULT_PAD_TEMPLATE,
@@ -167,7 +168,6 @@ export const BUILTIN_PROFILES: Profile[] = [
     transitionBars: 8,
     minCueSpacingBars: 2,
     vocabulary: 'generic',
-    memoryCues: false,
   },
   {
     ...base,
@@ -200,6 +200,7 @@ export function sanitizeProfile(p: Profile): Profile {
   return {
     ...p,
     maxCues: Math.max(1, Math.min(8, Math.round(p.maxCues || 8))),
+    transitionBars: Number.isFinite(p.transitionBars) ? Math.max(4, Math.min(64, Math.round(p.transitionBars))) : 16,
     minCueSpacingBars: Math.max(1, Math.min(32, Math.round(p.minCueSpacingBars || 4))),
     colors: { ...DEFAULT_COLORS, ...(p.colors ?? {}) },
     loopBeats: (p.loopBeats ?? []).filter((b) => [4, 8, 16, 32, 64].includes(b)),

@@ -426,6 +426,10 @@ async function main() {
     check('Application du profil à partir de l’analyse enregistrée', music(base) === music(refreshed)
       && refreshed.profileId === profile.id && markers(separate) === markers(refreshed), profile.name);
     check('Le profil change les suggestions', markers(base) !== markers(refreshed), profile.name);
+    const balanced = (await import('../core/profiles')).findProfile('edm');
+    const copy = prepareTrack(base, { ...balanced, id: 'custom-copy', builtin: false });
+    check('Un profil dupliqué reprend les mêmes suggestions', copy.profileId === 'custom-copy'
+      && markers(copy) === markers(base), balanced.name);
   }
 
   // ---- CLI tempo bounds override common defaults ------------------------------------------
@@ -475,6 +479,11 @@ async function main() {
     await new Promise((r) => setTimeout(r, 700));
     fs.appendFileSync(target, src.subarray(src.length / 2));
     fs.writeFileSync(path.join(wdir, 'notes.txt'), 'pas de l’audio');
+    await new Promise((r) => setTimeout(r, 150));
+    w.sync([{ path: wdir, enabled: true }], true);
+    await new Promise((r) => setTimeout(r, 3300));
+    check('La mise en pause bloque les ajouts déjà détectés', !seen.includes('nouveau.wav'), seen.join(', '));
+    w.sync([{ path: wdir, enabled: true }], false);
     await new Promise((r) => setTimeout(r, 5000));
     w.close();
     check('Fichiers existants détectés au démarrage (une seule fois)', seen.filter((x) => x === 'deja-la.wav').length === 1, seen.join(', '));

@@ -36,7 +36,7 @@ export class Updater {
   }
 
   async check(): Promise<UpdateStatus> {
-    if (this.status.state === 'downloading' || this.status.state === 'installing') return this.status;
+    if (this.status.state === 'checking' || this.status.state === 'downloading' || this.status.state === 'installing') return this.status;
     this.set({ state: 'checking' });
     try {
       const res = await net.fetch(RELEASES_API, {
@@ -54,9 +54,9 @@ export class Updater {
   }
 
   async install(): Promise<void> {
-    if (this.status.state !== 'available' && this.status.state !== 'error') return;
-    const info = this.status.state === 'available' ? this.status.info : null;
-    if (!info) return;
+    if (this.status.state !== 'available') return;
+    const { info } = this.status;
+    this.set({ state: 'downloading', info, fraction: 0 });
     try {
       const file = await this.download(info);
       this.set({ state: 'installing', info });
