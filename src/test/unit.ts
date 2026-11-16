@@ -732,6 +732,25 @@ test('queue: pause / resume / cancel / worker crash', () => {
   assert.equal(q.state().running, 0);
 });
 
+test('queue: changing the parallel limit lets current jobs finish and caps new jobs', () => {
+  const { q, log } = makeQueue(3);
+  ['a', 'b', 'c', 'd', 'e', 'f'].forEach((p) => q.enqueue(job(p)));
+  q.setMaxWorkers(1);
+  assert.equal(q.state().running, 3, 'work already started continues');
+  FakeWorker.all[0].reply({ type: 'result', result: {} as AnalysisResult } as never);
+  assert.equal(q.state().running, 2);
+  FakeWorker.all[1].reply({ type: 'result', result: {} as AnalysisResult } as never);
+  assert.equal(q.state().running, 1);
+  assert.equal(q.state().pending, 3);
+  assert.ok(FakeWorker.all[0].terminated && FakeWorker.all[1].terminated);
+  FakeWorker.all[2].reply({ type: 'result', result: {} as AnalysisResult } as never);
+  assert.deepEqual(log.filter((entry) => entry.startsWith('start')), ['start a', 'start b', 'start c', 'start d']);
+  q.setMaxWorkers(2);
+  assert.equal(q.state().running, 2);
+  assert.equal(q.state().pending, 1);
+  q.shutdown();
+});
+
 // ---------------------------------------------------------------- vocals (§9)
 /** Harmonic tone with optional vibrato / sweep, 22.05 kHz. */
 function tone(sec: number, f0: (t: number) => number): Float32Array {

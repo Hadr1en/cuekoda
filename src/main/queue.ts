@@ -91,11 +91,6 @@ export class AnalysisQueue {
 
   setMaxWorkers(n: number): void {
     this.maxWorkers = Math.max(1, Math.round(n));
-    // shrink lazily: idle workers above the limit are stopped
-    for (const s of [...this.slots]) {
-      if (this.slots.length <= this.maxWorkers) break;
-      if (!s.job) this.dropSlot(s);
-    }
     this.pump();
   }
 
@@ -174,6 +169,13 @@ export class AnalysisQueue {
   }
 
   private pump(): void {
+    // Retire excess workers as they become idle before assigning any pending work.
+    if (this.slots.length > this.maxWorkers) {
+      for (const slot of [...this.slots]) {
+        if (this.slots.length <= this.maxWorkers) break;
+        if (!slot.job) this.dropSlot(slot);
+      }
+    }
     while (!this.paused && this.pending.length) {
       let slot = this.slots.find((s) => !s.job);
       if (!slot && this.slots.length < this.maxWorkers) slot = this.spawn();

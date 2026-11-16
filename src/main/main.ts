@@ -47,6 +47,8 @@ const DEFAULT_SETTINGS: Settings = {
   keyNotation: 'camelot',
   autoUpdateCheck: true,
 };
+const parallelLimit = (value: number) => Number.isFinite(value)
+  ? Math.max(1, Math.min(cores, Math.round(value))) : DEFAULT_SETTINGS.maxWorkers;
 
 let library: LibraryStore<AnalysisResult, TrackRecord>;
 let settingsStore: JsonStore<Settings>;
@@ -490,7 +492,7 @@ function registerIpc() {
   ipcMain.handle('set-settings', (_e, patch: Partial<Settings>) => {
     const s = settingsStore.data;
     Object.assign(s, patch);
-    s.maxWorkers = Math.max(1, Math.min(cores, Math.round(s.maxWorkers)));
+    s.maxWorkers = parallelLimit(s.maxWorkers);
     s.customProfiles = s.customProfiles.map(sanitizeProfile);
     s.profileId = activePreparationProfile(s.profileId, s.customProfiles);
     settingsStore.save(0);
@@ -683,8 +685,9 @@ function registerIpc() {
  */
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
+const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
 const SMOKE_MODELS = process.env.CUEKODA_SMOKE_MODELS === '1';
-if (SMOKE_DIR || SMOKE_WINDOW || SMOKE_MODELS) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
+if (SMOKE_DIR || SMOKE_WINDOW || SMOKE_SETTINGS || SMOKE_MODELS) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
 
 /** Renderer-side script of the smoke test (runs in the real UI). */
 const SMOKE_UI_SCRIPT = `(async () => {
@@ -880,6 +883,68 @@ const SMOKE_UI_SCRIPT = `(async () => {
   return out;
 })()`;
 
+/** Exercise the real slider with pointer and keyboard input in an isolated profile. */
+async function smokeSettingsSlider(window: BrowserWindow) {
+  const contents = window.webContents;
+  const control = () => contents.executeJavaScript(`(() => {
+    const slider = document.querySelector('#dlg-settings input[type="range"]');
+    if (!slider) return null;
+    const rect = slider.getBoundingClientRect();
+    return { x: rect.x, y: Math.round(rect.y + rect.height / 2), width: rect.width,
+      value: slider.valueAsNumber, min: Number(slider.min), max: Number(slider.max),
+      label: slider.closest('label').textContent, focused: document.activeElement === slider };
+  })()`);
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const waitUntil = async (condition: () => boolean | Promise<boolean>) => {
+    for (let i = 0; i < 40; i++) {
+      if (await condition()) return true;
+      await wait(50);
+    }
+    return false;
+  };
+  if (!await waitUntil(() => contents.executeJavaScript(`Boolean(document.querySelector('#profile option'))`))) throw new Error('Settings did not initialize');
+  window.focus();
+  await contents.executeJavaScript(`
+    document.getElementById('btn-settings').click();
+    document.querySelector('#dlg-settings input[type="range"]').scrollIntoView({ block: 'center' });
+  `);
+  const initial = await control();
+  if (!initial?.width) throw new Error('Parallel analysis slider is not visible');
+  if (initial.max > initial.min) {
+    const target = initial.value === initial.min ? initial.max : initial.min;
+    const x = Math.round(initial.x + 8 + (initial.width - 16) * (initial.value - initial.min) / (initial.max - initial.min));
+    const end = Math.round(target === initial.min ? initial.x + 2 : initial.x + initial.width - 2);
+    contents.sendInputEvent({ type: 'mouseMove', x, y: initial.y });
+    contents.sendInputEvent({ type: 'mouseDown', x, y: initial.y, button: 'left', clickCount: 1 });
+    await wait(50);
+    contents.sendInputEvent({ type: 'mouseMove', x: end, y: initial.y, button: 'left', modifiers: ['leftbuttondown'] });
+    await wait(50);
+    const live = await control();
+    contents.sendInputEvent({ type: 'mouseUp', x: end, y: initial.y, button: 'left', clickCount: 1 });
+    if (live.value !== target || !live.label.includes(`${target} / ${initial.max}`)) {
+      throw new Error(`Slider did not update while dragging (value ${live.value}, label “${live.label}”)`);
+    }
+    if (!await waitUntil(() => queue.state().maxWorkers === target)) throw new Error('Slider value did not reach the analysis queue');
+    const keyCode = target === initial.min ? 'End' : 'Home';
+    const keyboardTarget = target === initial.min ? initial.max : initial.min;
+    contents.sendInputEvent({ type: 'keyDown', keyCode });
+    contents.sendInputEvent({ type: 'keyUp', keyCode });
+    if (!await waitUntil(() => queue.state().maxWorkers === keyboardTarget) || !(await control()).focused) {
+      throw new Error('Keyboard change did not update the queue while keeping focus');
+    }
+    await contents.executeJavaScript(`
+      document.getElementById('dlg-settings').close();
+      document.getElementById('btn-settings').click();
+    `);
+    if ((await control()).value !== keyboardTarget) throw new Error('Reopened slider lost the saved value');
+    const file = path.join(userData(), 'settings.json');
+    if (!await waitUntil(() => fs.existsSync(file) && JSON.parse(fs.readFileSync(file, 'utf8')).maxWorkers === keyboardTarget)) {
+      throw new Error('Parallel analysis limit was not saved');
+    }
+  }
+  console.log('Parallel analysis slider verified');
+}
+
 /** Verify the renderer geometry against the native Windows caption controls. */
 async function smokeWindowsTitleBar(window: BrowserWindow) {
   const timeout = setTimeout(() => app.exit(1), 15000);
@@ -903,6 +968,7 @@ async function smokeWindowsTitleBar(window: BrowserWindow) {
     if (!await readGeometry()) throw new Error('Caption controls overlap the default toolbar');
     window.setSize(980, 660);
     if (!await readGeometry()) throw new Error('Caption controls overlap the minimum-width toolbar');
+    await smokeSettingsSlider(window);
     clearTimeout(timeout);
     console.log('Windows title bar geometry verified');
     app.exit(0);
@@ -1089,6 +1155,7 @@ app.whenReady().then(async () => {
   settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
   const settings = settingsStore.data;
   settings.profileId = activePreparationProfile(settings.profileId, settings.customProfiles);
+  settings.maxWorkers = parallelLimit(settings.maxWorkers);
   crateStore = new JsonStore(path.join(userData(), 'crates.json'), { crates: [] });
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
   referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });
@@ -1109,6 +1176,13 @@ app.whenReady().then(async () => {
   if (SMOKE_WINDOW) {
     const smokeWindow = win!;
     smokeWindow.webContents.once('did-finish-load', () => void smokeWindowsTitleBar(smokeWindow));
+    smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
+  } else if (SMOKE_SETTINGS) {
+    const smokeWindow = win!;
+    smokeWindow.webContents.once('did-finish-load', () => void smokeSettingsSlider(smokeWindow).then(() => app.exit(0), (error) => {
+      console.error(error);
+      app.exit(1);
+    }));
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
   } else if (SMOKE_DIR) runSmoke();
   // update check: packaged builds only, never during the smoke test, and only if the DJ allows it
