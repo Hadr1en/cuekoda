@@ -364,11 +364,14 @@ export function technoBassPhase(bands: Bands, grid: GridResult): number | undefi
     if (power(pool, i) > power(pool, peak)) peak = i;
   }
   const shift = (peak + 0.5) / bins;
-  if (shift < 0.35 || shift > 0.65 || power(pool, peak) < 0.2 * pool.reduce((a, b) => a + b, 0)) return undefined;
+  if (shift < 0.35 || shift > 0.65) return undefined;
+  const concentration = power(pool, peak) / (pool.reduce((a, b) => a + b, 0) || 1);
+  if (concentration < 0.15) return undefined;
+  const requiredRatio = concentration >= 0.2 ? 1.75 : 3;
   // Require the same alternate pulse throughout the track, including before and after the break.
   if (!histograms.every((h) => {
     const current = Math.max(power(h, bins - 1), power(h, 0), power(h, 1));
-    return power(h, peak) > 0 && power(h, peak) >= 1.75 * current;
+    return power(h, peak) > 0 && power(h, peak) >= requiredRatio * current;
   })) return undefined;
   return (grid.firstBeatSec + shift * period) % period;
 }
@@ -482,7 +485,7 @@ export function pickDownbeatOffset(
   firstBeatSec: number,
   firstAudibleSec: number,
   durSec: number,
-  comparePhraseChanges = false,
+  mode: 'standard' | 'edm' | 'techno' = 'standard',
 ): { offset: number; confident: boolean } {
   const P = 60 / bpm;
   const pL = prefixSums(bands.eLow);
@@ -563,7 +566,7 @@ export function pickDownbeatOffset(
   const combined = [0, 1, 2, 3].map(
     (o) => (sChange > 0 ? (1 - wEntry) * (score[o] / sChange) : 0) + (sEntry > 0 ? wEntry * (entry[o] / sEntry) : 0),
   );
-  if (comparePhraseChanges) {
+  if (mode === 'edm') {
     // A short transient can mimic a section change. Require a sharp edge with different energy
     // on both sides across two, four and eight beats, then pool evidence along the track.
     const phrase = new Float64Array(D.length);
@@ -602,6 +605,39 @@ export function pickDownbeatOffset(
   // a close vote still beats an arbitrary guess: keep the best candidate, flagged as uncertain;
   // the start of the music is only used when there is no evidence at all
   const chosen = combined[best] > 0 ? best : first;
+  if (mode === 'techno' && nBeats >= 128) {
+    const peak = bands.eMid.reduce((a, b) => Math.max(a, b), 0);
+    const start = bands.eMid.findIndex((energy) => energy > 0.005 * peak);
+    const entrance = (frameTime(bands, start) - firstBeatSec) / P;
+    const nearest = Math.round(entrance);
+    const offset = ((nearest % 4) + 4) % 4;
+    if (start >= 0 && offset !== chosen && Math.abs(entrance - nearest) <= 0.2) {
+      const beatEnergy = [pL, pM, pH].map((pre) => prefixSums(Float64Array.from(D, (_, i) => {
+        const t = firstBeatSec + i * P;
+        return rangeMean(pre, firstIn(t), endIn(t + P));
+      })));
+      const supportsEntrance = (spans: number[]) => {
+        const novelty = new Float64Array(nBeats);
+        const margin = spans[spans.length - 1];
+        for (let i = 32; i < nBeats - margin; i++) {
+          const sustained = Math.min(...spans.map((span) => beatEnergy.reduce((sum, pre) => sum
+            + Math.abs(lg(rangeMean(pre, i - span, i)) - lg(rangeMean(pre, i, i + span))), 0) / beatEnergy.length));
+          novelty[i] = sustained * Math.min(1, D[i] / 1.5);
+        }
+        const peaks = [];
+        for (let i = 32; i < nBeats - margin; i++) {
+          if (novelty[i] > 0 && novelty.subarray(i - 3, i + 4).every((value) => value <= novelty[i])) peaks.push(i);
+        }
+        peaks.sort((a, b) => novelty[b] - novelty[a]);
+        const strongest = peaks.slice(0, 12);
+        const support = strongest.filter((i) => i % 4 === offset);
+        return support.length >= 3
+          && total(support.map((i) => novelty[i])) >= 0.55 * total(strongest.map((i) => novelty[i]));
+      };
+      // Combine the audible entrance with recurring transitions at two musical scales.
+      if (supportsEntrance([2, 4, 8]) && supportsEntrance([8, 16, 32])) return { offset, confident: true };
+    }
+  }
   if (process.env.CUEKODA_DEBUG) console.error(`# downbeat changes ${score.map((s) => s.toFixed(1)).join(' ')} entries ${entry.map((s) => s.toFixed(1)).join(' ')} -> ${chosen}${confident ? '' : combined[best] > 0 ? ' (incertain)' : ' (repli : début de la musique)'} (firstBeat=${firstBeatSec.toFixed(3)} firstAudible=${firstAudibleSec.toFixed(2)})`);
   return { offset: chosen, confident };
 }

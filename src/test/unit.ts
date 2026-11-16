@@ -17,7 +17,7 @@ import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/c
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { beatIndex, gridBeats, gridAudition, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
-import { estimateGrid, foldBpm, technoBassPhase } from '../core/rhythm';
+import { estimateGrid, foldBpm, pickDownbeatOffset, technoBassPhase } from '../core/rhythm';
 import { allKeys, electronicKeyFromVotes, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
@@ -249,6 +249,28 @@ test('the Techno grid follows a bass pulse present in all three parts of the tra
   assert.equal(technoBassPhase(bands, { ...grid, variable: true }), undefined);
   audio.fill(0, 24 * sr);
   assert.equal(technoBassPhase(analyseBands(audio, sr), grid), undefined);
+});
+
+test('the Techno first beat follows sustained section changes when the entrance agrees', () => {
+  const frameRate = 100;
+  const duration = 192;
+  const frames = duration * frameRate;
+  const beatAt = (frame: number) => Math.floor(frame / 50);
+  const bass = Float32Array.from({ length: frames }, (_, frame) =>
+    (beatAt(frame) + 5) % 8 < 4 ? 10 : 1);
+  const sections = Float32Array.from({ length: frames }, (_, frame) =>
+    Math.floor(beatAt(frame) / 32) % 2 === 0 ? 10 : 1);
+  const bands = {
+    sr: 100, hop: 1, frameSize: 1, frameRate, frames,
+    eLow: bass, eMid: sections, eHigh: sections,
+    onset: sections, fluxLow: bass, fluxMid: sections, fluxHigh: sections,
+  };
+  assert.equal(pickDownbeatOffset(bands, 120, 0, 0, duration).offset, 3);
+  assert.deepEqual(pickDownbeatOffset(bands, 120, 0, 0, duration, 'techno'), { offset: 0, confident: true });
+  // A pickup or an unrelated entrance should not decide the start of the bar by itself.
+  const laterEntrance = { ...bands, eMid: sections.slice() };
+  laterEntrance.eMid.fill(0, 0, 100);
+  assert.equal(pickDownbeatOffset(laterEntrance, 120, 0, 0, duration, 'techno').offset, 3);
 });
 
 // ---------------------------------------------------------------- merge
