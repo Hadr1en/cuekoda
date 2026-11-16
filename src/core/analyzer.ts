@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { decodeAudio, mp3WithoutGaplessHeader } from './decode';
 import { analyseBands, decimate2 } from './dsp';
-import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo, corroboratedBassPhase } from './rhythm';
+import { chooseTempo, estimateGrid, foldBpm, pickDownbeatOffset, recheckEdmTempo, corroboratedBassPhase, entranceBackedPhase } from './rhythm';
 import { allKeys, electronicKeyFromVotes, keyFromMusical, keyFromTonic, type KeyVote } from './key';
 import { camelotRelation } from './matching';
 import { analyzeStructure, computeBarFeatures, detectPhrases, firstAudibleBar } from './structure';
@@ -378,13 +378,17 @@ export async function analyzeFile(
     downbeatConfidence = 'high';
   } else {
     const bassPhase = !ov.bpm ? corroboratedBassPhase(bands, grid) : undefined;
-    if (bassPhase !== undefined) grid.firstBeatSec = bassPhase;
-    const probe = computeBarFeatures(bands, grid.firstBeatSec, barLen, durSec);
-    const audible = firstAudibleBar(probe);
-    const firstAudibleSec = grid.firstBeatSec + audible * barLen;
-    const downbeatMode = grid.variable ? 'standard' : bassPhase !== undefined ? 'bass-aligned' : 'common';
-    const db = pickDownbeatOffset(bands, bpm, grid.firstBeatSec, firstAudibleSec, durSec, downbeatMode);
-    firstDownbeatSec = grid.firstBeatSec + db.offset * P;
+    const downbeat = (phase: number, bassAligned = false) => {
+      const probe = computeBarFeatures(bands, phase, barLen, durSec);
+      const firstAudibleSec = phase + firstAudibleBar(probe) * barLen;
+      const mode = grid.variable ? 'standard' : bassAligned ? 'bass-aligned' : 'common';
+      const db = pickDownbeatOffset(bands, bpm, phase, firstAudibleSec, durSec, mode);
+      return { time: phase + db.offset * P, confident: db.confident };
+    };
+    const alternate = !ov.bpm && bassPhase === undefined ? entranceBackedPhase(bands, grid) : undefined;
+    const alternateDownbeat = alternate === undefined ? undefined : downbeat(alternate);
+    const db = alternateDownbeat?.confident ? alternateDownbeat : downbeat(bassPhase ?? grid.firstBeatSec, bassPhase !== undefined);
+    firstDownbeatSec = db.time;
     downbeatConfidence = db.confident ? 'high' : 'low';
     if (!db.confident) warnings.push('Premier temps (downbeat) incertain — vérifie la grille');
   }
