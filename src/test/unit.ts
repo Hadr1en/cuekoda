@@ -17,7 +17,7 @@ import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/c
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { beatIndex, gridBeats, gridAudition, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
-import { estimateGrid } from '../core/rhythm';
+import { estimateGrid, foldBpm, technoBassPhase } from '../core/rhythm';
 import { allKeys, electronicKeyFromVotes, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
@@ -221,6 +221,34 @@ test('profiles are data and are sanitised', () => {
   assert.equal(p.maxBpm, 200);
   assert.equal(p.maxCues, 8);
   assert.deepEqual(p.loopBeats, [16]);
+});
+
+test('the Techno profile keeps fast tempos and recovers them from half-time estimates', () => {
+  const { minBpm, maxBpm } = sanitizeProfile(findProfile('techno'));
+  for (const bpm of [124, 167, 170, 179, 192]) {
+    assert.equal(foldBpm(bpm, minBpm, maxBpm), bpm);
+    assert.equal(foldBpm(bpm / 2, minBpm, maxBpm), bpm);
+  }
+});
+
+test('the Techno grid follows a bass pulse present in all three parts of the track', () => {
+  const sr = 22050;
+  const audio = new Float32Array(36 * sr);
+  for (let beat = 0; beat < 72; beat++) {
+    const start = Math.round((beat * 0.5 + 0.25) * sr);
+    for (let i = 0; i < 0.12 * sr; i++) {
+      const t = i / sr;
+      audio[start + i] = Math.sin(2 * Math.PI * 55 * t) * Math.exp(-30 * t);
+    }
+  }
+  const bands = analyseBands(audio, sr);
+  const grid = { bpm: 120, firstBeatSec: 0, confidence: 0.75, localMin: 120, localMax: 120, variable: false };
+  const phase = technoBassPhase(bands, grid);
+  assert.ok(phase !== undefined && Math.abs(phase - 0.25) < 0.06);
+  assert.equal(technoBassPhase(bands, { ...grid, firstBeatSec: phase }), undefined);
+  assert.equal(technoBassPhase(bands, { ...grid, variable: true }), undefined);
+  audio.fill(0, 24 * sr);
+  assert.equal(technoBassPhase(analyseBands(audio, sr), grid), undefined);
 });
 
 // ---------------------------------------------------------------- merge

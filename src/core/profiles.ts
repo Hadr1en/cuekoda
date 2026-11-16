@@ -149,8 +149,9 @@ export const BUILTIN_PROFILES: Profile[] = [
     ...base,
     id: 'techno',
     name: 'Techno',
-    minBpm: 115,
-    maxBpm: 160,
+    // A full octave keeps fast techno in the same tempo family as its half-time estimate.
+    minBpm: 100,
+    maxBpm: 200,
     maxCues: 6,
     cuePriority: ['intro', 'groove', 'break', 'outro', 'mixin', 'mixout', 'drop', 'kickout', 'build', 'vocal'],
     loopBeats: [16, 32],
