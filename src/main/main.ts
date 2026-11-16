@@ -20,6 +20,7 @@ import { backupIfExists, JsonStore, LibraryStore } from './store';
 import { FolderWatcher } from './watch';
 import { referenceFrom, type Reference } from '../core/evaluate';
 import { computePeaks, type Peaks } from '../core/peaks';
+import { checkNeuralModels } from '../core/neuralModels';
 import { Updater } from './updater';
 import { resolveLang, translate } from '../shared/i18n';
 
@@ -656,7 +657,8 @@ function registerIpc() {
  */
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
-if (SMOKE_DIR || SMOKE_WINDOW) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
+const SMOKE_MODELS = process.env.CUEKODA_SMOKE_MODELS === '1';
+if (SMOKE_DIR || SMOKE_WINDOW || SMOKE_MODELS) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
 
 /** Renderer-side script of the smoke test (runs in the real UI). */
 const SMOKE_UI_SCRIPT = `(async () => {
@@ -1027,7 +1029,13 @@ function runSmoke() {
   }, 10 * 60 * 1000);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (SMOKE_MODELS) {
+    const ready = await checkNeuralModels();
+    console.log(ready ? 'Packaged analysis models initialized' : 'Failed to initialize packaged analysis models');
+    app.exit(ready ? 0 : 1);
+    return;
+  }
   // Dev mode on macOS: show the CueKoda icon in the Dock (packaged builds get it from electron-builder)
   if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(__dirname, '..', '..', 'build', 'icon.png'));
   library = new LibraryStore<AnalysisResult, TrackRecord>(path.join(userData(), 'library.json'));

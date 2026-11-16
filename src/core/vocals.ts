@@ -408,6 +408,7 @@ export function detectVocals(
     informative,
     level: !informative ? 'low' : segments.some((s) => s.confidence === 'medium') ? 'medium' : 'low',
     ...(modelCurve ? { modelCurve: round(modelCurve), heuristicCurve: round(feats.score) } : {}),
+    ...(model?.runtime ? { runtime: model.runtime } : {}),
     ...(notes.length ? { note: notes.join(' · ') } : {}),
   };
 }
