@@ -155,6 +155,7 @@ export interface CueKodaApi {
   onCrates(cb: (crates: PrepCrate[]) => void): void;
   /** Re-analyse; user edits are kept. force = ignore the cache (e.g. new engine version). */
   reanalyze(paths: string[], force?: boolean): Promise<number>;
+  applyPreparationProfile(paths: string[]): Promise<{ applied: number; needsAnalysis: number }>;
   analysisComparison(path: string): Promise<AnalysisComparison | null>;
   restoreAnalysis(path: string): Promise<boolean>;
   /** Manual BPM / downbeat / key correction → re-analysis with those values, edits kept */

@@ -13,6 +13,7 @@ const api: CueKodaApi = {
   updateCrates: (action) => ipcRenderer.invoke('crates-update', action),
   onCrates: on('crates'),
   reanalyze: (paths, force) => ipcRenderer.invoke('reanalyze', paths, force),
+  applyPreparationProfile: (paths) => ipcRenderer.invoke('apply-preparation-profile', paths),
   analysisComparison: (p) => ipcRenderer.invoke('analysis-comparison', p),
   restoreAnalysis: (p) => ipcRenderer.invoke('restore-analysis', p),
   setOverrides: (p, ov) => ipcRenderer.invoke('set-overrides', p, ov),

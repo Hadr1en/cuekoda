@@ -17,7 +17,7 @@ import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/c
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { beatIndex, gridBeats, gridAudition, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
-import { estimateGrid, foldBpm, pickDownbeatOffset, technoBassPhase } from '../core/rhythm';
+import { estimateGrid, pickDownbeatOffset, corroboratedBassPhase } from '../core/rhythm';
 import { allKeys, electronicKeyFromVotes, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
@@ -217,21 +217,12 @@ test('selectCues: priority, max count, spacing, exclusions, chronological pads',
 
 test('profiles are data and are sanitised', () => {
   assert.equal(BUILTIN_PROFILES.length, 8);
-  const p = sanitizeProfile({ ...edm, minBpm: 100, maxBpm: 260, maxCues: 20, loopBeats: [3, 16] });
-  assert.equal(p.maxBpm, 200);
+  const p = sanitizeProfile({ ...edm, maxCues: 20, loopBeats: [3, 16] });
   assert.equal(p.maxCues, 8);
   assert.deepEqual(p.loopBeats, [16]);
 });
 
-test('the Techno profile keeps fast tempos and recovers them from half-time estimates', () => {
-  const { minBpm, maxBpm } = sanitizeProfile(findProfile('techno'));
-  for (const bpm of [124, 167, 170, 179, 192]) {
-    assert.equal(foldBpm(bpm, minBpm, maxBpm), bpm);
-    assert.equal(foldBpm(bpm / 2, minBpm, maxBpm), bpm);
-  }
-});
-
-test('the Techno grid follows a bass pulse present in all three parts of the track', () => {
+test('the beat grid follows a bass pulse present in all three parts of the track', () => {
   const sr = 22050;
   const audio = new Float32Array(36 * sr);
   for (let beat = 0; beat < 72; beat++) {
@@ -243,15 +234,15 @@ test('the Techno grid follows a bass pulse present in all three parts of the tra
   }
   const bands = analyseBands(audio, sr);
   const grid = { bpm: 120, firstBeatSec: 0, confidence: 0.75, localMin: 120, localMax: 120, variable: false };
-  const phase = technoBassPhase(bands, grid);
+  const phase = corroboratedBassPhase(bands, grid);
   assert.ok(phase !== undefined && Math.abs(phase - 0.25) < 0.06);
-  assert.equal(technoBassPhase(bands, { ...grid, firstBeatSec: phase }), undefined);
-  assert.equal(technoBassPhase(bands, { ...grid, variable: true }), undefined);
+  assert.equal(corroboratedBassPhase(bands, { ...grid, firstBeatSec: phase }), undefined);
+  assert.equal(corroboratedBassPhase(bands, { ...grid, variable: true }), undefined);
   audio.fill(0, 24 * sr);
-  assert.equal(technoBassPhase(analyseBands(audio, sr), grid), undefined);
+  assert.equal(corroboratedBassPhase(analyseBands(audio, sr), grid), undefined);
 });
 
-test('the Techno first beat follows sustained section changes when the entrance agrees', () => {
+test('the downbeat follows sustained section changes when the entrance agrees', () => {
   const frameRate = 100;
   const duration = 192;
   const frames = duration * frameRate;
@@ -266,11 +257,11 @@ test('the Techno first beat follows sustained section changes when the entrance 
     onset: sections, fluxLow: bass, fluxMid: sections, fluxHigh: sections,
   };
   assert.equal(pickDownbeatOffset(bands, 120, 0, 0, duration).offset, 3);
-  assert.deepEqual(pickDownbeatOffset(bands, 120, 0, 0, duration, 'techno'), { offset: 0, confident: true });
+  assert.deepEqual(pickDownbeatOffset(bands, 120, 0, 0, duration, 'common'), { offset: 0, confident: true });
   // A pickup or an unrelated entrance should not decide the start of the bar by itself.
   const laterEntrance = { ...bands, eMid: sections.slice() };
   laterEntrance.eMid.fill(0, 0, 100);
-  assert.equal(pickDownbeatOffset(laterEntrance, 120, 0, 0, duration, 'techno').offset, 3);
+  assert.equal(pickDownbeatOffset(laterEntrance, 120, 0, 0, duration, 'common').offset, 3);
 });
 
 // ---------------------------------------------------------------- merge
@@ -293,6 +284,7 @@ test('re-analysis keeps user / locked cues and accepted loops', () => {
   assert.ok(m.cues.some((c) => c.kind === 'outro' && c.timeSec === 140), 'fresh auto outro replaces the old auto one');
   assert.equal(new Set(m.cues.map((c) => c.slot)).size, m.cues.length, 'no pad used twice');
   assert.equal(m.loops!.length, 2);
+  assert.deepEqual(mergeWithPrevious(fresh, prev, { preserveCues: true }).cues, prevCues);
 });
 
 test('memory cues (slot −1) survive re-analysis and are exported without a pad', () => {

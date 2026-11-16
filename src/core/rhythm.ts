@@ -346,7 +346,7 @@ export interface GridResult {
 }
 
 /** Finds a steadier pulse in the bass when the general onset grid follows offbeat percussion. */
-export function technoBassPhase(bands: Bands, grid: GridResult): number | undefined {
+export function corroboratedBassPhase(bands: Bands, grid: GridResult): number | undefined {
   if (grid.variable || bands.frames < 30 * bands.frameRate) return undefined;
   const bins = 40;
   const histograms = Array.from({ length: 3 }, () => new Float64Array(bins));
@@ -485,7 +485,7 @@ export function pickDownbeatOffset(
   firstBeatSec: number,
   firstAudibleSec: number,
   durSec: number,
-  mode: 'standard' | 'edm' | 'techno' = 'standard',
+  mode: 'standard' | 'bass-aligned' | 'common' = 'standard',
 ): { offset: number; confident: boolean } {
   const P = 60 / bpm;
   const pL = prefixSums(bands.eLow);
@@ -566,7 +566,7 @@ export function pickDownbeatOffset(
   const combined = [0, 1, 2, 3].map(
     (o) => (sChange > 0 ? (1 - wEntry) * (score[o] / sChange) : 0) + (sEntry > 0 ? wEntry * (entry[o] / sEntry) : 0),
   );
-  if (mode === 'edm') {
+  if (mode === 'common') {
     // A short transient can mimic a section change. Require a sharp edge with different energy
     // on both sides across two, four and eight beats, then pool evidence along the track.
     const phrase = new Float64Array(D.length);
@@ -605,7 +605,7 @@ export function pickDownbeatOffset(
   // a close vote still beats an arbitrary guess: keep the best candidate, flagged as uncertain;
   // the start of the music is only used when there is no evidence at all
   const chosen = combined[best] > 0 ? best : first;
-  if (mode === 'techno' && nBeats >= 128) {
+  if (mode !== 'standard' && nBeats >= 128) {
     const peak = bands.eMid.reduce((a, b) => Math.max(a, b), 0);
     const start = bands.eMid.findIndex((energy) => energy > 0.005 * peak);
     const entrance = (frameTime(bands, start) - firstBeatSec) / P;
