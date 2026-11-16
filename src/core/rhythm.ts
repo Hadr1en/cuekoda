@@ -376,6 +376,37 @@ export function corroboratedBassPhase(bands: Bands, grid: GridResult): number | 
   return (grid.firstBeatSec + shift * period) % period;
 }
 
+/** Looks for a pulse shared by the track entrance and the low and mid bands throughout the track. */
+export function entranceBackedPhase(bands: Bands, grid: GridResult): number | undefined {
+  if (grid.variable || bands.frames < 30 * bands.frameRate) return undefined;
+  const period = 60 / grid.bpm;
+  const cycles = (frame: number) => (frameTime(bands, frame) - grid.firstBeatSec) / period;
+  for (const energy of [bands.eLow, bands.eMid]) {
+    const peak = energy.reduce((a, b) => Math.max(a, b), 0);
+    const entrance = energy.findIndex((v) => v > 0.005 * peak);
+    const beat = cycles(entrance);
+    const phase = beat - Math.floor(beat);
+    if (entrance < 0 || frameTime(bands, entrance) > 8 * period || phase < 0.35 || phase > 0.65) return undefined;
+  }
+
+  const ratios = [bands.fluxLow, bands.fluxMid].map((flux) => {
+    const onsets = detrend(flux, Math.round(bands.frameRate * 0.5));
+    const current = [0, 0, 0];
+    const alternate = [0, 0, 0];
+    for (let frame = 0; frame < onsets.length; frame++) {
+      const beat = cycles(frame);
+      const bin = Math.floor((beat - Math.floor(beat)) * 40);
+      const part = Math.floor(3 * frame / onsets.length);
+      if (bin <= 3 || bin >= 37) current[part] += onsets[frame];
+      if (bin >= 17 && bin <= 23) alternate[part] += onsets[frame];
+    }
+    return Math.min(...alternate.map((power, part) => power / Math.max(1e-8, current[part])));
+  });
+  // Both bands must support the pulse in each part; at least one has a clear margin.
+  if (Math.min(...ratios) < 0.9 || Math.max(...ratios) < 1.35) return undefined;
+  return (grid.firstBeatSec + period / 2) % period;
+}
+
 /**
  * Full grid estimation: comb fit on the onset envelope, then ms-accurate refinement with
  * the time-domain attack envelope (phase + tempo drift), then snap to "round" tempos

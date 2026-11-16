@@ -17,7 +17,7 @@ import { cueAt, duplicateCueIds, selectCues, type CueCandidate } from '../core/c
 import { BUILTIN_PROFILES, findProfile, sanitizeProfile } from '../core/profiles';
 import { beatIndex, gridBeats, gridAudition, nearestBeat } from '../core/beatgrid';
 import { analyseBands } from '../core/dsp';
-import { estimateGrid, pickDownbeatOffset, corroboratedBassPhase } from '../core/rhythm';
+import { estimateGrid, pickDownbeatOffset, corroboratedBassPhase, entranceBackedPhase } from '../core/rhythm';
 import { allKeys, electronicKeyFromVotes, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
@@ -240,6 +240,24 @@ test('the beat grid follows a bass pulse present in all three parts of the track
   assert.equal(corroboratedBassPhase(bands, { ...grid, variable: true }), undefined);
   audio.fill(0, 24 * sr);
   assert.equal(corroboratedBassPhase(analyseBands(audio, sr), grid), undefined);
+});
+
+test('a half-beat alternative needs support from the entrance and both frequency bands', () => {
+  const frameRate = 100;
+  const frames = 36 * frameRate;
+  const pulse = (shift: number) => Float32Array.from({ length: frames }, (_, frame) =>
+    frame >= shift && (frame - shift) % 50 < 4 ? 1 : 0);
+  const beat = pulse(25);
+  const bands = {
+    sr: frameRate, hop: 1, frameSize: 1, frameRate, frames,
+    eLow: beat, eMid: beat, eHigh: beat,
+    onset: beat, fluxLow: beat, fluxMid: beat, fluxHigh: beat,
+  };
+  const grid = { bpm: 120, firstBeatSec: 0, confidence: 0.75, localMin: 120, localMax: 120, variable: false };
+  assert.equal(entranceBackedPhase(bands, grid), 0.25);
+  assert.equal(entranceBackedPhase({ ...bands, fluxMid: pulse(0) }, grid), undefined);
+  assert.equal(entranceBackedPhase({ ...bands, eMid: pulse(0) }, grid), undefined);
+  assert.equal(entranceBackedPhase(bands, { ...grid, variable: true }), undefined);
 });
 
 test('the downbeat follows sustained section changes when the entrance agrees', () => {
