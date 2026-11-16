@@ -534,8 +534,9 @@ test('four-bar grid audition anchors near the start or end and supports short fi
 });
 
 test('rekordbox export: hot cues, memory cues option, loops with End', () => {
+  const windows = process.platform === 'win32';
   const t = track({
-    path: '/m/a b.mp3',
+    path: windows ? 'C:\\m\\a b.mp3' : '/m/a b.mp3',
     cues: [cue({ slot: 0, timeSec: 10, name: 'Drop & co' })],
     loops: [
       { id: 'l', kind: 'intro', name: 'Intro loop', startSec: 1, beats: 16, bar: 0, confidence: 'high', reason: '', origin: 'auto', accepted: true },
@@ -543,7 +544,8 @@ test('rekordbox export: hot cues, memory cues option, loops with End', () => {
     ],
   });
   const xml = buildRekordboxXml([t], { memoryCues: true, loops: 'accepted' });
-  assert.ok(xml.includes('Location="file://localhost/m/a%20b.mp3"'));
+  const expectedLocation = windows ? 'file://localhost/C:/m/a%20b.mp3' : 'file://localhost/m/a%20b.mp3';
+  assert.ok(xml.includes(`Location="${expectedLocation}"`));
   assert.ok(xml.includes('Name="Drop &amp; co" Type="0" Start="10.000" Num="0" Red="255"'));
   assert.ok(xml.includes('Num="-1"/>'));
   assert.ok(xml.includes('Type="4" Start="1.000" End="8.500" Num="-1"'), xml); // 16 beats @128 = 7.5 s
@@ -1304,20 +1306,21 @@ test('library store: v1 file migrated, only changed results rewritten', () => {
 import { applyImport, parseRekordboxXml, parseTraktorNml, pathFromTraktorLocation } from '../core/import/collection';
 
 test('collection import: rekordbox XML and Traktor NML round-trip, DJ cues locked, free pads filled', () => {
+  const sourcePath = process.platform === 'win32' ? 'D:\\Music\\a & b.mp3' : '/Volumes/DJ USB/Music/a & b.mp3';
   const ours = track({
-    path: '/Volumes/DJ USB/Music/a & b.mp3', bpm: 128, grid: { bpm: 128, firstDownbeatSec: 0.5, confidence: 1 },
+    path: sourcePath, bpm: 128, grid: { bpm: 128, firstDownbeatSec: 0.5, confidence: 1 },
     cues: [cue({ id: 'u1', slot: 0, timeSec: 10, name: 'Intro', kind: 'intro', role: 'intro' }), cue({ id: 'u2', slot: 2, timeSec: 60, name: 'Drop 1' })],
   });
   const xml = buildRekordboxXml([ours], { memoryCues: true, loops: 'none' });
   const rb = parseRekordboxXml(xml);
   assert.equal(rb.length, 1);
-  assert.equal(rb[0].path, '/Volumes/DJ USB/Music/a & b.mp3');
+  assert.equal(rb[0].path, sourcePath);
   assert.equal(rb[0].bpm, 128);
   assert.ok(Math.abs(rb[0].gridSec! - 0.5) < 1e-6);
   assert.deepEqual(rb[0].cues.filter((c) => c.slot >= 0).map((c) => [c.slot, c.name, c.timeSec]), [[0, 'Intro', 10], [2, 'Drop 1', 60]]);
   const nml = buildTraktorNml([ours], { memoryCues: false, loops: 'none' }, 'Macintosh HD');
   const tk = parseTraktorNml(nml, 'Macintosh HD');
-  assert.equal(tk[0].path, '/Volumes/DJ USB/Music/a & b.mp3');
+  assert.equal(tk[0].path, sourcePath);
   assert.deepEqual(tk[0].cues.map((c) => [c.slot, c.timeSec]), [[0, 10], [1, 60]], 'Traktor hotcues imported in exported button order');
   assert.equal(pathFromTraktorLocation('Macintosh HD', '/:Users/:me/:', 'x.mp3', 'Macintosh HD'), '/Users/me/x.mp3');
   assert.equal(pathFromTraktorLocation('C:', '/:Music/:', 'x.mp3', 'Macintosh HD'), 'C:\\Music\\x.mp3');
