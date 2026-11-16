@@ -276,7 +276,7 @@ export function openSettings(onChanged: () => void) {
 
       h('section', { class: 'set' },
         h('h3', {}, 'Profil de préparation'),
-        h('p', { class: 'muted' }, 'Le BPM, la tonalité et la grille sont calculés automatiquement. Le profil détermine les suggestions de cues, de boucles et de transitions.'),
+        h('p', { class: 'muted' }, 'CueKoda calcule le BPM, la tonalité et la grille. Le profil règle les suggestions de cues, de boucles et de transitions.'),
         h('div', { class: 'hrow' },
           h('select', { 'aria-label': 'Profil de préparation', onchange: (e: Event) => void save({ profileId: (e.target as HTMLSelectElement).value }).then(render) },
             ...allProfiles().map((p) => h('option', { value: p.id, selected: p.id === profile.id }, p.name + (p.builtin ? '' : ' (perso)')))),
@@ -339,14 +339,14 @@ export function openSettings(onChanged: () => void) {
           ...LOOP_KINDS.map(([k, l]) => h('label', {}, h('input', { type: 'checkbox', checked: profile.loopKinds.includes(k), disabled: !editable,
             onchange: (e: Event) => set('loopKinds', (e.target as HTMLInputElement).checked ? [...profile.loopKinds, k] : profile.loopKinds.filter((x) => x !== k)) }), ` ${l}`)),
         ),
-        h('p', { class: 'muted' }, 'Pour actualiser les suggestions des morceaux déjà analysés, sélectionnez-les puis choisissez « Appliquer le profil à la sélection ». Les cues vérifiés, modifiés ou verrouillés et les boucles acceptées sont conservés.'),
+        h('p', { class: 'muted' }, '« Appliquer le profil à la sélection » renouvelle les suggestions. Les cues vérifiés, modifiés ou verrouillés et les boucles acceptées sont gardés.'),
       ),
 
       h('section', { class: 'set' },
         h('h3', {}, 'Performances'),
         h('label', { class: 'pf' }, `Analyses en parallèle : ${s.maxWorkers} / ${state.cores} cœurs`,
           h('input', { type: 'range', min: 1, max: state.cores, value: String(s.maxWorkers), onchange: (e: Event) => void save({ maxWorkers: Number((e.target as HTMLInputElement).value) }).then(render) })),
-        h('p', { class: 'muted' }, 'Analyse locale uniquement (CPU) : aucun fichier n’est envoyé en ligne. Les résultats sont mis en cache : un fichier inchangé n’est pas ré-analysé.'),
+        h('p', { class: 'muted' }, 'L’analyse se fait sur cet ordinateur. CueKoda réutilise le résultat si le fichier est inchangé.'),
       ),
 
       h('section', { class: 'set' },

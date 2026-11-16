@@ -10,7 +10,7 @@ import { computeEnergy } from './energy';
 import { computeFingerprint } from './fingerprint';
 import { buildTempoMap, type TempoMarker } from './tempomap';
 import { prepareTrack } from './preparation';
-import { detectVocals } from './vocals';
+import { detectVocals, vocalBarFeatures, vocalFrames } from './vocals';
 import { predictVoice, vocalModelError } from './vocalModel';
 import { predictTempo } from './neuralTempo';
 import { predictKey } from './neuralKey';
@@ -343,7 +343,7 @@ export async function analyzeFile(
   const P = 60 / bpm;
   const barLen = 4 * P;
   if (grid.variable) warnings.push(`Tempo variable (${grid.localMin.toFixed(1)}–${grid.localMax.toFixed(1)} BPM) : grille fixe approximative`);
-  else if (grid.confidence < 0.4) warnings.push('Grille rythmique peu fiable — à vérifier');
+  else if (grid.confidence < 0.4) warnings.push('Grille à vérifier');
   if (!ov.bpm && Math.abs(bpm - bpmEst) > 2.5) warnings.push(`BPM corrigé de ${bpmEst.toFixed(1)} à ${bpm.toFixed(2)}`);
   const folded = rawBpm ? foldBpm(rawBpm, minBpm, maxBpm) : bpm;
   const alternativeBpm = halfTime !== undefined && Math.abs(halfTime / bpm - 0.5) < 0.015
@@ -390,7 +390,7 @@ export async function analyzeFile(
     const db = alternateDownbeat?.confident ? alternateDownbeat : downbeat(bassPhase ?? grid.firstBeatSec, bassPhase !== undefined);
     firstDownbeatSec = db.time;
     downbeatConfidence = db.confident ? 'high' : 'low';
-    if (!db.confident) warnings.push('Premier temps (downbeat) incertain — vérifie la grille');
+    if (!db.confident) warnings.push('Premier temps à vérifier');
   }
 
   // --- structure, phrases, energy, sections ---------------------------------------
@@ -411,8 +411,12 @@ export async function analyzeFile(
     }
   }
   progress('voix', 0.72);
-  const voiceModel = await predictVoice(full);
-  const vocals = detectVocals(x, SR_DSP, firstDownbeatSec, barLen, feats.nBars, durSec, structure.origin, voiceModel, vocalModelError());
+  const voicePrediction = predictVoice(full);
+  const manualKey = ov.key ? keyFromMusical(ov.key, 1) : null;
+  const keyPrediction = manualKey ? undefined : predictKey(full);
+  const voiceFeatures = vocalBarFeatures(vocalFrames(x, SR_DSP), firstDownbeatSec, barLen, feats.nBars);
+  const voiceModel = await voicePrediction;
+  const vocals = detectVocals(voiceFeatures, firstDownbeatSec, barLen, durSec, structure.origin, voiceModel, vocalModelError());
   if (process.env.CUEKODA_DEBUG) {
     console.error(`# ${path.basename(file)} bpm=${bpm.toFixed(3)} d0=${firstDownbeatSec.toFixed(3)} origin=${structure.origin}`);
     feats.energyDb.forEach((e, b) =>
@@ -425,11 +429,10 @@ export async function analyzeFile(
   // --- key -----------------------------------------------------------------------
   progress('tonalité', 0.85);
   let key: KeyResult;
-  const manualKey = ov.key ? keyFromMusical(ov.key, 1) : null;
   if (manualKey) {
     key = { ...manualKey, method: 'manual', level: 'high', ambiguous: false, alternatives: [] };
   } else {
-    const neural = await predictKey(full);
+    const neural = await keyPrediction;
     const profileEstimate = !neural || neural.confidence < 0.25 || neural.confidence >= 0.8
       ? detectElectronicKey(x, durSec, SR_DSP) : undefined;
     const keepProfiles = neural && neural.confidence < 0.25 && profileEstimate?.level === 'high';

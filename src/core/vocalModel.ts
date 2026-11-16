@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { FFT } from './dsp';
+import RealFFT from 'fft.js';
 import { neuralAsset, neuralLogits } from './neuralModels';
 
 /**
@@ -85,11 +85,11 @@ export function resample44kTo16k(x: Float32Array): Float32Array {
     const pos = Math.floor((n * M) / L);
     const ph = n % L;
     const base = ph * 2 * TAPS;
+    const first = Math.max(0, pos - TAPS + 1);
+    const end = Math.min(x.length, pos + TAPS + 1);
+    const tapOffset = base + TAPS - 1 - pos;
     let acc = 0;
-    for (let k = -TAPS + 1; k <= TAPS; k++) {
-      const i = pos + k;
-      if (i >= 0 && i < x.length) acc += x[i] * table[base + k + TAPS - 1];
-    }
+    for (let i = first; i < end; i++) acc += x[i] * table[tapOffset + i];
     y[n] = acc;
   }
   return y;
@@ -127,21 +127,18 @@ function filters() {
 export function musicnnMel(x16k: Float32Array): Float32Array {
   const nF = Math.max(0, Math.floor((x16k.length - FRAME) / HOP) + 1);
   const out = new Float32Array(nF * BANDS);
-  const fft = new FFT(FRAME);
+  const fft = new RealFFT(FRAME);
   const win = new Float32Array(FRAME);
   for (let i = 0; i < FRAME; i++) win[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (FRAME - 1));
-  const re = new Float32Array(FRAME);
-  const im = new Float32Array(FRAME);
+  const input = new Float32Array(FRAME);
+  const spectrum = fft.createComplexArray();
   const pw = new Float32Array(FRAME / 2 + 1);
   const fb = filters();
   for (let f = 0; f < nF; f++) {
     const off = f * HOP;
-    for (let i = 0; i < FRAME; i++) {
-      re[i] = x16k[off + i] * win[i];
-      im[i] = 0;
-    }
-    fft.transform(re, im);
-    for (let k = 0; k <= FRAME / 2; k++) pw[k] = re[k] * re[k] + im[k] * im[k];
+    for (let i = 0; i < FRAME; i++) input[i] = x16k[off + i] * win[i];
+    fft.realTransform(spectrum, input);
+    for (let k = 0; k <= FRAME / 2; k++) pw[k] = spectrum[2 * k] ** 2 + spectrum[2 * k + 1] ** 2;
     for (let b = 0; b < BANDS; b++) {
       const { lo, w } = fb[b];
       let s = 0;
