@@ -273,22 +273,32 @@ export function openSettings(onChanged: () => void) {
         h('input', { type: 'number', min, max, value: String(profile[k]), disabled: !editable, onchange: (e: Event) => set(k, Number((e.target as HTMLInputElement).value)) }));
     const parallelLabel = h('span');
     const showParallelLimit = (value: number) => {
-      parallelLabel.textContent = tr(`Analyses en parallèle : ${value} / ${state.cores} cœurs`);
+      parallelLabel.textContent = tr(`Analyses en parallèle : ${value} / ${state.cores} cœurs logiques`);
     };
-    showParallelLimit(s.maxWorkers);
+    const refreshParallelLimit = () => {
+      const manualLimit = state.settings.maxWorkers;
+      parallelSlider.valueAsNumber = manualLimit ?? state.automaticWorkers;
+      showParallelLimit(parallelSlider.valueAsNumber);
+      parallelAutomatic.checked = manualLimit === null;
+    };
     const parallelSlider = h('input', {
-      type: 'range', min: 1, max: state.cores, value: String(s.maxWorkers), disabled: state.cores === 1,
+      type: 'range', min: 1, max: state.cores, disabled: state.cores === 1,
       oninput: () => showParallelLimit(parallelSlider.valueAsNumber),
       onchange: async () => {
         const chosen = parallelSlider.valueAsNumber;
         await save({ maxWorkers: chosen });
         // Keep the control focused, and leave any new drag in progress alone.
-        if (parallelSlider.valueAsNumber === chosen) {
-          parallelSlider.valueAsNumber = state.settings.maxWorkers;
-          showParallelLimit(state.settings.maxWorkers);
-        }
+        if (parallelSlider.valueAsNumber === chosen) refreshParallelLimit();
       },
     });
+    const parallelAutomatic = h('input', {
+      id: 'parallel-automatic', type: 'checkbox',
+      onchange: async () => {
+        await save({ maxWorkers: parallelAutomatic.checked ? null : parallelSlider.valueAsNumber });
+        refreshParallelLimit();
+      },
+    });
+    refreshParallelLimit();
 
     dlg.replaceChildren(
       h('h2', { id: 'dlg-settings-title' }, 'Réglages'),
@@ -363,6 +373,7 @@ export function openSettings(onChanged: () => void) {
       h('section', { class: 'set' },
         h('h3', {}, 'Performances'),
         h('label', { class: 'pf' }, parallelLabel, parallelSlider),
+        h('label', { class: 'pf check' }, parallelAutomatic, 'Automatique'),
         h('p', { class: 'muted' }, 'L’analyse se fait sur cet ordinateur. CueKoda réutilise le résultat si le fichier est inchangé.'),
       ),
 

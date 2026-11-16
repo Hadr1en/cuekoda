@@ -21,6 +21,7 @@ export const state = {
   adapters: [] as AdapterInfo[],
   learning: [] as string[],
   cores: 1,
+  automaticWorkers: 1,
   queue: { pending: 0, running: 0, paused: false, maxWorkers: 1 } as QueueState,
   selected: null as string | null,
   references: {} as Record<string, string>,

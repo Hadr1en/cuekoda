@@ -77,7 +77,8 @@ export interface WatchFolder {
 export interface Settings {
   profileId: string;
   customProfiles: Profile[];
-  maxWorkers: number;
+  /** Manual limit, or null to select it from the available CPUs at startup. */
+  maxWorkers: number | null;
   watchFolders: WatchFolder[];
   watchPaused: boolean;
   autoAnalyzeWatched: boolean;
@@ -133,6 +134,7 @@ export interface InitialState {
   adapters: AdapterInfo[];
   learning: string[];
   cores: number;
+  automaticWorkers: number;
   /** fileHash → date of the DJ-verified reference */
   references: Record<string, string>;
   appVersion: string;

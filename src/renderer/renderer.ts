@@ -1828,6 +1828,7 @@ async function boot() {
   state.adapters = s.adapters;
   state.learning = s.learning;
   state.cores = s.cores;
+  state.automaticWorkers = s.automaticWorkers;
   state.references = s.references ?? {};
   state.queue = s.queue;
   state.appVersion = s.appVersion;

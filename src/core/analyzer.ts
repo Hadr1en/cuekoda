@@ -259,11 +259,13 @@ export async function analyzeFile(
   progress('décodage', 0.02);
   // Read the revision before the decoder opens the file. The worker already hashed it for the cache.
   const initial = revision?.stat ?? await fs.promises.stat(file, { bigint: true });
-  const [decoded, source] = await Promise.all([decodeAudio(file, SR_FULL), revision ?? hashAudioRevision(file, initial)]);
+  const [decoded, source] = await Promise.all([
+    decodeAudio(file, SR_FULL, { maxDurationSec: MAX_DURATION_SEC }),
+    revision ?? hashAudioRevision(file, initial),
+  ]);
   await assertAudioRevision(file, source);
   let full = decoded.samples;
   const durSec = full.length / SR_FULL;
-  if (durSec > MAX_DURATION_SEC) throw new Error(`fichier de plus de ${MAX_DURATION_SEC / 60} min (mix DJ ?) — ignoré`);
   const info = await readInfo(file, durSec);
   // A decoding error, or decoded audio clearly shorter than the duration the file announces, means the
   // analysis only saw part of the track (truncated download, damaged tail): say so instead of hiding it.
@@ -282,7 +284,7 @@ export async function analyzeFile(
   // channels cancel in mono, but never generate a tempo or key from digital silence.
   let audible = full.some((sample) => Math.abs(sample) > 1e-7);
   if (!audible && (decoded.loudness.truePeakDbtp ?? -Infinity) > -100) {
-    const left = await decodeAudio(file, SR_FULL, 'left');
+    const left = await decodeAudio(file, SR_FULL, { channel: 'left', maxDurationSec: MAX_DURATION_SEC });
     full = left.samples;
     audible = full.some((sample) => Math.abs(sample) > 1e-7);
     if (audible) warnings.push('Les canaux s’annulent en mono : analyse sur le canal gauche.');
