@@ -104,7 +104,7 @@
             <div id="d-sub" class="d-sub"></div>
             <div class="review-actions">
               <button type="button" id="btn-quick-review" class="btn small ghost" aria-expanded="false" aria-controls="quick-review">Contrôle express</button>
-              <button type="button" id="btn-reviewed" class="btn small ghost" title="Marquer ce morceau comme vérifié à l’oreille (il sort de la liste « À vérifier »)">✓ Vérifié</button>
+              <button type="button" id="btn-reviewed" class="btn small ghost" title="Marquer comme vérifié après écoute">✓ Vérifié</button>
               <button type="button" id="btn-review-next" class="btn small ghost" disabled>Valider et passer au suivant</button>
             </div>
           </div>
@@ -119,10 +119,10 @@
             <div id="tempo-actions" class="corr" hidden></div>
             <div class="corr" role="group" aria-labelledby="lbl-grid">
               <span id="lbl-grid" class="corr-label">Grille</span>
-              <button type="button" class="btn small" id="grid-here" title="Le temps 1 d’une mesure est à la position de lecture">Temps 1 ici</button>
+              <button type="button" class="btn small" id="grid-here" title="Placer le premier temps ici">Temps 1 ici</button>
               <button type="button" class="btn small" id="grid-minus" title="Décaler la grille de −10 ms">−10 ms</button>
               <button type="button" class="btn small" id="grid-plus" title="Décaler la grille de +10 ms">+10 ms</button>
-              <button type="button" class="btn small" id="grid-beat" title="Le temps 1 était un autre temps : décaler d’un temps">+1 temps</button>
+              <button type="button" class="btn small" id="grid-beat" title="Décaler le début de la mesure d’un temps">+1 temps</button>
               <span id="grid-conf"></span>
             </div>
             <div class="corr" role="group" aria-labelledby="lbl-key">
@@ -158,7 +158,7 @@
           <button type="button" class="btn small ghost" id="zoom-out" aria-label="Dézoomer">−</button>
           <button type="button" class="btn small ghost" id="zoom-in" aria-label="Zoomer">+</button>
           <button type="button" class="btn small ghost" id="zoom-fit">Tout</button>
-          <button type="button" id="btn-metronome" class="btn small ghost" aria-pressed="false" title="Écouter la grille avec un clic accentué au premier temps">Métronome</button>
+          <button type="button" id="btn-metronome" class="btn small ghost" aria-pressed="false" title="Écouter les temps au métronome">Métronome</button>
           <span class="spacer"></span>
           <button type="button" id="btn-help" class="btn small ghost" aria-label="Raccourcis clavier" title="Raccourcis clavier">?</button>
           <button type="button" class="btn small ghost" id="btn-undo" title="Annuler (⌘Z)" disabled>↶ Annuler</button>

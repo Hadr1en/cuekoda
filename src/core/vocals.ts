@@ -98,6 +98,7 @@ export function vocalFrames(x: Float32Array, sr: number): VocalFrames {
   const tonal = new Uint8Array(frames);
   let cents = 0;
   const corr = new Float64Array(2 * MAX_SHIFT + 1);
+  const power = new Float64Array(nLog);
   const mag = new Float32Array(N / 2);
   // Per-band power floor (cheap pre-pass): bands 45 dB below their loud frames are ignored.
   const floor = bandFloors(x, bands, kf, fft, win);
@@ -118,10 +119,11 @@ export function vocalFrames(x: Float32Array, sr: number): VocalFrames {
       const a = k - k0;
       const m = (1 - a) * mag[k0] + a * mag[Math.min(N / 2 - 1, k0 + 1)];
       cur[i] = Math.log(1e-5 + m);
+      power[i] = Math.exp(2 * cur[i]);
     }
     bands.forEach((b0, j) => {
       let p = 0;
-      for (let i = b0; i < b0 + BAND; i++) p += Math.exp(2 * cur[i]);
+      for (let i = b0; i < b0 + BAND; i++) p += power[i];
       curPow[j] = p / BAND;
     });
     if (f < LAG) continue;
@@ -132,18 +134,24 @@ export function vocalFrames(x: Float32Array, sr: number): VocalFrames {
       if (curPow[j] < floor[j] || prevPow[j] < floor[j]) continue;
       const lo = bands[j] + MAX_SHIFT;
       const hi = bands[j] + BAND - MAX_SHIFT;
+      const n = hi - lo;
+      let sa = 0, saa = 0;
+      for (let i = lo; i < hi; i++) {
+        const a = cur[i];
+        sa += a;
+        saa += a * a;
+      }
+      const va = saa - (sa * sa) / n;
       // correlation coefficient of cur[i] with prev[i - s]
       let best = -2;
       let bs = 0;
       for (let s = -MAX_SHIFT; s <= MAX_SHIFT; s++) {
-        let sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
-        const n = hi - lo;
+        let sb = 0, sbb = 0, sab = 0;
         for (let i = lo; i < hi; i++) {
           const a = cur[i];
           const b = prev[i - s];
-          sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b;
+          sb += b; sbb += b * b; sab += a * b;
         }
-        const va = saa - (sa * sa) / n;
         const vb = sbb - (sb * sb) / n;
         const c = va > 1e-9 && vb > 1e-9 ? (sab - (sa * sb) / n) / Math.sqrt(va * vb) : 0;
         corr[s + MAX_SHIFT] = c;
@@ -364,21 +372,18 @@ export function fuseScores(heuristic: number[], model: number[]): number[] {
 }
 
 /**
- * Full detection, from the 22.05 kHz mono signal and the bar grid, plus the model output when available.
+ * Fuses the spectral evidence with the model output and places vocal segments on the bar grid.
  */
 export function detectVocals(
-  x: Float32Array,
-  sr: number,
+  feats: VocalBarFeatures,
   d0: number,
   barLen: number,
-  nBars: number,
   durSec: number,
   origin: number,
   model?: VocalModelOutput | null,
   modelError?: string,
 ): VocalInfo {
-  const frames = vocalFrames(x, sr);
-  const feats = vocalBarFeatures(frames, d0, barLen, nBars);
+  const nBars = feats.score.length;
   const modelCurve = model ? modelBarProbs(model, d0, barLen, nBars) : undefined;
   const score = modelCurve ? fuseScores(feats.score, modelCurve) : feats.score;
   if (process.env.CUEKODA_DEBUG) {
@@ -393,8 +398,8 @@ export function detectVocals(
   // The model judges any audio; the heuristic alone needs harmonic content to say anything.
   const informative = !!model || tonalShare >= MIN_TONAL_SHARE;
   const notes: string[] = [];
-  if (!informative) notes.push('Peu de contenu tonal mesurable : détection vocale peu informative');
-  else if (!segments.length) notes.push('Aucune voix détectée (une voix très traitée ou masquée peut échapper à la détection)');
+  if (!informative) notes.push('Voix difficile à détecter');
+  else if (!segments.length) notes.push('Aucune voix détectée');
   if (!model) notes.push(`Heuristique seule${modelError ? ` (${modelError})` : ''}`);
   const round = (a: number[]) => a.map((v) => (Number.isFinite(v) ? Math.round(v * 1000) / 1000 : 0));
   return {

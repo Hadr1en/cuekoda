@@ -534,14 +534,14 @@ function renderBusy(rec?: TrackRecord) {
   const busy = isBusy(rec);
   el.hidden = !busy;
   if (busy) el.replaceChildren(h('span', { class: 'spinner', 'aria-hidden': 'true' }), busyLine(rec!),
-    rec!.result ? h('span', { class: 'muted' }, ' · l’analyse précédente reste affichée et les corrections manuelles sont conservées') : '');
+    rec!.result ? h('span', { class: 'muted' }, ' · Corrections gardées') : '');
   // first analysis: nothing to show yet except the progress
   const pending = $('pending');
   pending.hidden = !busy || !!rec!.result;
   if (busy && !rec!.result) pending.replaceChildren(
     h('div', { class: 'big' }, rec!.fileName),
     h('div', { class: 'pending-line' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), busyLine(rec!)),
-    h('div', { class: 'sub muted' }, 'Tempo, grille, structure, voix puis tonalité : les cues apparaîtront à la fin de l’analyse.'),
+    h('div', { class: 'sub muted' }, 'Les cues apparaîtront à la fin de l’analyse.'),
   );
 }
 
@@ -567,8 +567,11 @@ function renderDetail() {
   $('d-warn').textContent = [...(rec?.missing ? ['Fichier introuvable à cet emplacement (déplacé, renommé ou disque débranché)'] : []), ...r.warnings].map(tr).join(' · ');
   const reviewed = !!rec?.reviewedAt;
   const reasons = rec ? reviewReasons({ ...rec, reviewedAt: undefined }) : [];
-  setText($('btn-reviewed'), reviewed ? '✓ Vérifié' : reasons.length ? `À vérifier : ${reasons.join(', ')} — marquer vérifié` : 'Marquer vérifié');
-  $('btn-reviewed').classList.toggle('done', reviewed);
+  const reviewButton = $('btn-reviewed');
+  setText(reviewButton, reviewed ? '✓ Vérifié' : 'Marquer comme vérifié');
+  reviewButton.title = tr(reviewed ? 'Retirer la vérification'
+    : reasons.length ? `À vérifier : ${reasons.join(' ; ')}` : 'Marquer comme vérifié après écoute');
+  reviewButton.classList.toggle('done', reviewed);
   // corrections
   const bpmInput = $<HTMLInputElement>('bpm-input');
   if (document.activeElement !== bpmInput) bpmInput.value = r.bpm.toFixed(2);
@@ -1206,7 +1209,7 @@ function renderInfo(r: AnalysisResult) {
     ),
     h('div', { class: 'hrow' },
       h('button', { type: 'button', class: 'btn small ghost', onclick: () => api.revealInFolder(r.path) }, 'Afficher le fichier'),
-      h('button', { type: 'button', class: 'btn small ghost', onclick: async () => { latestComparison = await api.reanalyze([r.path], true); } }, 'Ré-analyser sans cache (corrections conservées)'),
+      h('button', { type: 'button', class: 'btn small ghost', onclick: async () => { latestComparison = await api.reanalyze([r.path], true); } }, 'Refaire l’analyse'),
     ),
     referenceBlock(r),
   );
