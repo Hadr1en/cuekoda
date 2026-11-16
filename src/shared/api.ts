@@ -109,6 +109,7 @@ export interface ExportResponse {
   backup?: string;
   canceled?: boolean;
   error?: string;
+  exportOptions?: ExportOptions;
 }
 
 export interface AdapterInfo {

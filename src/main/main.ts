@@ -235,7 +235,8 @@ function createQueue() {
 }
 
 function syncWatch() {
-  watcher.sync(settingsStore.data.watchFolders, settingsStore.data.watchPaused);
+  const { watchFolders, watchPaused, autoAnalyzeWatched } = settingsStore.data;
+  watcher.sync(watchFolders, watchPaused || !autoAnalyzeWatched);
 }
 
 // --- window -----------------------------------------------------------------------
@@ -497,7 +498,7 @@ function registerIpc() {
     s.profileId = activePreparationProfile(s.profileId, s.customProfiles);
     settingsStore.save(0);
     queue.setMaxWorkers(s.maxWorkers);
-    if ('watchFolders' in patch || 'watchPaused' in patch) syncWatch();
+    if ('watchFolders' in patch || 'watchPaused' in patch || 'autoAnalyzeWatched' in patch) syncWatch();
     if ('theme' in patch) updateWindowsTitleBar();
     return s;
   });
@@ -565,7 +566,7 @@ function registerIpc() {
       const { playlistName: _set, macVolume: _vol, ...keep } = opts;
       settingsStore.data.exportOptions = keep;
       settingsStore.save();
-      return { ok: true, file: r.filePath, backup };
+      return { ok: true, file: r.filePath, backup, exportOptions: keep };
     } catch (e) {
       return { ok: false, error: (e as Error).message };
     } finally {
@@ -883,6 +884,14 @@ const SMOKE_UI_SCRIPT = `(async () => {
   return out;
 })()`;
 
+async function waitForSmoke(condition: () => boolean | Promise<boolean>, attempts = 40) {
+  for (let i = 0; i < attempts; i++) {
+    if (await condition()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return false;
+}
+
 /** Exercise the real slider with pointer and keyboard input in an isolated profile. */
 async function smokeSettingsSlider(window: BrowserWindow) {
   const contents = window.webContents;
@@ -895,14 +904,7 @@ async function smokeSettingsSlider(window: BrowserWindow) {
       label: slider.closest('label').textContent, focused: document.activeElement === slider };
   })()`);
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-  const waitUntil = async (condition: () => boolean | Promise<boolean>) => {
-    for (let i = 0; i < 40; i++) {
-      if (await condition()) return true;
-      await wait(50);
-    }
-    return false;
-  };
-  if (!await waitUntil(() => contents.executeJavaScript(`Boolean(document.querySelector('#profile option'))`))) throw new Error('Settings did not initialize');
+  if (!await waitForSmoke(() => contents.executeJavaScript(`Boolean(document.querySelector('#profile option'))`))) throw new Error('Settings did not initialize');
   window.focus();
   await contents.executeJavaScript(`
     document.getElementById('btn-settings').click();
@@ -924,12 +926,12 @@ async function smokeSettingsSlider(window: BrowserWindow) {
     if (live.value !== target || !live.label.includes(`${target} / ${initial.max}`)) {
       throw new Error(`Slider did not update while dragging (value ${live.value}, label “${live.label}”)`);
     }
-    if (!await waitUntil(() => queue.state().maxWorkers === target)) throw new Error('Slider value did not reach the analysis queue');
+    if (!await waitForSmoke(() => queue.state().maxWorkers === target)) throw new Error('Slider value did not reach the analysis queue');
     const keyCode = target === initial.min ? 'End' : 'Home';
     const keyboardTarget = target === initial.min ? initial.max : initial.min;
     contents.sendInputEvent({ type: 'keyDown', keyCode });
     contents.sendInputEvent({ type: 'keyUp', keyCode });
-    if (!await waitUntil(() => queue.state().maxWorkers === keyboardTarget) || !(await control()).focused) {
+    if (!await waitForSmoke(() => queue.state().maxWorkers === keyboardTarget) || !(await control()).focused) {
       throw new Error('Keyboard change did not update the queue while keeping focus');
     }
     await contents.executeJavaScript(`
@@ -938,16 +940,88 @@ async function smokeSettingsSlider(window: BrowserWindow) {
     `);
     if ((await control()).value !== keyboardTarget) throw new Error('Reopened slider lost the saved value');
     const file = path.join(userData(), 'settings.json');
-    if (!await waitUntil(() => fs.existsSync(file) && JSON.parse(fs.readFileSync(file, 'utf8')).maxWorkers === keyboardTarget)) {
+    if (!await waitForSmoke(() => fs.existsSync(file) && JSON.parse(fs.readFileSync(file, 'utf8')).maxWorkers === keyboardTarget)) {
       throw new Error('Parallel analysis limit was not saved');
     }
   }
   console.log('Parallel analysis slider verified');
 }
 
+async function smokeSettingsActions(window: BrowserWindow) {
+  await smokeSettingsSlider(window);
+  const contents = window.webContents;
+  const click = (id: string) => contents.executeJavaScript(`document.getElementById(${JSON.stringify(id)}).click()`);
+  const folder = fs.mkdtempSync(path.join(userData(), 'watched-'));
+  const pick = dialog.showOpenDialog;
+  try {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] });
+    await click('watch-add-folder');
+    const row = `document.querySelector('#dlg-settings .watch li')`;
+    if (!await waitForSmoke(() => contents.executeJavaScript(`${row}?.textContent.includes(${JSON.stringify(folder)}) ?? false`))) {
+      throw new Error('New watched folder did not appear in the open settings window');
+    }
+    await click('watch-auto-analyze');
+    if (!await waitForSmoke(() => !settingsStore.data.autoAnalyzeWatched)) throw new Error('Automatic analysis did not turn off');
+    const file = path.join(folder, 'pending.wav');
+    fs.writeFileSync(file, Buffer.alloc(64));
+    if (await waitForSmoke(() => !!records()[file], 70)) throw new Error('A watched file was queued while automatic analysis was off');
+    await click('watch-auto-analyze');
+    if (!await waitForSmoke(() => settingsStore.data.autoAnalyzeWatched)) throw new Error('Automatic analysis did not turn back on');
+    if (!await waitForSmoke(() => !!records()[file], 100)) throw new Error('File added while off was not found after automatic analysis resumed');
+    await contents.executeJavaScript(`${row}.querySelector('button').click()`);
+    if (!await waitForSmoke(() => !settingsStore.data.watchFolders.length)) throw new Error('Watched folder was not removed');
+  } finally {
+    dialog.showOpenDialog = pick;
+  }
+  const updateState = () => contents.executeJavaScript(`({
+    status: document.getElementById('set-update-status').textContent,
+    checking: document.getElementById('set-update-check').disabled,
+    canInstall: !document.getElementById('set-update-install').hidden,
+  })`);
+  send('update', { state: 'checking' });
+  if (!await waitForSmoke(async () => (await updateState()).checking)) throw new Error('Settings did not show the update check');
+  send('update', { state: 'available', info: { build: 999, version: '0.0.0' } });
+  if (!await waitForSmoke(async () => (await updateState()).canInstall)) throw new Error('Install action did not appear');
+  send('update', { state: 'error', message: 'Smoke update failed' });
+  if (!await waitForSmoke(async () => {
+    const state = await updateState();
+    return state.status === 'Smoke update failed' && !state.checking && !state.canInstall;
+  })) throw new Error('Settings did not show the error or reset its update controls');
+  console.log('Watched folders and update settings verified');
+}
+
+async function smokeExportSettings(window: BrowserWindow) {
+  const contents = window.webContents;
+  const file = path.join(userData(), 'settings-export.xml');
+  const chooseDestination = dialog.showSaveDialog;
+  try {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
+    const optionApplied = await contents.executeJavaScript(`(async () => {
+      const original = document.getElementById('export-memory-cues');
+      original.click();
+      for (let i = 0; i < 40 && original.isConnected; i++) await new Promise((r) => setTimeout(r, 50));
+      return !original.isConnected && document.getElementById('export-memory-cues')?.checked === false;
+    })()`);
+    if (!optionApplied) {
+      throw new Error('Memory cue option did not change');
+    }
+    await contents.executeJavaScript(`document.querySelector('#dlg-export .dlg-actions button.primary').click()`);
+    if (!await waitForSmoke(() => contents.executeJavaScript(`!document.getElementById('dlg-export').open`))
+      || !fs.existsSync(file) || settingsStore.data.exportOptions.memoryCues) {
+      throw new Error('Export did not save the selected option');
+    }
+    await contents.executeJavaScript(`document.getElementById('btn-export').click()`);
+    if (!await waitForSmoke(() => contents.executeJavaScript(`
+      document.getElementById('dlg-export').open && document.getElementById('export-memory-cues')?.checked === false
+    `))) throw new Error('Export option reverted when the window was reopened');
+  } finally {
+    dialog.showSaveDialog = chooseDestination;
+  }
+}
+
 /** Verify the renderer geometry against the native Windows caption controls. */
 async function smokeWindowsTitleBar(window: BrowserWindow) {
-  const timeout = setTimeout(() => app.exit(1), 15000);
+  const timeout = setTimeout(() => app.exit(1), 25000);
   try {
     const readGeometry = () => window.webContents.executeJavaScript(`(async () => {
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -968,7 +1042,7 @@ async function smokeWindowsTitleBar(window: BrowserWindow) {
     if (!await readGeometry()) throw new Error('Caption controls overlap the default toolbar');
     window.setSize(980, 660);
     if (!await readGeometry()) throw new Error('Caption controls overlap the minimum-width toolbar');
-    await smokeSettingsSlider(window);
+    await smokeSettingsActions(window);
     clearTimeout(timeout);
     console.log('Windows title bar geometry verified');
     app.exit(0);
@@ -1075,6 +1149,10 @@ function runSmoke() {
           choices: d.querySelectorAll('.target input').length };
       })()`);
       await shot('export');
+      if (!captureOnly) {
+        await smokeExportSettings(win!);
+        report.exportOptionsKept = true;
+      }
       report.order = await win!.webContents.executeJavaScript(`(async () => {
         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
         document.getElementById('dlg-export').close();
@@ -1179,7 +1257,7 @@ app.whenReady().then(async () => {
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
   } else if (SMOKE_SETTINGS) {
     const smokeWindow = win!;
-    smokeWindow.webContents.once('did-finish-load', () => void smokeSettingsSlider(smokeWindow).then(() => app.exit(0), (error) => {
+    smokeWindow.webContents.once('did-finish-load', () => void smokeSettingsActions(smokeWindow).then(() => app.exit(0), (error) => {
       console.error(error);
       app.exit(1);
     }));
@@ -1187,7 +1265,7 @@ app.whenReady().then(async () => {
   } else if (SMOKE_DIR) runSmoke();
   // update check: packaged builds only, never during the smoke test, and only if the DJ allows it
   else if (app.isPackaged && settingsStore.data.autoUpdateCheck !== false) {
-    setTimeout(() => void updater.check(), 8000);
+    setTimeout(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 8000);
     setInterval(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 6 * 3600 * 1000);
   }
   // Analyses interrupted by quitting the app resume automatically

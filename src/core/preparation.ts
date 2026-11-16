@@ -17,15 +17,15 @@ export function prepareTrack(track: AnalysisResult, profile: Profile, suppressKi
   const { preparation, energy, phrases, vocals, durationSec: durSec } = track;
   if (!preparation || !energy || !phrases) return track;
   const { feats, structure } = preparation;
-  const edmProfile = profile.id === 'edm' || profile.id === 'edm-fixed';
   const sections = buildSections(structure, feats, energy.curve, durSec, profile.vocabulary, vocals);
   const g = { d0: track.grid.firstDownbeatSec, barLen: 240 / track.bpm };
   const mix = suggestMix(structure, phrases, energy.curve, profile, g, vocals);
   const phraseOrigin = phrases.lengthBars ? phrases.originBar : structure.phraseOrigin;
-  const edmCues = edmProfile && !track.tempo?.variable
+  const compareBreaks = profile.cueRefinement === 'with-break-alternatives';
+  const edmCues = profile.cueRefinement && !track.tempo?.variable
     && track.tempo?.confidence !== 'low';
   const { primary, alternate } = edmCues
-    ? refineElectroCues(feats, structure, profile.id === 'edm')
+    ? refineElectroCues(feats, structure, compareBreaks)
     : { primary: structure.landmarks, alternate: undefined };
   let cues = selectCues(cueCandidates(primary, mix, vocals, phraseOrigin), profile, g, suppressKinds);
   const preserveOtherCues = (alternative: typeof cues) => {
@@ -36,7 +36,7 @@ export function prepareTrack(track: AnalysisResult, profile: Profile, suppressKi
   if (alternate) preserveOtherCues(selectCues(
     cueCandidates(alternate, mix, vocals, phraseOrigin), profile, g, suppressKinds,
   ));
-  if (edmCues && profile.id === 'edm') {
+  if (edmCues && compareBreaks) {
     const betweenDrops = breakBetweenDrops(feats, structure, cues, profile.minCueSpacingBars);
     if (betweenDrops) preserveOtherCues(selectCues([
       ...cues.filter((cue) => cue.kind !== 'break'),
