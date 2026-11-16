@@ -31,6 +31,7 @@ import { withVocals } from '../core/mix';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
 import { suggestOrder } from '../core/setorder';
 import { MAC_SWAP_SCRIPT, evaluateRelease, parseBuild, type GithubRelease } from '../shared/update';
+import { automaticWorkerLimit, normalizeWorkerLimit } from '../shared/parallelism';
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
@@ -700,6 +701,16 @@ function makeQueue(max = 2) {
   return { q, log, summary: () => summary as { done: number; errors: number; cancelled: number; cached: number } | null };
 }
 const job = (path: string) => ({ path, options: {}, force: false });
+
+test('parallel analysis scales with available CPUs and preserves manual limits', () => {
+  assert.deepEqual([1, 2, 4, 6, 8, 12, 32].map(automaticWorkerLimit), [1, 2, 3, 4, 4, 6, 8]);
+  assert.equal(normalizeWorkerLimit(null, 12), null);
+  assert.equal(normalizeWorkerLimit(undefined, 12), null);
+  assert.equal(normalizeWorkerLimit(NaN, 12), null);
+  assert.equal(normalizeWorkerLimit(1, 12), 1);
+  assert.equal(normalizeWorkerLimit(6, 12), 6);
+  assert.equal(normalizeWorkerLimit(12, 4), 4);
+});
 
 test('queue: parallel limit, a failing file does not block the others, summary at the end', () => {
   const { q, log, summary } = makeQueue(2);

@@ -24,6 +24,7 @@ import { computePeaks, type Peaks } from '../core/peaks';
 import { checkNeuralModels } from '../core/neuralModels';
 import { Updater } from './updater';
 import { resolveLang, translate } from '../shared/i18n';
+import { automaticWorkerLimit, normalizeWorkerLimit } from '../shared/parallelism';
 
 /** Native dialog texts follow the UI language. */
 const uiText = (s: string) => translate(s, resolveLang(settingsStore.data.language, app.getLocale()));
@@ -33,11 +34,12 @@ const send = (channel: string, payload: unknown) => win?.webContents.send(channe
 
 // --- persistent state ---------------------------------------------------------
 const userData = () => app.getPath('userData');
-const cores = Math.max(1, os.cpus().length);
+const cores = os.availableParallelism();
+const automaticWorkers = automaticWorkerLimit(cores);
 const DEFAULT_SETTINGS: Settings = {
   profileId: 'edm',
   customProfiles: [],
-  maxWorkers: Math.max(1, Math.min(4, cores - 1)),
+  maxWorkers: null,
   watchFolders: [],
   watchPaused: false,
   autoAnalyzeWatched: true,
@@ -47,8 +49,6 @@ const DEFAULT_SETTINGS: Settings = {
   keyNotation: 'camelot',
   autoUpdateCheck: true,
 };
-const parallelLimit = (value: number) => Number.isFinite(value)
-  ? Math.max(1, Math.min(cores, Math.round(value))) : DEFAULT_SETTINGS.maxWorkers;
 
 let library: LibraryStore<AnalysisResult, TrackRecord>;
 let settingsStore: JsonStore<Settings>;
@@ -230,7 +230,7 @@ function createQueue() {
       drained: (s) => send('summary', s),
     },
     () => ({ cacheDir: path.join(userData(), 'cache') }),
-    settingsStore.data.maxWorkers,
+    settingsStore.data.maxWorkers ?? automaticWorkers,
   );
 }
 
@@ -493,11 +493,11 @@ function registerIpc() {
   ipcMain.handle('set-settings', (_e, patch: Partial<Settings>) => {
     const s = settingsStore.data;
     Object.assign(s, patch);
-    s.maxWorkers = parallelLimit(s.maxWorkers);
+    s.maxWorkers = normalizeWorkerLimit(s.maxWorkers, cores);
     s.customProfiles = s.customProfiles.map(sanitizeProfile);
     s.profileId = activePreparationProfile(s.profileId, s.customProfiles);
     settingsStore.save(0);
-    queue.setMaxWorkers(s.maxWorkers);
+    queue.setMaxWorkers(s.maxWorkers ?? automaticWorkers);
     if ('watchFolders' in patch || 'watchPaused' in patch || 'autoAnalyzeWatched' in patch) syncWatch();
     if ('theme' in patch) updateWindowsTitleBar();
     return s;
@@ -901,6 +901,7 @@ async function smokeSettingsSlider(window: BrowserWindow) {
     const rect = slider.getBoundingClientRect();
     return { x: rect.x, y: Math.round(rect.y + rect.height / 2), width: rect.width,
       value: slider.valueAsNumber, min: Number(slider.min), max: Number(slider.max),
+      automatic: document.getElementById('parallel-automatic').checked,
       label: slider.closest('label').textContent, focused: document.activeElement === slider };
   })()`);
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -912,6 +913,9 @@ async function smokeSettingsSlider(window: BrowserWindow) {
   `);
   const initial = await control();
   if (!initial?.width) throw new Error('Parallel analysis slider is not visible');
+  if (!initial.automatic || initial.value !== automaticWorkers || queue.state().maxWorkers !== initial.value) {
+    throw new Error('Automatic analysis limit did not initialize the slider and queue');
+  }
   if (initial.max > initial.min) {
     const target = initial.value === initial.min ? initial.max : initial.min;
     const x = Math.round(initial.x + 8 + (initial.width - 16) * (initial.value - initial.min) / (initial.max - initial.min));
@@ -938,11 +942,18 @@ async function smokeSettingsSlider(window: BrowserWindow) {
       document.getElementById('dlg-settings').close();
       document.getElementById('btn-settings').click();
     `);
-    if ((await control()).value !== keyboardTarget) throw new Error('Reopened slider lost the saved value');
+    const manual = await control();
+    if (manual.automatic || manual.value !== keyboardTarget) throw new Error('Reopened slider lost the manual limit');
     const file = path.join(userData(), 'settings.json');
     if (!await waitForSmoke(() => fs.existsSync(file) && JSON.parse(fs.readFileSync(file, 'utf8')).maxWorkers === keyboardTarget)) {
       throw new Error('Parallel analysis limit was not saved');
     }
+    await contents.executeJavaScript(`document.getElementById('parallel-automatic').click()`);
+    if (!await waitForSmoke(async () => {
+      const automatic = await control();
+      return automatic.automatic && automatic.value === initial.value
+        && queue.state().maxWorkers === initial.value && JSON.parse(fs.readFileSync(file, 'utf8')).maxWorkers === null;
+    })) throw new Error('Automatic analysis limit was not restored and saved');
   }
   console.log('Parallel analysis slider verified');
 }
@@ -1233,7 +1244,7 @@ app.whenReady().then(async () => {
   settingsStore = new JsonStore(path.join(userData(), 'settings.json'), DEFAULT_SETTINGS);
   const settings = settingsStore.data;
   settings.profileId = activePreparationProfile(settings.profileId, settings.customProfiles);
-  settings.maxWorkers = parallelLimit(settings.maxWorkers);
+  settings.maxWorkers = normalizeWorkerLimit(settings.maxWorkers, cores);
   crateStore = new JsonStore(path.join(userData(), 'crates.json'), { crates: [] });
   learningStore = new JsonStore(path.join(userData(), 'learning.json'), emptyStats());
   referenceStore = new JsonStore(path.join(userData(), 'references.json'), { version: 1 as const, refs: {} });

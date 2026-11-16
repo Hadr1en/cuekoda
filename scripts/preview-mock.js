@@ -6,12 +6,12 @@
   const tracks = results.map((r, i) => ({ path: r.path, fileName: r.fileName, status: 'done', result: structuredClone(r), addedAt: i }));
   const builtin = window.__PROFILES__ || [{ id: 'edm', name: 'EDM', builtin: true, colors: {}, cuePriority: [], excludeKinds: [], loopBeats: [16], loopKinds: [] }];
   let settings = {
-    profileId: 'edm', customProfiles: [], maxWorkers: 3, watchFolders: [], watchPaused: false,
+    profileId: 'edm', customProfiles: [], maxWorkers: null, watchFolders: [], watchPaused: false,
     autoAnalyzeWatched: true, learningEnabled: true, exportOptions: { memoryCues: true, loops: 'accepted' }, theme: 'dark',
   };
   const adapters = window.__ADAPTERS__ || [];
   window.cuekoda = {
-    init: async () => ({ tracks, crates: [], settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: 3 }, adapters, learning: [], cores: 8, references: {}, update: { state: 'idle' }, appVersion: 'preview', appBuild: null }),
+    init: async () => ({ tracks, crates: [], settings, builtinProfiles: builtin, queue: { pending: 0, running: 0, paused: false, maxWorkers: settings.maxWorkers ?? 4 }, adapters, learning: [], cores: 8, references: {}, update: { state: 'idle' }, appVersion: 'preview', appBuild: null }),
     pathsForFiles: () => [],
     pick: async () => [],
     addPaths: async () => [],

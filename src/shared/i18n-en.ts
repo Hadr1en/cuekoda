@@ -572,6 +572,7 @@ export const EN_EXACT: Record<string, string> = {
   Monter: 'Move up',
   Descendre: 'Move down',
   Performances: 'Performance',
+  Automatique: 'Automatic',
   'Analyse locale uniquement (CPU) : aucun fichier n’est envoyé en ligne. Les résultats sont mis en cache : un fichier inchangé n’est pas ré-analysé.':
     'Local analysis only (CPU): no file is uploaded. Results are cached: an unchanged file is not re-analyzed.',
   'Dossiers surveillés': 'Watched folders',
@@ -851,7 +852,7 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^Couleur (.+)$/, '$1 color'],
   [/^Monter (.+)$/, 'Move $1 up'],
   [/^Descendre (.+)$/, 'Move $1 down'],
-  [/^Analyses en parallèle : (\d+) \/ (\d+) cœurs$/, 'Parallel analyses: $1 / $2 cores'],
+  [/^Analyses en parallèle : (\d+) \/ (\d+) cœurs logiques$/, 'Parallel analyses: $1 / $2 logical cores'],
   [/^(\S+) : proposé (\d+)×, supprimé (\d+) %(?: · déplacé (\d+)× \(moy\. (.+) temps\))?$/,
     (_, k, n, d, m, avg) => `${k}: suggested ${n}×, deleted ${d}%${m ? ` · moved ${m}× (avg. ${avg} beats)` : ''}`],
   [/^Version (\S+) \(build de développement : pas de mise à jour automatique\)$/, 'Version $1 (development build: no automatic updates)'],

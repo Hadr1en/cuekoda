@@ -77,7 +77,8 @@ export interface WatchFolder {
 export interface Settings {
   profileId: string;
   customProfiles: Profile[];
-  maxWorkers: number;
+  /** Manual limit, or null to select it from the available CPUs at startup. */
+  maxWorkers: number | null;
   watchFolders: WatchFolder[];
   watchPaused: boolean;
   autoAnalyzeWatched: boolean;
