@@ -15,6 +15,8 @@ import { suggestLoops } from './loops';
 import { suggestMix } from './mix';
 import { detectVocals } from './vocals';
 import { predictVoice, vocalModelError } from './vocalModel';
+import { predictTempo } from './neuralTempo';
+import { predictKey } from './neuralKey';
 import { findProfile, sanitizeProfile } from './profiles';
 import { assertAudioRevision, hashAudioRevision, type AudioRevision } from './hash';
 import { bandPeaks } from './peaks';
@@ -187,6 +189,8 @@ function detectKeyChanges(x: Float32Array, durSec: number, main: KeyResult, samp
     const res = keyFromTonic(k.tonic, k.scale, k.strength);
     if (res) windows.push({ startSec: t, endSec: t + 30, camelot: res.camelot, strength: k.strength });
   }
+  // A disagreement throughout the song is not evidence of a modulation.
+  if (main.method === 'openkeyscan' && !windows.some((w) => w.camelot === main.camelot && w.strength >= 0.55)) return [];
   return findKeyChanges(windows, main.camelot).map((c) => {
     const k = allKeys().find((a) => a.camelot === c.camelot)!;
     return { startSec: c.startSec, endSec: Math.min(durSec, c.endSec), camelot: k.camelot, musical: k.musical, openKey: k.openKey };
@@ -304,29 +308,45 @@ export async function analyzeFile(
   progress('tempo', 0.3);
   const x = decimate2(full);
   const bands = analyseBands(x, SR_DSP);
-  let rawBpm = 0;
-  let bpmEst: number;
-  let halfTime: number | undefined;
+  const edmProfile = profile.id === 'edm' || profile.id === 'edm-fixed';
+  const usesProfileRange = options.minBpm === undefined && options.maxBpm === undefined;
+  const preferRepeatedBars = edmProfile && usesProfileRange;
+  const canUseNeuralTempo = usesProfileRange && (edmProfile || (profile.builtin && profile.id === 'techno'));
+  const fromRaw = (raw: number) => {
+    const tempo = chooseTempo(bands, raw, minBpm, maxBpm, preferRepeatedBars);
+    const rechecked = preferRepeatedBars ? recheckEdmTempo(bands, tempo.bpm) : { bpm: tempo.bpm, halfTime: undefined };
+    return { raw, tempo, rechecked };
+  };
+  let grid: ReturnType<typeof estimateGrid>;
+  let estimate: ReturnType<typeof fromRaw> | undefined;
+  let method: TempoInfo['method'] = 'essentia';
   if (ov.bpm) {
-    bpmEst = ov.bpm;
+    method = 'manual';
+    progress('grille', 0.5);
+    grid = estimateGrid(x, SR_DSP, bands, ov.bpm, { fixedBpm: true, fixedPhaseSec: ov.firstDownbeatSec });
   } else {
-    rawBpm = essentiaTempo(full, durSec);
-    const preferRepeatedBars = (profile.id === 'edm' || profile.id === 'edm-fixed')
-      && options.minBpm === undefined && options.maxBpm === undefined;
-    const tempo = chooseTempo(bands, rawBpm, minBpm, maxBpm, preferRepeatedBars);
-    bpmEst = tempo.bpm;
-    if (tempo.note) warnings.push(tempo.note);
-    if (preferRepeatedBars) {
-      const rechecked = recheckEdmTempo(bands, bpmEst);
-      if (rechecked.bpm !== bpmEst) {
-        warnings.push(`Tempo ${bpmEst.toFixed(1)} remplacé par ${rechecked.bpm.toFixed(1)} (pulsation plus rapide mieux alignée)`);
+    const proposal = canUseNeuralTempo ? await predictTempo(x) : undefined;
+    let verifiedGrid: ReturnType<typeof estimateGrid> | undefined;
+    if (proposal !== undefined) {
+      const candidate = fromRaw(proposal);
+      const fit = estimateGrid(x, SR_DSP, bands, candidate.rechecked.bpm);
+      if (!fit.variable && fit.confidence >= 0.7 && Math.abs(fit.bpm - foldBpm(proposal, minBpm, maxBpm)) <= 1.5) {
+        estimate = candidate;
+        verifiedGrid = fit;
+        method = 'deep-rhythm';
       }
-      bpmEst = rechecked.bpm;
-      halfTime = rechecked.halfTime;
+    }
+    estimate ??= fromRaw(essentiaTempo(full, durSec));
+    progress('grille', 0.5);
+    grid = verifiedGrid ?? estimateGrid(x, SR_DSP, bands, estimate.rechecked.bpm);
+    if (estimate.tempo.note) warnings.push(estimate.tempo.note);
+    if (estimate.rechecked.bpm !== estimate.tempo.bpm) {
+      warnings.push(`Tempo ${estimate.tempo.bpm.toFixed(1)} remplacé par ${estimate.rechecked.bpm.toFixed(1)} (pulsation plus rapide mieux alignée)`);
     }
   }
-  progress('grille', 0.5);
-  const grid = estimateGrid(x, SR_DSP, bands, bpmEst, { fixedBpm: !!ov.bpm, fixedPhaseSec: ov.bpm ? ov.firstDownbeatSec : undefined });
+  const bpmEst = estimate?.rechecked.bpm ?? grid.bpm;
+  const halfTime = estimate?.rechecked.halfTime;
+  const rawBpm = estimate?.raw ?? 0;
   const bpm = grid.bpm;
   const P = 60 / bpm;
   const barLen = 4 * P;
@@ -336,7 +356,7 @@ export async function analyzeFile(
   const folded = rawBpm ? foldBpm(rawBpm, minBpm, maxBpm) : bpm;
   const alternativeBpm = halfTime !== undefined && Math.abs(halfTime / bpm - 0.5) < 0.015
     ? Math.round(halfTime * 100) / 100 : undefined;
-  const highGridConfidence = profile.id === 'edm' || profile.id === 'edm-fixed' ? 0.8 : 0.7;
+  const highGridConfidence = edmProfile ? 0.8 : 0.7;
   const tempoLevel: Confidence = ov.bpm
     ? 'high'
     : alternativeBpm !== undefined || grid.variable || grid.confidence < 0.4
@@ -348,6 +368,7 @@ export async function analyzeFile(
     .filter((b) => b >= 50 && b <= 240)
     .map((b) => Math.round(b * 100) / 100);
   const tempo: TempoInfo = {
+    method,
     bpm,
     confidence: tempoLevel,
     variable: grid.variable,
@@ -357,8 +378,6 @@ export async function analyzeFile(
     ...(alternativeBpm ? { competingBpm: alternativeBpm } : {}),
     rawEstimate: rawBpm || bpm,
   };
-
-  const edmProfile = profile.id === 'edm' || profile.id === 'edm-fixed';
 
   // --- downbeat ----------------------------------------------------------------
   let firstDownbeatSec: number;
@@ -437,12 +456,30 @@ export async function analyzeFile(
   let key: KeyResult;
   const manualKey = ov.key ? keyFromMusical(ov.key, 1) : null;
   if (manualKey) {
-    key = { ...manualKey, level: 'high', ambiguous: false, alternatives: [] };
+    key = { ...manualKey, method: 'manual', level: 'high', ambiguous: false, alternatives: [] };
   } else {
-    // Use the existing downsampled signal for electronic tracks. Halving both frame and sample
-    // rates keeps the time and frequency resolution of the tonal analysis.
     const electronic = profile.vocabulary === 'edm' || profile.id === 'techno';
-    key = electronic ? detectElectronicKey(x, durSec, SR_DSP) : detectKey(full, durSec);
+    const neural = electronic ? await predictKey(full) : undefined;
+    const profileEstimate = electronic && (!neural || neural.confidence < 0.25 || neural.confidence >= 0.8)
+      ? detectElectronicKey(x, durSec, SR_DSP) : undefined;
+    const keepProfiles = neural && neural.confidence < 0.25 && profileEstimate?.level === 'high';
+    if (neural && !keepProfiles) {
+      key = { ...neural, method: 'openkeyscan' };
+      if (neural.confidence >= 0.8 && profileEstimate) {
+        if (profileEstimate.camelot === neural.camelot && profileEstimate.level === 'high') key.level = 'high';
+        else if (profileEstimate.level === 'high') {
+          key.level = 'low';
+          key.ambiguous = true;
+          if (!key.alternatives?.some((alternative) => alternative.camelot === profileEstimate.camelot)) {
+            const { camelot, musical, openKey } = profileEstimate;
+            key.alternatives = [{ camelot, musical, openKey }, ...(key.alternatives ?? [])].slice(0, 3);
+          }
+        }
+      }
+    } else {
+      key = profileEstimate ?? detectKey(full, durSec);
+      key.method = 'profiles';
+    }
     if (key.ambiguous) {
       const alts = (key.alternatives ?? []).map((a) => a.camelot).join(', ');
       warnings.push(`Tonalité ambiguë${alts ? ` (aussi plausible : ${alts})` : ''}`);

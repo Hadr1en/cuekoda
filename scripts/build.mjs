@@ -15,6 +15,7 @@ await Promise.all([
     entryPoints: {
       'main/main': 'src/main/main.ts',
       'main/worker': 'src/main/worker.ts',
+      'main/neural-runner': 'src/main/neuralRunner.ts',
       'cli/cli': 'src/cli/cli.ts',
       'test/run': 'src/test/run.ts',
       'test/diag': 'src/test/diag.ts',
@@ -27,7 +28,7 @@ await Promise.all([
       'test/beat-diag': 'src/test/beat-diag.ts',
     },
     outdir: 'dist',
-    external: ['electron', 'ffmpeg-static', 'essentia.js', '@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm'],
+    external: ['electron', 'ffmpeg-static', 'essentia.js', '@tensorflow/tfjs', '@tensorflow/tfjs-backend-wasm', 'onnxruntime-node'],
   }),
   // Preload script (sandboxed renderer bridge).
   build({

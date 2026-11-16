@@ -122,6 +122,26 @@ jobs:
         env:
           # no certificate: macOS gets an ad-hoc signature, Windows is unsigned
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Ouvrir les modèles dans l’application Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        timeout-minutes: 2
+        env:
+          CUEKODA_SMOKE_MODELS: '1'
+        run: |
+          $process = Start-Process -FilePath "release/win-unpacked/CueKoda.exe" -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "Analysis models failed to initialize in packaged CueKoda" }
+      - name: Ouvrir les modèles dans l’application macOS
+        if: runner.os == 'macOS'
+        timeout-minutes: 2
+        env:
+          CUEKODA_SMOKE_MODELS: '1'
+        run: |
+          if [[ "$(uname -m)" == 'arm64' ]]; then
+            release/mac-arm64/CueKoda.app/Contents/MacOS/CueKoda
+          else
+            release/mac/CueKoda.app/Contents/MacOS/CueKoda
+          fi
       - name: Envoyer dans la release
         shell: bash
         env:

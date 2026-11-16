@@ -9,7 +9,7 @@
  */
 
 /** Version of the analysis engine — bump when results can change, so cached analyses are recomputed. */
-export const ENGINE_VERSION = '0.4.8';
+export const ENGINE_VERSION = '0.4.9';
 
 export type Confidence = 'high' | 'medium' | 'low';
 export type Origin = 'auto' | 'user';
@@ -140,6 +140,7 @@ export interface EnergyInfo {
 }
 
 export interface TempoInfo {
+  method?: 'essentia' | 'deep-rhythm' | 'manual';
   bpm: number;
   confidence: Confidence;
   /** true when local tempo varies by more than ~1 % across the track */
@@ -147,11 +148,11 @@ export interface TempoInfo {
   /** Local tempo range measured over track segments */
   localMin: number;
   localMax: number;
-  /** Plausible alternatives (half / double / Essentia's raw estimate) for one-click correction */
+  /** Plausible alternatives (half / double / initial estimate) for one-click correction */
   alternatives: number[];
   /** A half-time grid also supported by acoustic evidence. The DJ can choose which pulse to use. */
   competingBpm?: number;
-  /** Essentia's raw (unfolded) estimate, for transparency */
+  /** Unfolded initial estimate, before fitting the grid */
   rawEstimate: number;
 }
 
@@ -159,18 +160,19 @@ export interface KeyAlternative {
   camelot: string;
   musical: string;
   openKey: string;
-  /** Share of the votes 0..1 */
-  weight: number;
+  /** Share of the votes 0..1, when the same estimator provided a comparable score */
+  weight?: number;
 }
 
 export interface KeyResult {
+  method?: 'profiles' | 'openkeyscan' | 'manual';
   /** e.g. "8A" */
   camelot: string;
   /** e.g. "Am" */
   musical: string;
   /** Open Key notation e.g. "1m" */
   openKey: string;
-  /** 0..1 raw agreement of the detectors */
+  /** Strength of the leading candidate on a 0..1 scale */
   confidence: number;
   level?: Confidence;
   /** Several keys are plausible: shown as such instead of a falsely precise answer */
@@ -233,6 +235,7 @@ export interface VocalSegment {
 export interface VocalInfo {
   /** Detector id, e.g. 'voice_instrumental-musicnn-msd-2+spectral-fluctuation-v1' or 'spectral-fluctuation-v1' (fallback) */
   method: string;
+  runtime?: 'onnx' | 'wasm';
   /** false until measured against verified annotations */
   validated: boolean;
   /** Per-bar vocal score 0..1 (smoothed) */

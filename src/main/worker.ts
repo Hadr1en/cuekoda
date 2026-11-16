@@ -6,6 +6,7 @@ import { analyzeFile } from '../core/analyzer';
 import { assertAudioRevision, hashAudioRevision } from '../core/hash';
 import { ENGINE_VERSION, type AnalysisResult, type AnalyzeOptions } from '../core/types';
 import { vocalModelAvailable } from '../core/vocalModel';
+import { neuralModelAssets, neuralModelFailures } from '../core/neuralModels';
 
 interface Job {
   id: number;
@@ -26,6 +27,7 @@ function cacheKey(fileHash: string, options: Partial<AnalyzeOptions>): string {
     wavePoints: options.wavePoints,
     // results differ with / without the local vocal model
     vocalModel: vocalModelAvailable(),
+    neuralModels: neuralModelAssets(),
   });
   const h = createHash('sha1').update(opts).digest('hex').slice(0, 12);
   return `${fileHash}-${ENGINE_VERSION}-${h}.json`;
@@ -56,17 +58,20 @@ parentPort!.on('message', async (m: Job) => {
       parentPort!.postMessage({ type: 'result', id: m.id, result: cached, cached: true });
       return;
     }
+    const failures = neuralModelFailures();
     const result = await analyzeFile(m.file, {
       ...m.options,
       onProgress: (stage, fraction) => parentPort!.postMessage({ type: 'progress', id: m.id, stage, fraction }),
     }, source);
-    const temp = `${cachePath}.${process.pid}.${threadId}.tmp`;
-    try {
-      fs.mkdirSync(m.cacheDir, { recursive: true });
-      fs.writeFileSync(temp, JSON.stringify(result));
-      fs.renameSync(temp, cachePath);
-    } catch {
-      try { fs.rmSync(temp, { force: true }); } catch { /* cache is best effort */ }
+    if (neuralModelFailures() === failures) {
+      const temp = `${cachePath}.${process.pid}.${threadId}.tmp`;
+      try {
+        fs.mkdirSync(m.cacheDir, { recursive: true });
+        fs.writeFileSync(temp, JSON.stringify(result));
+        fs.renameSync(temp, cachePath);
+      } catch {
+        try { fs.rmSync(temp, { force: true }); } catch { /* cache is best effort */ }
+      }
     }
     parentPort!.postMessage({ type: 'result', id: m.id, result, cached: false });
   } catch (e) {

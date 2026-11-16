@@ -1,10 +1,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { FFT } from './dsp';
+import { neuralAsset, neuralLogits } from './neuralModels';
 
 /**
  * Local voice / instrumental classifier: Essentia's `voice_instrumental-musicnn-msd-2` (MTG, Pablo Alonso,
- * 2020), TensorFlow.js graph model, run with the TensorFlow.js WebAssembly backend in the analysis worker.
+ * 2020). The same model can run in the native inference process or in TensorFlow.js WebAssembly.
  *
  *  - Licence of the weights: CC BY-NC-SA 4.0 (MTG) — usable because CueKoda is free and non-commercial.
  *    Credits: models/voice_instrumental-musicnn-msd-2/LICENSE + docs/ALGORITHMES.md.
@@ -27,6 +28,7 @@ const BATCH = 4;
 
 export interface VocalModelOutput {
   model: string;
+  runtime?: 'onnx' | 'wasm';
   /** P(voice) per patch */
   probs: Float32Array;
   /** Patch i covers [i * hopSec, i * hopSec + winSec) seconds */
@@ -52,7 +54,7 @@ export function findModelDir(): string | null {
 }
 
 export function vocalModelAvailable(): boolean {
-  return process.env.CUEKODA_VOCAL_MODEL !== '0' && findModelDir() !== null;
+  return process.env.CUEKODA_VOCAL_MODEL !== '0' && (!!neuralAsset('voice-musicnn.onnx') || findModelDir() !== null);
 }
 
 // ---------------------------------------------------------------- features
@@ -194,32 +196,59 @@ export function vocalModelError(): string {
 export async function predictVoice(x44k: Float32Array): Promise<VocalModelOutput | null> {
   if (process.env.CUEKODA_VOCAL_MODEL === '0') return null;
   const t0 = Date.now();
-  loading ??= load();
-  const m = await loading;
-  if (!m) return null;
-  const { tf, model } = m;
+  const canUseNative = !!neuralAsset('voice-musicnn.onnx');
+  if (!canUseNative && !findModelDir()) {
+    lastError = 'modèle vocal absent';
+    return null;
+  }
   const mel = musicnnMel(resample44kTo16k(x44k));
   const nF = mel.length / BANDS;
   if (nF < PATCH) return null;
   const nP = Math.floor((nF - PATCH) / PATCH_HOP) + 1;
-  const probs = new Float32Array(nP);
-  const inputName = model.inputs[0].name;
-  try {
-    // Small batches: the WebAssembly backend fails ("memory access out of bounds") on large ones.
+  async function batches(infer: (data: Float32Array, count: number) => Promise<Float32Array | undefined>) {
+    const probs = new Float32Array(nP);
     for (let p0 = 0; p0 < nP; p0 += BATCH) {
       const nb = Math.min(BATCH, nP - p0);
       const data = new Float32Array(nb * PATCH * BANDS);
-      for (let i = 0; i < nb; i++) data.set(mel.subarray((p0 + i) * PATCH_HOP * BANDS, ((p0 + i) * PATCH_HOP + PATCH) * BANDS), i * PATCH * BANDS);
-      const input = tf.tensor3d(data, [nb, PATCH, BANDS]);
-      const out = model.execute({ [inputName]: input }, 'model/Sigmoid');
-      const v: Float32Array = await out.data();
+      for (let i = 0; i < nb; i++) {
+        const start = (p0 + i) * PATCH_HOP * BANDS;
+        data.set(mel.subarray(start, start + PATCH * BANDS), i * PATCH * BANDS);
+      }
+      const v = await infer(data, nb);
+      if (v?.length !== nb * 2) return undefined;
       for (let i = 0; i < nb; i++) probs[p0 + i] = v[i * 2 + 1]; // classes: [instrumental, voice]
-      input.dispose();
-      out.dispose();
     }
+    return probs;
+  }
+  const output = (probs: Float32Array, runtime: 'onnx' | 'wasm'): VocalModelOutput => ({
+    model: VOCAL_MODEL_ID, runtime, probs, hopSec: (PATCH_HOP * HOP) / SR,
+    winSec: (PATCH * HOP + FRAME - HOP) / SR, ms: Date.now() - t0,
+  });
+  if (canUseNative) {
+    try {
+      const probs = await batches(async (data, count) => neuralLogits('voice-musicnn', 'mel', data, [count, PATCH, BANDS]));
+      if (probs) return output(probs, 'onnx');
+    } catch {
+      // Use the existing WebAssembly runtime for a complete set of probabilities.
+    }
+  }
+  loading ??= load();
+  const m = await loading;
+  if (!m) return null;
+  const { tf, model } = m;
+  const inputName = model.inputs[0].name;
+  try {
+    const probs = await batches(async (data, count) => {
+      const input = tf.tensor3d(data, [count, PATCH, BANDS]);
+      try {
+        const result = model.execute({ [inputName]: input }, 'model/Sigmoid');
+        try { return await result.data(); }
+        finally { result.dispose(); }
+      } finally { input.dispose(); }
+    });
+    if (probs) return output(probs, 'wasm');
   } catch (e) {
     lastError = `inférence vocale échouée : ${(e as Error).message}`;
-    return null;
   }
-  return { model: VOCAL_MODEL_ID, probs, hopSec: (PATCH_HOP * HOP) / SR, winSec: (PATCH * HOP + FRAME - HOP) / SR, ms: Date.now() - t0 };
+  return null;
 }

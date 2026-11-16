@@ -25,6 +25,7 @@ import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
 import { detectPhrases, labelVocalSections, type StructureAnalysis } from '../core/structure';
 import { FUSED_THRESHOLDS, fuseScores, modelBarProbs, segmentVocals, vocalBarFeatures, vocalFrames, vocalPresence, VOCAL_ON } from '../core/vocals';
 import { musicnnMel, predictVoice, resample44kTo16k, vocalModelAvailable } from '../core/vocalModel';
+import { checkNeuralModels, neuralModelAssets } from '../core/neuralModels';
 import { cueCandidates, vocalCandidates } from '../core/cues';
 import { withVocals } from '../core/mix';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
@@ -834,6 +835,25 @@ test('local vocal model runs offline (skipped when the model files are absent)',
   assert.ok(out, 'model output');
   assert.equal(out!.probs.length, 2, '7 s → two 3 s patches');
   assert.ok([...out!.probs].every((v) => v >= 0 && v <= 1));
+  if (!neuralModelAssets().voice) return;
+  assert.equal(out.runtime, 'onnx');
+  const disabled = process.env.CUEKODA_NEURAL_MODELS;
+  process.env.CUEKODA_NEURAL_MODELS = '0';
+  try {
+    const fallback = await predictVoice(x);
+    assert.equal(fallback?.runtime, 'wasm');
+    assert.equal(fallback.probs.length, out.probs.length);
+    for (const [i, value] of out.probs.entries()) assert.ok(Math.abs(value - fallback.probs[i]) < 1e-4);
+  } finally {
+    if (disabled === undefined) delete process.env.CUEKODA_NEURAL_MODELS;
+    else process.env.CUEKODA_NEURAL_MODELS = disabled;
+  }
+});
+
+test('all bundled analysis models run through the isolated CPU process', async (t) => {
+  const assets = neuralModelAssets();
+  if (!assets.tempo || !assets.key || !assets.voice) return t.skip('neural model assets absent');
+  assert.equal(await checkNeuralModels(), true);
 });
 
 // ---------------------------------------------------------------- evaluation against references (§21)

@@ -785,7 +785,7 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^(\d+) passage\(s\), (\d+) % du morceau, (\d+) net\(s\) : ([\s\S]*)$/,
     (_, n, p, k, parts) => `${pl(n, 'part')}, ${p}% of the track, ${k} clear: ${parts.replace(/ \(faible\)/g, ' (faint)')}`],
   [/^(.+) Mo$/, '$1 MB'],
-  [/^(.+) BPM \(Essentia brut (.+)\)$/, '$1 BPM (Essentia raw $2)'],
+  [/^(.+) BPM \(estimation initiale (.+)\)$/, '$1 BPM (initial estimate $2)'],
   [/^(\d+) % des attaques retenues alignées à ±12 ms$/, '$1% of selected attacks aligned within ±12 ms'],
   [/^facteur de crête (.+) dB$/, 'crest factor $1 dB'],
   [/^(.+)\/10 \(algorithmique, comparable dans cette bibliothèque\)$/, '$1/10 (algorithmic, comparable within this library)'],
