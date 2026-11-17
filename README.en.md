@@ -218,6 +218,8 @@ Export safety: CueKoda writes a **new collection file** and leaves the DJ softwa
 - **Language**: French or English. Cue names are preserved in their original language.
 - **Theme**: dark (default), light or system. Also: number of parallel analyses, watched folders, learning,
   profiles.
+- **About** presents the author, technologies, licence and credits, with links to the source code, issue
+  tracker and the project's Ko-fi page.
 
 Use the library selector to switch between Camelot and Open Key (Traktor).
 For example, **5A** and **10m** both mean **C minor**. Search accepts both codes.

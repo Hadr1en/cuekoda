@@ -74,6 +74,21 @@ export const EN_EXACT: Record<string, string> = {
   Fichiers: 'Files',
   '+ Fichiers': '+ Files',
   '+ Dossier': '+ Folder',
+  'À propos': 'About',
+  'Application de préparation musicale pour DJ : analyse locale, repères modifiables et exports vers rekordbox, Traktor et M3U8.':
+    'DJ music preparation app: local analysis, editable markers and exports to rekordbox, Traktor and M3U8.',
+  'Conçu et développé par Hadrien.': 'Designed and developed by Hadrien.',
+  'Technologies et crédits': 'Technologies and credits',
+  'Construit avec Electron, TypeScript, Essentia.js, FFmpeg, TensorFlow.js et ONNX Runtime.':
+    'Built with Electron, TypeScript, Essentia.js, FFmpeg, TensorFlow.js and ONNX Runtime.',
+  'CueKoda est un logiciel libre sous GNU AGPL v3 ou ultérieure. Les composants, bibliothèques et modèles tiers restent soumis à leurs propres licences.':
+    'CueKoda is free software under GNU AGPL v3 or later. Third-party components, libraries and models remain subject to their own licences.',
+  'Code source': 'Source code',
+  'Signaler un problème': 'Report an issue',
+  'Licence et crédits': 'Licence and credits',
+  'Soutenir sur Ko-fi ☕': 'Support on Ko-fi ☕',
+  'CueKoda est développé indépendamment et proposé gratuitement. Si l’application vous est utile, vous pouvez soutenir son développement sur Ko-fi.':
+    'CueKoda is independently developed and available free of charge. If you find it useful, you can support its development on Ko-fi.',
   'Choisir les suggestions de cues, de boucles et de transitions': 'Choose cue, loop and transition suggestions',
   'Profil de préparation': 'Preparation profile',
   'Équilibré': 'Balanced',
