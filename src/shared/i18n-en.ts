@@ -358,6 +358,8 @@ export const EN_EXACT: Record<string, string> = {
   Fermer: 'Close',
   'Exporter vers…': 'Export to…',
   "Plus": "More",
+  'Préparer': 'Prepare',
+  'Importer autrement, choisir un profil et utiliser les outils de préparation': 'Other import options, profiles and preparation tools',
   "Sélectionner": "Select",
   "Sélectionner tous les morceaux affichés": "Select all visible tracks",
   "Tout sélectionner": "Select all",

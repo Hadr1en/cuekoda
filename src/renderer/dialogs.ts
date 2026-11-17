@@ -16,6 +16,14 @@ const closeBtn = (dlg: HTMLDialogElement) =>
 
 // ================================================================= export
 const SUPPORT_TEXT = { yes: '✓', partial: '≈', no: '✗' } as const;
+const TARGET_WORDMARK: Record<AdapterInfo['id'], string> = {
+  rekordbox: 'rekordbox',
+  traktor: 'TRAKTOR',
+  serato: 'serato',
+  engine: 'ENGINE DJ',
+  virtualdj: 'VirtualDJ',
+  djay: 'djay',
+};
 
 function traktorInspector(
   paths: string[], opts: ExportOptions, inspectedPath: string | null, onChoose: (path: string) => void, expanded: boolean,
@@ -112,6 +120,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
         ...state.adapters.map((a) =>
           h('label', { class: `target${a.id === target ? ' on' : ''}` },
             h('input', { type: 'radio', name: 'target', checked: a.id === target, onchange: () => { target = a.id; void render(); } }),
+            h('span', { class: `target-wordmark target-wordmark-${a.id}`, 'aria-hidden': 'true' }, TARGET_WORDMARK[a.id]),
             h('b', {}, a.name),
             h('span', { class: 'muted' }, a.tagline),
           ),

@@ -165,7 +165,7 @@ Le **métronome** permet de vérifier la grille à l’oreille, avec un clic acc
 Dans cette vue, les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place le temps 1 et **V** valide la piste et ouvre la suivante.
 
 La sélection utilise les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
-Dans **Plus › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
+Dans **Préparer › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
 
 **Bacs…** enregistre des sélections ordonnées dans des listes locales. Le menu contextuel permet d’ajouter des morceaux à un bac. Un bac peut filtrer la bibliothèque ou être exporté sous forme de playlist nommée. Une sélection peut aussi être exportée directement.
 

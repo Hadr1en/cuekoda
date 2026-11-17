@@ -169,7 +169,7 @@ With the panel focused, use **1 / 2 / 3** to listen, **T** to set the downbeat a
 checked and move on.
 
 Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click the selection to re-analyze or remove it.
-Open **More › Compare re-analysis…** to listen to changed tracks before and after and restore the
+Open **Prepare › Compare re-analysis…** to listen to changed tracks before and after and restore the
 previous analysis for each track.
 
 **Crates** stores selections as local, ordered lists. Tracks can be added through the context menu. A crate can filter the library or be exported as a named playlist. Export also accepts the current selection.

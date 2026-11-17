@@ -17,7 +17,7 @@
       <div class="brand"><svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="96 96 320 320" width="24" height="24" aria-hidden="true" focusable="false"><defs><linearGradient id="ck-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8A6DFF"/><stop offset="1" stop-color="#00D2DC"/></linearGradient></defs><circle cx="256" cy="256" r="150" fill="none" stroke="url(#ck-logo)" stroke-width="30"/><rect x="145.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/><rect x="166.3" y="228.1" width="13" height="55.9" rx="6.5" fill="url(#ck-logo)"/><rect x="187.1" y="218.9" width="13" height="74.1" rx="6.5" fill="url(#ck-logo)"/><rect x="207.9" y="194.8" width="13" height="122.5" rx="6.5" fill="url(#ck-logo)"/><rect x="228.7" y="178.3" width="13" height="155.3" rx="6.5" fill="url(#ck-logo)"/><rect x="249.5" y="192.6" width="13" height="126.7" rx="6.5" fill="#FFFFFF"/><rect x="270.3" y="198.1" width="13" height="115.8" rx="6.5" fill="url(#ck-logo)"/><rect x="291.1" y="190.5" width="13" height="130.9" rx="6.5" fill="url(#ck-logo)"/><rect x="311.9" y="207.8" width="13" height="96.4" rx="6.5" fill="url(#ck-logo)"/><rect x="332.7" y="231.3" width="13" height="49.5" rx="6.5" fill="url(#ck-logo)"/><rect x="353.5" y="246.0" width="13" height="20.0" rx="6.5" fill="url(#ck-logo)"/></svg> CueKoda</div>
       <nav class="actions" aria-label="Actions principales">
         <button type="button" id="btn-files" class="btn">+ Fichiers</button>
-        <button type="button" class="btn ghost" popovertarget="main-more">Plus</button>
+        <button type="button" class="btn ghost" popovertarget="main-more" title="Importer autrement, choisir un profil et utiliser les outils de préparation">Préparer</button>
         <div id="main-more" class="action-popover" popover="auto">
           <button type="button" id="btn-folder" class="btn">+ Dossier</button>
           <button type="button" id="btn-import" class="btn ghost" title="Importer une collection rekordbox (XML) ou Traktor (NML). Les repères importés sont verrouillés et les suggestions occupent les pads libres.">Importer collection…</button>
@@ -30,12 +30,13 @@
           <button type="button" id="btn-dupes" class="btn ghost" title="Doublons et versions liées">Doublons</button>
           <button type="button" id="btn-retry" class="btn small" hidden>↻ Relancer les erreurs</button>
         </div>
+        <button type="button" id="btn-crates" class="btn ghost">Bacs…</button>
+        <button type="button" id="btn-export" class="btn primary" disabled>Exporter…</button>
         <span class="spacer"></span>
         <div id="update-badge" class="update-badge" role="status" aria-live="polite" hidden></div>
-        <button type="button" id="btn-crates" class="btn ghost">Bacs…</button>
+        <span class="toolbar-separator" aria-hidden="true"></span>
         <button type="button" id="btn-settings" class="btn ghost" title="Réglages (profils, performances, dossiers surveillés)">Réglages</button>
         <button type="button" id="btn-about" class="btn ghost">À propos</button>
-        <button type="button" id="btn-export" class="btn primary" disabled>Exporter…</button>
       </nav>
     </header>
     <div id="queue" class="queue" hidden>

@@ -59,7 +59,7 @@ Dans le détail d’un morceau, **Contrôle express** lit quatre mesures au mét
 drop ou vers la fin. Raccourcis dans ce panneau **1 / 2 / 3** pour écouter, **T** pour placer le temps 1,
 **[ / ]** pour décaler la grille de 10 ms et **V** pour valider et avancer.
 
-Après une réanalyse, **Plus › Comparer la réanalyse…** liste les morceaux dont le BPM, la grille ou les
+Après une réanalyse, **Préparer › Comparer la réanalyse…** liste les morceaux dont le BPM, la grille ou les
 cues ont changé. La comparaison permet d’écouter les deux analyses et de rétablir la précédente pour chaque morceau.
 
 ## Bacs de préparation
