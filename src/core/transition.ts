@@ -1,4 +1,4 @@
-import type { AnalysisResult, HotCue } from './types';
+import type { AnalysisResult, HotCue, MixSuggestion } from './types';
 
 /**
  * Beatmatched transition preview A → B (spec "surprise" feature): where A starts handing over, where B
@@ -33,6 +33,15 @@ const snapBar = (t: AnalysisResult, sec: number) => {
   const d0 = t.grid.firstDownbeatSec;
   return Math.max(d0, d0 + Math.round((sec - d0) / L) * L);
 };
+
+/** Usable suggestion window attached to the chosen point (within one bar). */
+const windowAt = (items: MixSuggestion[] | undefined, sec: number, bpm: number): number | undefined => {
+  if (!items?.length) return undefined;
+  const closest = [...items].sort((a, b) => Math.abs(a.timeSec - sec) - Math.abs(b.timeSec - sec))[0];
+  return Math.abs(closest.timeSec - sec) <= 4 * 60 / bpm ? closest.lengthBars : undefined;
+};
+
+const standardFade = (available: number): number => [16, 8, 4, 2, 1].find((bars) => bars <= available) ?? 1;
 const cueOf = (t: AnalysisResult, ...kinds: HotCue['kind'][]) => {
   for (const k of kinds) {
     const c = t.cues.filter((x) => x.kind === k).sort((a, b) => a.timeSec - b.timeSec);
@@ -73,10 +82,23 @@ export function planTransition(
   inn = snapBar(b, inn);
   notes.push(`A sort à ${fmt(out)} (${outWhy}), B entre à ${fmt(inn)} (${inWhy})`);
 
-  // crossfade: requested bars, shortened if A ends first
-  let fadeBars = opts.fadeBars ?? 16;
+  // Crossfade: never extend beyond the clean windows used by matching. The default preview uses
+  // standard DJ phrase lengths (16 / 8 / 4 bars); an explicit caller length is only capped.
+  const requestedFade = opts.fadeBars ?? 16;
+  const outWindow = windowAt(a.mix?.mixOut, out, a.bpm);
+  const inWindow = windowAt(b.mix?.mixIn, inn, b.bpm);
+  const availableWindow = outWindow !== undefined && inWindow !== undefined ? Math.min(outWindow, inWindow) : undefined;
+  let fadeBars = availableWindow === undefined
+    ? requestedFade
+    : opts.fadeBars === undefined ? standardFade(Math.min(requestedFade, availableWindow)) : Math.min(requestedFade, availableWindow);
+  if (fadeBars < requestedFade && availableWindow !== undefined) notes.push(`fondu limité à ${fadeBars} mesures (fenêtre propre : ${availableWindow})`);
+  const remainingBars = (a.durationSec - out) / LA;
+  if (remainingBars <= 0) return { error: 'Aucune durée disponible après le point Mix Out' };
   while (fadeBars > 1 && out + fadeBars * LA > a.durationSec) fadeBars /= 2;
-  if (fadeBars !== (opts.fadeBars ?? 16)) notes.push(`fondu raccourci à ${fadeBars} mesures (fin de A)`);
+  if (fadeBars > remainingBars) fadeBars = remainingBars;
+  if (fadeBars < requestedFade && (availableWindow === undefined || fadeBars < standardFade(Math.min(requestedFade, availableWindow)))) {
+    notes.push(`fondu raccourci à ${Number(fadeBars.toFixed(2))} mesures (fin de A)`);
+  }
   const fadeSec = fadeBars * LA;
   const startASec = Math.max(0, out - (opts.leadBars ?? 8) * LA);
   const endASec = Math.min(a.durationSec, out + fadeSec + (opts.tailBars ?? 4) * LA);

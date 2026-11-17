@@ -21,6 +21,7 @@ import { estimateGrid, pickDownbeatOffset, corroboratedBassPhase, entranceBacked
 import { allKeys, electronicKeyFromVotes, formatKey, keyFromMusical } from '../core/key';
 import { buildRekordboxXml } from '../core/export/rekordbox';
 import { buildTraktorNml, traktorLocation, traktorPlan } from '../core/export/traktor';
+import { buildM3u8 } from '../core/export/m3u8';
 import { ADAPTERS, commentTag, exportSummary } from '../core/export/index';
 import { detectPhrases, labelVocalSections, type StructureAnalysis } from '../core/structure';
 import { FUSED_THRESHOLDS, fuseScores, modelBarProbs, segmentVocals, vocalBarFeatures, vocalFrames, vocalPresence, VOCAL_ON } from '../core/vocals';
@@ -29,9 +30,12 @@ import { checkNeuralModels, neuralModelAssets } from '../core/neuralModels';
 import { cueCandidates, vocalCandidates } from '../core/cues';
 import { withVocals } from '../core/mix';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
+import { reviewReasons } from '../core/review';
 import { suggestOrder } from '../core/setorder';
 import { MAC_SWAP_SCRIPT, evaluateRelease, parseBuild, type GithubRelease } from '../shared/update';
 import { automaticWorkerLimit, normalizeWorkerLimit, restoreWorkerLimit } from '../shared/parallelism';
+import { validateExportOptions, validatePathList } from '../shared/validation';
+import { evaluationCoverage } from '../core/evaluationCoverage';
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
@@ -337,9 +341,11 @@ test('vocal parts edited by the DJ survive re-analysis', () => {
 
 test('transition plan: tempo match, bar-aligned points, fades, guards', () => {
   const a = track({ path: 'a', bpm: 128, grid: { bpm: 128, firstDownbeatSec: 0.5, confidence: 0.9 }, durationSec: 240,
-    cues: [cue({ slot: 6, kind: 'mixout', role: 'custom', timeSec: 200.3, name: 'Mix Out' })] });
+    cues: [cue({ slot: 6, kind: 'mixout', role: 'custom', timeSec: 200.3, name: 'Mix Out' })],
+    mix: { mixIn: [], mixOut: [{ timeSec: 200.3, bar: 106, lengthBars: 9, reason: '', confidence: 'high' }] } });
   const b = track({ path: 'b', bpm: 126, grid: { bpm: 126, firstDownbeatSec: 0.2, confidence: 0.9 }, durationSec: 240,
-    cues: [cue({ slot: 0, kind: 'intro', role: 'intro', timeSec: 0.2, name: 'Intro' })] });
+    cues: [cue({ slot: 0, kind: 'intro', role: 'intro', timeSec: 0.2, name: 'Intro' })],
+    mix: { mixIn: [{ timeSec: 0.2, bar: 0, lengthBars: 32, reason: '', confidence: 'high' }], mixOut: [] } });
   const p = planTransition(a, b);
   assert.ok(!('error' in p));
   if ('error' in p) return;
@@ -347,6 +353,8 @@ test('transition plan: tempo match, bar-aligned points, fades, guards', () => {
   const barA = 240 / 128;
   assert.ok(Math.abs(((p.outSec - 0.5) / barA) - Math.round((p.outSec - 0.5) / barA)) < 1e-6, 'out point on A’s bar grid');
   assert.equal(p.inSec, 0.2);
+  assert.equal(p.fadeBars, 8, 'default fade fits the 9-bar clean window');
+  assert.ok(p.notes.some((note) => note.includes('fenêtre propre')));
   assert.ok(Math.abs(bTimeAt(p, p.outSec + barA) - (0.2 + barA * p.rate)) < 1e-9, 'one A bar = one B bar once matched');
   assert.ok(Math.abs((barA * p.rate) - 240 / 126) < 1e-9);
   const g0 = fadeGains(p, p.outSec), g1 = fadeGains(p, p.outSec + p.fadeSec);
@@ -354,6 +362,22 @@ test('transition plan: tempo match, bar-aligned points, fades, guards', () => {
   const half = planTransition(a, { ...b, bpm: 64, grid: { ...b.grid, bpm: 64 } });
   assert.ok(!('error' in half) && Math.abs(half.rate - 1) < 1e-9, 'half-time notation');
   assert.ok('error' in planTransition(a, { ...b, bpm: 100 }), 'too far apart: refused, not stretched');
+});
+
+test('review queue covers structure, cues, vocals and analysis warnings', () => {
+  const result = track({
+    path: 'review.mp3',
+    sections: [{ id: 's', type: 'section', label: 'Section', startBar: 0, endBar: 16, startSec: 0, endSec: 30, energy: 0.5, confidence: 'low', origin: 'auto' }],
+    cues: [cue({ confidence: 'low', origin: 'auto' })],
+    vocals: { ...vinfo([]), level: 'low' },
+    warnings: ['Décodage incomplet'],
+  });
+  const reasons = reviewReasons({ status: 'done', result });
+  assert.ok(reasons.includes('structure incertaine'));
+  assert.ok(reasons.includes('cues incertains'));
+  assert.ok(reasons.includes('voix incertaine'));
+  assert.ok(reasons.includes('avertissement d’analyse'));
+  assert.deepEqual(reviewReasons({ status: 'done', result, reviewedAt: Date.now() }), []);
 });
 
 test('update check: build numbers, platform asset, digest, dev builds never updated', () => {
@@ -442,6 +466,38 @@ test('export: comment tags (energy, key, vocals) and the set as an ordered, name
   const sum = exportSummary(ADAPTERS[0], set, opts);
   assert.ok(sum.some((l) => l.includes('Playlist « Set & Co » : 3 morceau(x)')));
   assert.ok(sum.some((l) => l.startsWith('Commentaire de chaque morceau')));
+});
+
+test('M3U8 export keeps the set order and never embeds DJ metadata', () => {
+  const a = track({ path: 'D:\\Music\\électro A.mp3', title: 'Électro A', artist: 'DJ A', durationSec: 121.4 });
+  const b = track({ path: 'D:\\Music\\B.flac', title: 'B', artist: 'DJ B', durationSec: 199.6 });
+  const playlist = buildM3u8([b, a]);
+  assert.equal(playlist, '#EXTM3U\n#EXTINF:200,DJ B - B\nD:\\Music\\B.flac\n#EXTINF:121,DJ A - Électro A\nD:\\Music\\électro A.mp3\n');
+  const adapter = ADAPTERS.find((item) => item.id === 'serato')!;
+  assert.ok(exportSummary(adapter, [b, a], { memoryCues: false, loops: 'none' }).some((line) => line.includes('ne sont pas modifiés')));
+});
+
+test('IPC export validation rejects malformed paths and options', () => {
+  assert.deepEqual(validatePathList(['C:\\Music\\a.mp3']), ['C:\\Music\\a.mp3']);
+  assert.throws(() => validatePathList(['bad\0path']), /Chemin/);
+  assert.throws(() => validatePathList('not-an-array'), /Liste/);
+  assert.deepEqual(validateExportOptions({ memoryCues: true, loops: 'accepted', playlistName: ' Set ' }), {
+    memoryCues: true, loops: 'accepted', commentTags: undefined, playlistName: 'Set',
+  });
+  assert.throws(() => validateExportOptions({ memoryCues: 'yes', loops: 'all' }), /Options/);
+});
+
+test('evaluation corpus coverage exposes genre, tempo and annotation blind spots', () => {
+  const base = { version: 1 as const, fileHash: '', path: '', title: '', createdAt: '', engineVersion: '0.5.2' };
+  const coverage = evaluationCoverage([
+    { ...base, fileName: 'a.mp3', genre: 'House', scenario: 'steady', bpm: 128, firstDownbeatSec: 0, cues: [] },
+    { ...base, fileName: 'b.mp3', genre: 'Drum & Bass', scenario: 'edit', bpm: 174, key: 'Am', sections: [{ type: 'drop', label: 'Drop', startSec: 10 }] },
+  ]);
+  assert.deepEqual(coverage.genres, ['Drum & Bass', 'House']);
+  assert.equal(coverage.bpmBands['120–129'], 1);
+  assert.equal(coverage.bpmBands['≥150'], 1);
+  assert.equal(coverage.annotations.grid, 1);
+  assert.equal(coverage.targetMet, false);
 });
 
 // ---------------------------------------------------------------- phrases
@@ -638,7 +694,7 @@ test('duplicate cues: same position flagged once, export summary warns', () => {
 });
 
 test('export adapters expose supported collection targets and transfer counts', () => {
-  assert.deepEqual(ADAPTERS.map((a) => a.id), ['rekordbox', 'traktor', 'engine', 'virtualdj', 'djay']);
+  assert.deepEqual(ADAPTERS.map((a) => a.id), ['rekordbox', 'traktor', 'serato', 'engine', 'virtualdj', 'djay']);
   for (const id of ['engine', 'virtualdj', 'djay'] as const) {
     const a = ADAPTERS.find((x) => x.id === id)!;
     assert.equal(a.via, 'rekordbox');
@@ -1340,4 +1396,14 @@ test('collection import: rekordbox XML and Traktor NML round-trip, DJ cues locke
   assert.equal(merged.cues.filter((c) => c.timeSec === 45).length, 1, 'pad + memory copy of the same cue imported once');
   assert.ok(merged.cues.some((c) => c.timeSec === 30 && c.origin === 'auto' && ![2, 4].includes(c.slot)), 'the auto drop moved to a free pad');
   assert.equal(merged.importedFrom!.cues, 2);
+});
+
+test('collection import uses a real XML parser and rejects malformed documents', () => {
+  const xml = `<?xml version='1.0'?><DJ_PLAYLISTS><COLLECTION><TRACK Location='file://localhost/C:/Music/a%20%26%20b.mp3' AverageBpm='128'><POSITION_MARK Name='A &amp; B' Type='0' Start='1.5' Num='0'/></TRACK></COLLECTION></DJ_PLAYLISTS>`;
+  const [track] = parseRekordboxXml(xml);
+  assert.equal(track.path, 'C:\\Music\\a & b.mp3');
+  assert.equal(track.cues[0].name, 'A & B');
+  assert.throws(() => parseRekordboxXml('<DJ_PLAYLISTS><COLLECTION><TRACK></COLLECTION>'), /XML invalide/);
+  assert.throws(() => parseRekordboxXml('<!DOCTYPE x><DJ_PLAYLISTS><COLLECTION/></DJ_PLAYLISTS>'), /DOCTYPE/);
+  assert.throws(() => parseTraktorNml('<DJ_PLAYLISTS><COLLECTION/></DJ_PLAYLISTS>'), /racine NML attendue/);
 });

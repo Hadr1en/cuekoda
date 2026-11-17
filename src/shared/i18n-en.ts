@@ -481,6 +481,11 @@ export const EN_EXACT: Record<string, string> = {
   'premier temps incertain': 'uncertain downbeat',
   'changement de tonalité': 'key change',
   'pads en double': 'duplicate pads',
+  'structure absente': 'missing structure',
+  'structure incertaine': 'uncertain structure',
+  'cues incertains': 'uncertain cues',
+  'voix incertaine': 'uncertain vocals',
+  'avertissement d’analyse': 'analysis warning',
   'fichier à vérifier': 'file to check',
   'Importer une collection rekordbox ou Traktor': 'Import a rekordbox or Traktor collection',
   'Fichier non reconnu : ni collection rekordbox XML, ni collection Traktor NML': 'Unrecognized file: neither a rekordbox XML nor a Traktor NML collection',
@@ -494,6 +499,23 @@ export const EN_EXACT: Record<string, string> = {
   'Traktor colore les cues par type, pas par couleur libre': 'Traktor colors cues by type, not freely',
   'CUE_V2 TYPE 5 avec LEN (boucles mémorisées)': 'CUE_V2 TYPE 5 with LEN (stored loops)',
   'Pas de champ correspondant': 'No matching field',
+  'Ordre et chemins des morceaux': 'Track order and paths',
+  'Playlist ordonnée portable — sans écriture dans la base Serato': 'Portable ordered playlist — no writes to the Serato database',
+  'Playlist M3U8 UTF-8': 'UTF-8 M3U8 playlist',
+  'Playlist UTF-8 avec durées, artistes et titres': 'UTF-8 playlist with durations, artists and titles',
+  'M3U8 ne transporte pas les données d’analyse DJ': 'M3U8 does not carry DJ analysis data',
+  'Hot cues, boucles, couleurs': 'Hot cues, loops, colors',
+  'À préparer ou vérifier dans Serato': 'Prepare or check in Serato',
+  'Fichiers audio': 'Audio files',
+  'La playlist référence les fichiers existants sans les copier': 'The playlist references existing files without copying them',
+  'Non transférés : BPM, grille, tonalité, cues, boucles, sections, énergie et phrases':
+    'Not transferred: BPM, grid, key, cues, loops, sections, energy and phrases',
+  'Le fichier M3U8 conserve l’ordre et les chemins ; il sert de playlist portable et de référence pour créer une crate.':
+    'The M3U8 file keeps order and paths; it is a portable playlist and a reference for creating a crate.',
+  'Dans Serato, ouvrir Files, localiser les morceaux référencés puis les déposer dans une nouvelle crate dans cet ordre.':
+    'In Serato, open Files, locate the referenced tracks, then drop them into a new crate in that order.',
+  'Ne pas copier le M3U8 dans le dossier interne _Serato_ : CueKoda ne modifie jamais la base ou les crates Serato.':
+    'Do not copy the M3U8 into the internal _Serato_ folder: CueKoda never modifies the Serato database or crates.',
   'rekordbox › Préférences › Avancé › Base de données › rekordbox xml : sélectionner le fichier exporté.':
     'rekordbox › Preferences › Advanced › Database › rekordbox xml: select the exported file.',
   'Afficher la vue « rekordbox xml » dans l’arborescence, puis glisser les morceaux dans la Collection.':
@@ -840,6 +862,9 @@ export const EN_PATTERNS: [RegExp, Rep][] = [
   [/^(\d+) cue\(s\) au premier temps déjà couvert\(s\) par AutoGrid$/, (_, n) => `${pl(n, 'cue')} at the first downbeat already covered by AutoGrid`],
   [/^Fichier au format rekordbox XML, à indiquer dans (.+)$/, 'File in rekordbox XML format, to select in $1'],
   [/^(\d+) boucle\(s\) \((.+)\)$/, (_, n, m) => `${pl(n, 'loop')} (${tl(m)})`],
+  [/^(\d+) morceau\(x\) dans l’ordre de la playlist$/, (_, n) => `${pl(n, 'track')} in playlist order`],
+  [/^Chemins, durées, artistes et titres dans un fichier M3U8 UTF-8$/, 'Paths, durations, artists and titles in a UTF-8 M3U8 file'],
+  [/^Les fichiers audio et la bibliothèque Serato ne sont pas modifiés$/, 'Audio files and the Serato library are not modified'],
 
   // ---------------------------------------------------------------- duplicates
   [/^(\d+) mesures musicalement identiques \(décalage de (\d+) mesures\) : versions liées probables \(edit, extended, remix proche\) — pas des doublons à supprimer$/,

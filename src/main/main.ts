@@ -15,6 +15,7 @@ import { activePreparationProfile, PREPARATION_PROFILES, findProfile, sanitizePr
 import { describe, emptyStats, recordDeleted, recordMoved, recordSuggested, suppressedKinds, type LearningStats } from '../core/learning';
 import { AUDIO_EXTENSIONS, type AnalysisResult, type CueKind, type Overrides } from '../core/types';
 import type { AdapterInfo, ExportPreview, ExportResponse, ImportSummary, InitialState, Settings, TrackEdits, TrackRecord } from '../shared/api';
+import { validateExportOptions, validatePathList } from '../shared/validation';
 import { applyImport, parseRekordboxXml, parseTraktorNml } from '../core/import/collection';
 import { AnalysisQueue, type WorkerLike } from './queue';
 import { backupIfExists, JsonStore, LibraryStore } from './store';
@@ -524,38 +525,49 @@ function registerIpc() {
     return result ? traktorPlan(result, loops) : null;
   });
 
-  ipcMain.handle('export-preview', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportPreview> => {
+  ipcMain.handle('export-preview', async (_e, id: AdapterInfo['id'], paths: unknown, opts: unknown): Promise<ExportPreview> => {
     const adapter = ADAPTERS.find((x) => x.id === id);
     if (!adapter) return { lines: [], readyPaths: [] };
-    const { tracks, missing, notAnalyzed } = await checkExportTracks(paths);
-    const lines = exportSummary(adapter, tracks, opts);
+    let safePaths: string[];
+    let safeOptions: ExportOptions;
+    try {
+      safePaths = validatePathList(paths);
+      safeOptions = validateExportOptions(opts);
+    } catch (error) {
+      return { lines: [`⚠ ${(error as Error).message}`], readyPaths: [] };
+    }
+    const { tracks, missing, notAnalyzed } = await checkExportTracks(safePaths);
+    const lines = exportSummary(adapter, tracks, safeOptions);
     if (missing.length) lines.unshift(`⚠ Fichiers introuvables écartés (${missing.length}) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
     if (notAnalyzed) lines.unshift(`⚠ Morceaux sans analyse écartés : ${notAnalyzed}`);
     return { lines, readyPaths: tracks.map((track) => track.path) };
   });
 
-  ipcMain.handle('export', async (_e, id: AdapterInfo['id'], paths: string[], opts: ExportOptions): Promise<ExportResponse> => {
+  ipcMain.handle('export', async (_e, id: AdapterInfo['id'], paths: unknown, opts: unknown): Promise<ExportResponse> => {
     const adapter = ADAPTERS.find((x) => x.id === id);
     if (!adapter) return { ok: false, error: 'Format d’export indisponible' };
-    if (!win || !paths.length) return { ok: false, error: 'Aucun morceau analysé et accessible à exporter' };
+    if (!win) return { ok: false, error: 'Aucun morceau analysé et accessible à exporter' };
     if (exportInProgress) return { ok: false, error: 'Export en cours…' };
     const owner = win;
     exportInProgress = true;
     try {
-      const { tracks } = await checkExportTracks(paths);
-      if (tracks.length !== paths.length) return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
+      const safePaths = validatePathList(paths);
+      const safeOptions = validateExportOptions(opts);
+      if (!safePaths.length) return { ok: false, error: 'Aucun morceau analysé et accessible à exporter' };
+      const { tracks } = await checkExportTracks(safePaths);
+      if (tracks.length !== safePaths.length) return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
       const r = await dialog.showSaveDialog(owner, {
         title: uiText(`Exporter pour ${adapter.name}`),
         defaultPath: path.join(app.getPath('documents'),
-          `${opts.playlistName ? opts.playlistName.replace(/[^\p{L}\p{N} _-]+/gu, '').trim() || 'CueKoda-set' : `CueKoda-${adapter.id}`}.${adapter.extension}`),
+          `${safeOptions.playlistName ? safeOptions.playlistName.replace(/[^\p{L}\p{N} _-]+/gu, '').trim() || 'CueKoda-set' : `CueKoda-${adapter.id}`}.${adapter.extension}`),
         filters: [{ name: adapter.formatName, extensions: [adapter.extension] }],
       });
       if (r.canceled || !r.filePath) return { ok: false, canceled: true };
-      const latest = await checkExportTracks(paths);
+      const latest = await checkExportTracks(safePaths);
       if (latest.tracks.length !== tracks.length || latest.tracks.some((track, index) => track.path !== tracks[index].path)) {
         return { ok: false, error: 'Les fichiers disponibles ont changé. Rouvrez l’aperçu d’export.' };
       }
-      const body = adapter.build(latest.tracks, { ...opts, macVolume: macBootVolume() });
+      const body = adapter.build(latest.tracks, { ...safeOptions, macVolume: macBootVolume() });
       const tempDir = await fs.promises.mkdtemp(path.join(path.dirname(r.filePath), '.cuekoda-export-'));
       let backup: string | undefined;
       try {
@@ -566,7 +578,7 @@ function registerIpc() {
       } finally {
         await fs.promises.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
-      const { playlistName: _set, macVolume: _vol, ...keep } = opts;
+      const { playlistName: _set, macVolume: _vol, ...keep } = safeOptions;
       settingsStore.data.exportOptions = keep;
       settingsStore.save();
       return { ok: true, file: r.filePath, backup, exportOptions: keep };
@@ -589,7 +601,9 @@ function registerIpc() {
     let tracks;
     let source: 'rekordbox' | 'traktor';
     try {
-      const text = fs.readFileSync(pick.filePaths[0], 'utf8');
+      const stat = await fs.promises.stat(pick.filePaths[0]);
+      if (stat.size > 256 * 1024 * 1024) throw new Error('Collection trop volumineuse (maximum 256 Mo)');
+      const text = await fs.promises.readFile(pick.filePaths[0], 'utf8');
       if (text.includes('<DJ_PLAYLISTS')) { tracks = parseRekordboxXml(text); source = 'rekordbox'; }
       else if (text.includes('<NML')) { tracks = parseTraktorNml(text, macBootVolume()); source = 'traktor'; }
       else return { ...none, error: uiText('Fichier non reconnu : ni collection rekordbox XML, ni collection Traktor NML') };

@@ -14,6 +14,7 @@ import { analyzeFile } from '../core/analyzer';
 import { evaluateTrack, summarize, type Reference, type TrackEvaluation } from '../core/evaluate';
 import { ENGINE_VERSION } from '../core/types';
 import { DATASETS, loadDataset, type DatasetId } from '../core/datasets';
+import { evaluationCoverage } from '../core/evaluationCoverage';
 import { collectAudioFiles } from '../core/scan';
 
 function appReferencesPath(): string {
@@ -115,6 +116,7 @@ async function main() {
     process.exitCode = 2;
   }
   const s = summarize(evals);
+  const coverage = evaluationCoverage(refs);
   const c = s.counts;
   const rows: [string, number, string][] = [
     ['BPM à ±1 %', c.bpm, `${pct(s.bpmWithin1Pct)} (${s.bpmOctaveErrors} erreur(s) d'octave)`],
@@ -133,6 +135,7 @@ async function main() {
     `${s.tracks} morceau(x) — ${label}${missing.length ? ` (${missing.length} introuvable(s) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''})` : ''}.`,
     ...(dataset ? [`${refs.length - missing.length} analyse(s) tentée(s), ${failures.length} échec(s) de l'analyse.`] : []),
     'Les références du DJ ne sont pas exhaustives : pour les cues, le rappel compte plus que la précision.',
+    `Couverture du corpus : ${coverage.tracks}/100 titres cibles, ${coverage.genres.length}/5 genres cibles, ${Object.values(coverage.bpmBands).filter((count) => count > 0).length}/4 plages BPM cibles.`,
     '',
     '| Mesure | Morceaux | Résultat |',
     '|---|---|---|',
@@ -147,7 +150,7 @@ async function main() {
   }
   if (json) fs.writeFileSync(json, JSON.stringify({
     engine: ENGINE_VERSION, summary: s, tracks: evals,
-    coverage: { attempted: refs.length - missing.length, annotationsWithoutAudio, missing, failures },
+    coverage: { ...coverage, attempted: refs.length - missing.length, annotationsWithoutAudio, missing, failures },
   }, null, 2));
 }
 

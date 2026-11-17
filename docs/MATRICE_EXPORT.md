@@ -42,6 +42,18 @@ de grille. La collection source est lue sans être modifiée.
 
 Chacun de ces logiciels choisit les données qu’il lit dans le fichier rekordbox XML.
 
+Engine DJ documente officiellement l’import de bibliothèques rekordbox et Traktor. CueKoda conserve donc
+ce parcours pris en charge au lieu d’écrire dans la base Engine : [compatibilité rekordbox XML](https://support.enginedj.com/support/solutions/articles/69000793756).
+
+## Serato et playlist M3U8
+
+CueKoda produit un fichier M3U8 UTF-8 ordonné contenant durée, artiste, titre et chemin de chaque morceau.
+Ce format ne transporte ni grille, ni tonalité, ni cues, ni boucles. Serato documente l’ajout des morceaux
+depuis son panneau **Files** et la création d’une crate par glisser-déposer : [importer de la musique dans Serato](https://support.serato.com/hc/en-us/articles/360000067236-Importing-Music).
+
+Le M3U8 sert donc de liste portable et de référence d’ordre ; CueKoda n’écrit pas de fichier de crate et ne
+touche pas au dossier `_Serato_`.
+
 ## Sécurité
 - CueKoda n'écrit **jamais** dans une base propriétaire (rekordbox `master.db`, `collection.nml` de Traktor)
   ni dans les fichiers audio : il produit un nouveau fichier de collection.

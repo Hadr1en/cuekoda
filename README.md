@@ -181,6 +181,7 @@ Le dialogue **« Exporter… »** affiche les données transférées et les éta
 | **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | selon Engine DJ | selon Engine DJ | ? | ? | ? |
 | **VirtualDJ** | rekordbox XML | selon VirtualDJ | selon VirtualDJ | ? | ? | ? |
 | **djay Pro** | rekordbox XML | selon djay | selon djay | ? | ? | ? |
+| **Serato** | M3U8 | — | — | — | — | — |
 
 **Options utiles** :
 - **Commentaire « E8 · 8B · Vocal »** (activé par défaut) : énergie, clé Camelot et voix écrites dans le champ
@@ -188,6 +189,8 @@ Le dialogue **« Exporter… »** affiche les données transférées et les éta
   n'est écrit que si la détection est nette.
 - **Exporter un set** : depuis « Ordre de mix… », « Exporter ce set… » crée une playlist nommée, avec les
   morceaux dans l’ordre de la liste.
+- **Serato / M3U8** : produit une liste UTF-8 ordonnée qui référence les fichiers sans écrire dans la base
+  Serato. Les cues et la grille restent à vérifier dans Serato.
 
 Dans Traktor, AutoGrid occupe le bouton 1. CueKoda remplit les boutons 2 à 8 dans l’ordre des pads
 et écarte les cues superposés à AutoGrid. L’aperçu des boutons Traktor affiche le nom et la position

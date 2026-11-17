@@ -1,9 +1,9 @@
 {
   "name": "cuekoda",
   "productName": "CueKoda",
-  "version": "0.3.4",
+  "version": "0.5.2",
   "license": "AGPL-3.0-or-later",
-  "description": "Préparation musicale pour DJ : BPM, grille, tonalité, structure, énergie, hot cues, boucles — export rekordbox & Traktor",
+  "description": "Préparation musicale pour DJ : BPM, grille, tonalité, structure, énergie, hot cues, boucles — export rekordbox, Traktor et M3U8",
   "main": "dist/main/main.js",
   "private": true,
   "engines": {
@@ -28,6 +28,7 @@
     "offset-test": "npm run build && node dist/test/offset-test.js"
   },
   "dependencies": {
+    "@xmldom/xmldom": "0.8.15",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
     "essentia.js": "^0.1.3",
