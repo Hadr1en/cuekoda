@@ -138,6 +138,7 @@
     :is(button, select, input, a, label) { app-region: no-drag; }
   }
   .spacer { flex: 1; }
+  .toolbar-separator { inline-size: 1px; block-size: 26px; flex: none; background: var(--color-line); margin-inline: 2px; }
   .field { color: var(--color-muted); display: flex; align-items: center; gap: 6px; }
 
   .btn {
@@ -374,15 +375,26 @@
   }
   .memo, .vocals-edit { margin-block-start: 14px; }
   .targets {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(123px, 1fr)); gap: 8px; margin-block: 8px 4px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-block: 8px 4px;
     .target {
-      display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+      position: relative; isolation: isolate; overflow: clip; min-block-size: 92px;
+      display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border-radius: 10px; cursor: pointer;
       border: var(--ui-border); background: var(--color-raised); font-size: 12px;
+      b, > .muted { position: relative; z-index: 1; }
       b { font-size: 14px; }
       input { position: absolute; opacity: 0; pointer-events: none; }
-      &.on { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent) inset; }
+      &.on { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent) inset; background: color-mix(in oklab, var(--color-accent) 7%, var(--color-raised)); }
       &:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
     }
+    .target-wordmark {
+      position: absolute; z-index: 0; inset: auto 8px -7px auto; max-inline-size: calc(100% - 16px);
+      overflow: hidden; white-space: nowrap; color: var(--color-text); opacity: .055;
+      font-size: 29px; line-height: 1; font-weight: 850; letter-spacing: -.06em; pointer-events: none;
+      transition: opacity .15s ease, color .15s ease, transform .15s ease;
+    }
+    .target-wordmark-traktor, .target-wordmark-engine { letter-spacing: .015em; font-size: 25px; }
+    .target-wordmark-djay { font-style: italic; letter-spacing: -.1em; }
+    .target.on .target-wordmark { color: var(--color-accent); opacity: .16; transform: translateY(-2px); }
   }
   .note.ok { color: var(--color-ok); }
   .opts input.set-name { inline-size: min(320px, 60%); margin-inline-start: 4px; }
@@ -425,6 +437,9 @@
   #overview-playhead { inset-inline: 1px; }
   @media (max-width: 980px) {
     #tracks .c-cues { display: none; }
+  }
+  @media (max-width: 620px) {
+    .targets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   .tabs {
