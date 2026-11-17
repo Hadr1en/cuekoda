@@ -211,6 +211,8 @@ Sécurité de l'export : CueKoda écrit un **nouveau fichier de collection**, sa
 - **Langue** : français ou anglais. Les noms des cues sont conservés dans la langue de saisie.
 - **Thème** sombre (par défaut), clair ou système ; nombre d'analyses en parallèle ; dossiers surveillés ;
   apprentissage ; profils.
+- **À propos** présente l'auteur, les technologies, la licence et les crédits, avec des liens vers le code
+  source, le suivi des problèmes et la page Ko-fi du projet.
 
 Le sélecteur de la bibliothèque permet de passer de Camelot à Open Key (Traktor).
 Par exemple, **5A** et **10m** désignent tous deux **do mineur**. La recherche accepte les deux codes.

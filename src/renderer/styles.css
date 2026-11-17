@@ -498,6 +498,16 @@
   dialog:modal { overscroll-behavior: contain; }
   dialog::backdrop { overflow: hidden; overscroll-behavior: contain; }
   .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-block-start: 14px; position: sticky; inset-block-end: -18px; background: var(--color-panel); padding-block: 8px; }
+  .about {
+    inline-size: min(620px, 92dvw);
+    .about-head { display: flex; align-items: center; gap: 14px; margin-block-end: 14px; }
+    .about-head img { inline-size: 72px; block-size: 72px; border-radius: 16px; }
+    .about-head h2 { margin: 0; font-size: 24px; }
+    .about-tagline { margin: 2px 0; color: var(--color-accent); font-weight: 650; letter-spacing: .3px; }
+    .about-head .muted { margin: 0; }
+    .about-links { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-block-start: 10px; }
+    .about-support { margin-block: 6px 0; }
+  }
   .seg { display: flex; gap: 8px; flex-wrap: wrap; margin-block-end: 6px;
     .seg-item { display: flex; align-items: center; gap: 6px; border: var(--ui-border); border-radius: 8px; padding: 6px 10px; cursor: pointer;
       &:has(:checked) { border-color: var(--color-accent); background: var(--ui-selected-bg); } }
