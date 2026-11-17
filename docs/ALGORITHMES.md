@@ -1,6 +1,6 @@
 # Algorithmes de CueKoda et leurs limites
 
-Moteur v0.5.2 (`ENGINE_VERSION`). Tout s'exécute localement (CPU). Les niveaux de confiance sont
+Moteur v0.6.0 (`ENGINE_VERSION`). Tout s'exécute localement (CPU). Les niveaux de confiance sont
 **qualitatifs** (forte / moyenne / faible) : ils ne sont pas encore calibrés sur un corpus annoté et ne
 doivent pas être lus comme des probabilités.
 
@@ -16,17 +16,21 @@ doivent pas être lus comme des probabilités.
 
 ## Tempo — `rhythm.ts`
 1. Estimation grossière par Essentia `RhythmExtractor2013` sur 2 min centrales (Essentia exige 44,1 kHz).
-2. Repli dans la plage BPM commune (×2 / ÷2).
+2. Repli dans la plage BPM du profil (×2 / ÷2) : les profils half-time descendent à 55 BPM et le profil
+   hard dance monte à 230 BPM. Une plage donnée explicitement en ligne de commande reste prioritaire.
 3. **Validation** : score d'alignement de grille sur l'enveloppe d'attaques pour les ratios ×1, ×3/2, ×2/3,
    ×4/3, ×3/4. Un autre candidat peut l’emporter s’il s’aligne au moins 15 % mieux. L’analyse automatique
    compare aussi la récurrence des attaques à 2, 4 et 8 temps entre candidats
    dont les pulsations s’alignent déjà. Ce critère ne relève le BPM que si le candidat plus rapide
    rend mieux compte du motif syncopé, par exemple lorsque le moteur sous-compte les temps en 3:2.
    Les candidats plus lents peuvent convertir artificiellement une mesure à trois temps en quatre.
-   Un second contrôle propose des BPM d’après les pics de récurrence des attaques, jusqu’à 210 BPM.
+   Sur les profils quatre-temps, un second contrôle propose des BPM d’après les pics de récurrence des
+   attaques, jusqu’à 210 BPM.
    Une correction vers un tempo plus rapide exige un meilleur alignement de grille et un accord
    des attaques sur les temps et les mesures. Si la pulsation à demi-tempo revient sur plusieurs
-   parties du titre, elle est signalée comme alternative utilisable en un clic dans la revue.
+   parties du titre, elle est signalée comme alternative utilisable en un clic dans la revue. Ce contrôle
+   agressif est désactivé pour les rythmes cassés, half-time et libres afin de ne pas prendre une caisse
+   claire, une basse syncopée ou un contretemps pour la pulsation principale.
 4. Affinage au centième par régression robuste (Theil-Sen) des attaques mesurées dans le domaine temporel,
    puis arrondi à un tempo entier / demi-entier seulement si l'ajustement est aussi bon.
 5. **Stabilité** : tempo de chaque segment de 64 temps estimé **indépendamment** (alignement de grille à ±8 %
@@ -49,7 +53,8 @@ doivent pas être lus comme des probabilités.
   1. frontières de section fortes ;
   2. **entrées de kick / basse** : le temps où les graves *atteignent* leur plateau (à 2 dB près) après une
      montée d'au moins 6 dB. Une nappe qui gonfle progressivement ne compte pas, seul le temps du plateau compte.
-     Ce vote pèse 75 % quand il est fourni (≥ 12 dB d'entrées cumulées).
+     Ce vote pèse jusqu’à 75 % sur un profil quatre-temps, au plus 30 % sur un rythme cassé et 10 % en
+     format libre. Les frontières de phrases prennent davantage de poids hors four-on-the-floor.
   Si le vote n'est pas décisif (< 1,5× le second), le meilleur candidat est gardé avec l'avertissement
   « downbeat incertain ». Le repli « le morceau commence sur un temps 1 » ne sert qu'en l'absence totale
   d'indice. Ce réglage a été validé sur 3 morceaux corrigés à l'oreille (Garrix, Alesso, Ingrosso).

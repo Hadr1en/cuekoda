@@ -152,8 +152,10 @@ approval. Only approved loops are exported by default. Key **L**: 16-beat loop a
   finished.
 - **Duplicates**: exact duplicates, the same recording in another format, related versions (remix, edit),
   found with the acoustic fingerprint. Detection leaves the source files intact.
-- **Preparation profiles** — Balanced, Long transitions, Fixed pads and custom profiles. They control
-  cue, loop and transition suggestions. BPM, key and beatgrid use the same analysis.
+- **Preparation profiles** — Mainstage, House, Tech House, Techno, Trance, Hard dance, Drum & Bass,
+  Bass / breaks / garage, Afro / Latin / global, Open Format, Fixed pads and custom profiles. They control
+  the BPM range, rhythmic assumptions, cues, loops and transitions. Key detection remains independent
+  from the editorial genre.
 - **Fixed pads** assigns pads A through H to Intro, Build 1, Drop 1, Break, Build 2, Drop 2,
   Outro and Mix Out. If a cue is missing, its pad stays free.
 - **Review** — Use “To review” to find tracks worth checking and “Missing files” to see unavailable
@@ -164,9 +166,10 @@ approval. Only approved loops are exported by default. Key **L**: 16-beat loop a
 Use the **metronome** to check the grid by ear, with an accented downbeat.
 **Mark checked and go to next track** checks off the current track and opens the next track in the list.
 
-**Quick check** plays four bars with the metronome at the beginning, first drop or end.
-With the panel focused, use **1 / 2 / 3** to listen, **T** to set the downbeat and **V** to mark the track
-checked and move on.
+**Quick check** plays four bars with the metronome at the beginning, first drop — or the high point of a
+track without a drop — and end. Beatport genre, rhythm, version, vocals and perceived energy feed the local
+reference corpus. With the panel focused, use **1 / 2 / 3** to listen, **T** to set the downbeat and **V**
+to validate, save the reference and move on.
 
 Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click the selection to re-analyze or remove it.
 Open **Prepare › Compare re-analysis…** to listen to changed tracks before and after and restore the

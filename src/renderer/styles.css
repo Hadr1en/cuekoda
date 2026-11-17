@@ -296,10 +296,15 @@
     margin-block: 5px 8px; font-variant-numeric: tabular-nums;
   }
   .quick-review {
-    display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px;
+    display: grid; grid-template-columns: auto auto 1fr; align-items: start; gap: 8px 14px;
     padding: 8px 10px; margin-block: 6px; background: var(--color-panel); border: var(--ui-border); border-radius: var(--ui-radius);
     .hrow { flex-wrap: wrap; }
   }
+  .review-metadata { display: flex; flex-wrap: wrap; gap: 8px; }
+  .review-metadata label { display: grid; gap: 3px; color: var(--color-muted); font-size: 11px; }
+  .review-metadata select { min-inline-size: 130px; max-inline-size: 220px; }
+  .review-submit { justify-content: flex-end; }
+  @container detail (max-width: 900px) { .quick-review { grid-template-columns: 1fr; } .review-submit { justify-content: flex-start; } }
   .crate-create { margin-block: 10px; }
   .crate-layout { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 3fr); gap: 12px; }
   .crate-sidebar { display: grid; gap: 4px; align-content: start; }

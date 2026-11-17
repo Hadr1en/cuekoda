@@ -1,4 +1,5 @@
 import type { CueKind, CueRole, LoopKind, RGB } from './types';
+import type { RhythmMode } from './genres';
 
 /**
  * DJ style profiles are plain data (no per-genre code): the cue / loop / mix engines read
@@ -33,6 +34,10 @@ export interface Profile {
   vocabulary: 'edm' | 'generic';
   /** Cue analysis inherited when a preparation profile is duplicated. */
   cueRefinement?: 'standard' | 'with-break-alternatives';
+  /** Rhythmic assumptions used by tempo and downbeat analysis. */
+  rhythmMode: RhythmMode;
+  /** Automatic BPM search range. Explicit CLI/user limits still take precedence. */
+  bpmRange: [number, number];
 }
 
 /** Initial palette from the specification: green intro, blue vocal, yellow break, violet build, red drop, cyan outro. */
@@ -76,6 +81,8 @@ const base = {
   colors: DEFAULT_COLORS,
   slotOrder: 'chronological' as const,
   minCueSpacingBars: 4,
+  rhythmMode: 'four-on-floor' as const,
+  bpmRange: [80, 200] as [number, number],
 };
 
 /** Fixed EDM layout: A Intro, B Build 1 (or the kick entry), C Drop 1, D Break, E Build 2, F Drop 2, G Outro, H Mix Out. */
@@ -101,6 +108,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     loopKinds: ['intro', 'predrop', 'outro'],
     transitionBars: 16,
     vocabulary: 'edm',
+    bpmRange: [90, 180],
   },
   {
     ...base,
@@ -114,6 +122,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     loopKinds: ['intro', 'predrop', 'outro'],
     transitionBars: 16,
     vocabulary: 'edm',
+    bpmRange: [90, 180],
   },
   {
     ...base,
@@ -124,6 +133,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     loopKinds: ['intro', 'outro'],
     transitionBars: 32,
     vocabulary: 'edm',
+    bpmRange: [90, 140],
   },
   {
     ...base,
@@ -134,6 +144,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     loopKinds: ['intro', 'outro', 'predrop'],
     transitionBars: 32,
     vocabulary: 'edm',
+    bpmRange: [105, 145],
   },
   {
     ...base,
@@ -146,6 +157,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     transitionBars: 32,
     minCueSpacingBars: 8,
     vocabulary: 'generic',
+    bpmRange: [105, 175],
   },
   {
     ...base,
@@ -156,6 +168,7 @@ export const BUILTIN_PROFILES: Profile[] = [
     loopKinds: ['intro', 'predrop', 'outro'],
     transitionBars: 32,
     vocabulary: 'edm',
+    bpmRange: [118, 155],
   },
   {
     ...base,
@@ -168,6 +181,8 @@ export const BUILTIN_PROFILES: Profile[] = [
     transitionBars: 8,
     minCueSpacingBars: 2,
     vocabulary: 'generic',
+    rhythmMode: 'half-time',
+    bpmRange: [55, 180],
   },
   {
     ...base,
@@ -178,15 +193,66 @@ export const BUILTIN_PROFILES: Profile[] = [
     loopKinds: ['intro', 'outro'],
     transitionBars: 16,
     vocabulary: 'generic',
+    rhythmMode: 'open',
+    bpmRange: [55, 205],
+  },
+  {
+    ...base,
+    id: 'harddance',
+    name: 'Hard dance / hard techno',
+    cuePriority: ['drop', 'break', 'build', 'intro', 'groove', 'outro', 'mixout', 'mixin', 'kickout', 'vocal'],
+    loopBeats: [4, 8, 16],
+    loopKinds: ['intro', 'predrop', 'outro'],
+    transitionBars: 16,
+    minCueSpacingBars: 4,
+    vocabulary: 'edm',
+    bpmRange: [130, 230],
+  },
+  {
+    ...base,
+    id: 'drumandbass',
+    name: 'Drum & Bass / jungle',
+    cuePriority: ['intro', 'drop', 'break', 'groove', 'outro', 'mixin', 'mixout', 'build', 'kickout', 'vocal'],
+    loopBeats: [8, 16, 32],
+    loopKinds: ['intro', 'predrop', 'outro'],
+    transitionBars: 16,
+    minCueSpacingBars: 4,
+    vocabulary: 'edm',
+    rhythmMode: 'broken',
+    bpmRange: [130, 210],
+  },
+  {
+    ...base,
+    id: 'bass',
+    name: 'Bass / breaks / garage',
+    cuePriority: ['drop', 'intro', 'break', 'groove', 'outro', 'mixin', 'mixout', 'build', 'kickout', 'vocal'],
+    loopBeats: [4, 8, 16],
+    loopKinds: ['intro', 'predrop', 'outro'],
+    transitionBars: 8,
+    minCueSpacingBars: 2,
+    vocabulary: 'generic',
+    rhythmMode: 'broken',
+    bpmRange: [55, 190],
+  },
+  {
+    ...base,
+    id: 'global',
+    name: 'Afro / Latin / global',
+    cuePriority: ['intro', 'groove', 'break', 'drop', 'outro', 'mixin', 'mixout', 'build', 'kickout', 'vocal'],
+    loopBeats: [8, 16, 32],
+    loopKinds: ['intro', 'outro'],
+    transitionBars: 16,
+    vocabulary: 'generic',
+    rhythmMode: 'open',
+    bpmRange: [80, 155],
   },
 ];
 
-export const PREPARATION_PROFILES = BUILTIN_PROFILES.filter(({ id }) =>
-  id === 'edm' || id === 'techno' || id === 'edm-fixed');
+export const PREPARATION_PROFILES = BUILTIN_PROFILES;
 
 export function activePreparationProfile(id: string, custom: Profile[]): string {
   if (custom.some((p) => p.id === id) || PREPARATION_PROFILES.some((p) => p.id === id)) return id;
-  return id === 'house' || id === 'techhouse' ? 'techno' : 'edm';
+  return 'edm';
 }
 
 export const CUSTOM_TEMPLATE: Profile = { ...BUILTIN_PROFILES[0], id: 'custom', name: 'Custom', builtin: false };
@@ -197,8 +263,15 @@ export function findProfile(id: string | undefined, custom: Profile[] = []): Pro
 
 /** Ensures a (possibly user-edited) profile is usable. */
 export function sanitizeProfile(p: Profile): Profile {
+  const rhythmMode = ['four-on-floor', 'broken', 'half-time', 'open'].includes(p.rhythmMode)
+    ? p.rhythmMode : 'four-on-floor';
+  const rawRange = Array.isArray(p.bpmRange) ? p.bpmRange : [80, 200];
+  const min = Number.isFinite(rawRange[0]) ? Math.max(40, Math.min(220, rawRange[0])) : 80;
+  const max = Number.isFinite(rawRange[1]) ? Math.max(min + 10, Math.min(260, rawRange[1])) : 200;
   return {
     ...p,
+    rhythmMode,
+    bpmRange: [min, max],
     maxCues: Math.max(1, Math.min(8, Math.round(p.maxCues || 8))),
     transitionBars: Number.isFinite(p.transitionBars) ? Math.max(4, Math.min(64, Math.round(p.transitionBars))) : 16,
     minCueSpacingBars: Math.max(1, Math.min(32, Math.round(p.minCueSpacingBars || 4))),

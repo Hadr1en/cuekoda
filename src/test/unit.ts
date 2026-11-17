@@ -34,8 +34,9 @@ import { reviewReasons } from '../core/review';
 import { suggestOrder } from '../core/setorder';
 import { MAC_SWAP_SCRIPT, evaluateRelease, parseBuild, type GithubRelease } from '../shared/update';
 import { automaticWorkerLimit, normalizeWorkerLimit, restoreWorkerLimit } from '../shared/parallelism';
-import { validateExportOptions, validatePathList } from '../shared/validation';
+import { validateExportOptions, validatePathList, validateReferenceDetails } from '../shared/validation';
 import { evaluationCoverage } from '../core/evaluationCoverage';
+import { BEATPORT_GENRES, beatportGenre } from '../core/genres';
 import type { AnalysisResult, HotCue, Loop, MixSuggestion, Section, VocalInfo } from '../core/types';
 
 const edm = findProfile('edm');
@@ -221,10 +222,22 @@ test('selectCues: priority, max count, spacing, exclusions, chronological pads',
 });
 
 test('profiles are data and are sanitised', () => {
-  assert.equal(BUILTIN_PROFILES.length, 8);
+  assert.equal(BUILTIN_PROFILES.length, 12);
   const p = sanitizeProfile({ ...edm, maxCues: 20, loopBeats: [3, 16] });
   assert.equal(p.maxCues, 8);
   assert.deepEqual(p.loopBeats, [16]);
+  assert.deepEqual(findProfile('drumandbass').bpmRange, [130, 210]);
+  assert.equal(findProfile('bass').rhythmMode, 'broken');
+});
+
+test('Beatport genres cover electronic and open-format preparation families', () => {
+  assert.ok(BEATPORT_GENRES.length >= 40);
+  assert.equal(new Set(BEATPORT_GENRES.map(({ name }) => name)).size, BEATPORT_GENRES.length);
+  assert.equal(beatportGenre('Liquid DnB')?.profileId, 'drumandbass');
+  assert.equal(beatportGenre('Future Rave')?.family, 'mainstage');
+  assert.equal(beatportGenre('UK Garage / Bassline')?.rhythm, 'broken');
+  assert.equal(beatportGenre('Afrobeats')?.profileId, 'global');
+  assert.equal(beatportGenre('unknown'), undefined);
 });
 
 test('the beat grid follows a bass pulse present in all three parts of the track', () => {
@@ -485,6 +498,10 @@ test('IPC export validation rejects malformed paths and options', () => {
     memoryCues: true, loops: 'accepted', commentTags: undefined, playlistName: 'Set',
   });
   assert.throws(() => validateExportOptions({ memoryCues: 'yes', loops: 'all' }), /Options/);
+  assert.deepEqual(validateReferenceDetails({
+    genre: 'Drum & Bass', genreFamily: 'drum-and-bass', rhythm: 'broken', scenario: 'edit', vocalStyle: 'chops',
+  }), { genre: 'Drum & Bass', genreFamily: 'drum-and-bass', rhythm: 'broken', scenario: 'edit', vocalStyle: 'chops' });
+  assert.throws(() => validateReferenceDetails({ genre: 'Genre inventé' }), /Genre Beatport/);
 });
 
 test('evaluation corpus coverage exposes genre, tempo and annotation blind spots', () => {
@@ -495,7 +512,12 @@ test('evaluation corpus coverage exposes genre, tempo and annotation blind spots
   ]);
   assert.deepEqual(coverage.genres, ['Drum & Bass', 'House']);
   assert.equal(coverage.bpmBands['120–129'], 1);
-  assert.equal(coverage.bpmBands['≥150'], 1);
+  assert.equal(coverage.bpmBands['150–179'], 1);
+  assert.equal(coverage.genreFamilies.house, 1);
+  assert.equal(coverage.genreFamilies['drum-and-bass'], 1);
+  assert.equal(coverage.rhythms['four-on-floor'], 1);
+  assert.equal(coverage.rhythms.broken, 1);
+  assert.ok(coverage.missingBeatportGenres.includes('Mainstage'));
   assert.equal(coverage.annotations.grid, 1);
   assert.equal(coverage.targetMet, false);
 });

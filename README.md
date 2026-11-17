@@ -151,8 +151,10 @@ La commande « Ordre de mix… » propose un ordre pour les morceaux affichés. 
   sa copie terminée.
 - **Doublons** : doublons exacts, même enregistrement dans un autre format, versions liées (remix, edit),
   grâce à l'empreinte acoustique. La détection préserve les fichiers sources.
-- **Profils de préparation** — Équilibré, Transitions longues, Pads fixes et profils personnalisés.
-  Ils règlent les cues, les boucles et les transitions. Le BPM, la tonalité et la grille suivent la même analyse.
+- **Profils de préparation** — Mainstage, House, Tech House, Techno, Trance, Hard dance, Drum & Bass,
+  Bass / breaks / garage, Afro / Latin / global, Open Format, Pads fixes et profils personnalisés.
+  Ils règlent la plage BPM, les hypothèses rythmiques, les cues, les boucles et les transitions. La tonalité
+  reste indépendante du genre éditorial.
 - **Pads fixes** — Réserve les pads A à H à Intro, Build 1, Drop 1, Break, Build 2, Drop 2, Outro
   et Mix Out. Si un repère manque, son pad reste libre.
 - **Révision** — Filtre « À vérifier » pour les morceaux à contrôler et « Fichiers introuvables »
@@ -161,8 +163,10 @@ La commande « Ordre de mix… » propose un ordre pour les morceaux affichés. 
   références servent à mesurer la justesse du moteur (`npm run eval`).
 
 Le **métronome** permet de vérifier la grille à l’oreille, avec un clic accentué sur le temps 1.
-**Contrôle express** permet d’écouter quatre mesures au métronome au début, au premier drop et à la fin.
-Dans cette vue, les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place le temps 1 et **V** valide la piste et ouvre la suivante.
+**Contrôle express** permet d’écouter quatre mesures au métronome au début, au premier drop — ou au point
+fort d’un morceau sans drop — et à la fin. Le genre Beatport, le rythme, la version, les voix et l’énergie
+ressentie alimentent le corpus local de référence. Les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place
+le temps 1 et **V** valide, enregistre la référence et ouvre la piste suivante.
 
 La sélection utilise les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
 Dans **Préparer › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.

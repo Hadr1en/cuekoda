@@ -1,7 +1,7 @@
 {
   "name": "cuekoda",
   "productName": "CueKoda",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "license": "AGPL-3.0-or-later",
   "description": "Préparation musicale pour DJ : BPM, grille, tonalité, structure, énergie, hot cues, boucles — export rekordbox, Traktor et M3U8",
   "main": "dist/main/main.js",

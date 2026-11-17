@@ -56,8 +56,10 @@ Pour un export NML, **Aperçu des boutons Traktor** présente les huit boutons e
 
 ## Contrôle express et comparaison
 Dans le détail d’un morceau, **Contrôle express** lit quatre mesures au métronome au début, au premier
-drop ou vers la fin. Raccourcis dans ce panneau **1 / 2 / 3** pour écouter, **T** pour placer le temps 1,
-**[ / ]** pour décaler la grille de 10 ms et **V** pour valider et avancer.
+drop — ou au point fort si le profil ne force pas ce vocabulaire — et vers la fin. Choisir le genre Beatport,
+vérifier le comportement rythmique et préciser version, voix et énergie ressentie permet d’enregistrer une
+référence exploitable immédiatement. Raccourcis dans ce panneau **1 / 2 / 3** pour écouter, **T** pour placer
+le temps 1, **[ / ]** pour décaler la grille de 10 ms et **V** pour valider, enregistrer et avancer.
 
 Après une réanalyse, **Préparer › Comparer la réanalyse…** liste les morceaux dont le BPM, la grille ou les
 cues ont changé. La comparaison permet d’écouter les deux analyses et de rétablir la précédente pour chaque morceau.

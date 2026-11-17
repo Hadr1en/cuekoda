@@ -15,7 +15,7 @@ import { activePreparationProfile, PREPARATION_PROFILES, findProfile, sanitizePr
 import { describe, emptyStats, recordDeleted, recordMoved, recordSuggested, suppressedKinds, type LearningStats } from '../core/learning';
 import { AUDIO_EXTENSIONS, type AnalysisResult, type CueKind, type Overrides } from '../core/types';
 import type { AdapterInfo, ExportPreview, ExportResponse, ImportSummary, InitialState, Settings, TrackEdits, TrackRecord } from '../shared/api';
-import { validateExportOptions, validatePathList } from '../shared/validation';
+import { validateExportOptions, validatePathList, validateReferenceDetails } from '../shared/validation';
 import { applyImport, parseRekordboxXml, parseTraktorNml } from '../core/import/collection';
 import { AnalysisQueue, type WorkerLike } from './queue';
 import { backupIfExists, JsonStore, LibraryStore } from './store';
@@ -347,10 +347,11 @@ function registerIpc() {
     }
   });
 
-  ipcMain.handle('reference-save', (_e, p: string, rating?: number) => {
+  ipcMain.handle('reference-save', (_e, p: string, rating?: number, details?: unknown) => {
     const r = records()[p]?.result;
     if (!r?.fileHash) return referenceIndex();
-    referenceStore.data.refs[r.fileHash] = referenceFrom(r, rating);
+    const energy = rating === undefined ? undefined : Math.max(1, Math.min(10, Math.round(Number(rating))));
+    referenceStore.data.refs[r.fileHash] = referenceFrom(r, Number.isFinite(energy) ? energy : undefined, validateReferenceDetails(details));
     referenceStore.save(0);
     return referenceIndex();
   });
