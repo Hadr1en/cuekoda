@@ -135,12 +135,12 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
         target === 'rekordbox' || adapter.via === 'rekordbox'
           ? h('label', {}, h('input', { id: 'export-memory-cues', type: 'checkbox', checked: opts.memoryCues, onchange: (e: Event) => { opts.memoryCues = (e.target as HTMLInputElement).checked; void render(); } }), ' Ajouter des memory cues aux mêmes positions')
           : null,
-        h('label', { title: 'Ajoute les informations d’énergie au commentaire. Le commentaire existant est remplacé si l’écrasement est autorisé lors de l’import.' },
+        target !== 'serato' ? h('label', { title: 'Ajoute les informations d’énergie au commentaire. Le commentaire existant est remplacé si l’écrasement est autorisé lors de l’import.' },
           h('input', { type: 'checkbox', checked: opts.commentTags !== false, onchange: (e: Event) => { opts.commentTags = (e.target as HTMLInputElement).checked; void render(); } }),
-          ' Énergie, clé et voix dans le commentaire'),
-        h('label', {}, 'Boucles : ',
+          ' Énergie, clé et voix dans le commentaire') : null,
+        target !== 'serato' ? h('label', {}, 'Boucles : ',
           h('select', { onchange: (e: Event) => { opts.loops = (e.target as HTMLSelectElement).value as ExportOptions['loops']; void render(); } },
-            ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))),
+            ...([['accepted', 'validées uniquement'], ['all', 'toutes les suggestions'], ['none', 'aucune']] as const).map(([v, l]) => h('option', { value: v, selected: opts.loops === v }, l)))) : null,
       ),
       inspector,
       h('h3', {}, 'Ce qui sera transféré'),

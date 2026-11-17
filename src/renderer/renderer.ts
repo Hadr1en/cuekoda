@@ -10,6 +10,7 @@ import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
 import { resolveLang, setLang, tr } from '../shared/i18n';
 import { bTimeAt, fadeGains, planTransition } from '../core/transition';
+import { reviewReasons } from '../core/review';
 import type { TrackEdits, TrackRecord } from '../shared/api';
 import { allProfiles, api, applyTheme, changedEdits, doneResults, history, keyLabel, snapshotEdits, state } from './state';
 import { metronome } from './metronome';
@@ -94,25 +95,6 @@ function overallConfidence(r: AnalysisResult) {
 let libView: 'all' | 'review' | 'missing' = 'all';
 let activeCrate: string | undefined;
 let crateOrder = new Map<string, number>();
-
-/**
- * Why a track should be checked by ear before a gig (empty = nothing to check): low confidence on tempo,
- * downbeat or key, analysis warnings, duplicated pads, failed analysis. "✓ Vérifié" clears it.
- */
-function reviewReasons(rec: TrackRecord): string[] {
-  if (rec.reviewedAt) return [];
-  if (rec.status === 'error') return ['analyse en échec'];
-  const r = rec.result;
-  if (!r) return [];
-  const out: string[] = [];
-  if (r.tempo?.confidence === 'low' || r.tempo?.competingBpm) out.push('tempo incertain');
-  if (r.grid.downbeatConfidence === 'low') out.push('premier temps incertain');
-  if (r.key.level === 'low' || r.key.ambiguous) out.push('tonalité incertaine');
-  if (r.key.changes?.length) out.push('changement de tonalité');
-  if (duplicateCueIds(r.cues).size) out.push('pads en double');
-  if (r.warnings.some((w) => /tronqué|endommagé|LAME/.test(w))) out.push('fichier à vérifier');
-  return out;
-}
 
 function matchesFilter(rec: TrackRecord) {
   if (activeCrate && !crateOrder.has(rec.path)) return false;
@@ -1147,7 +1129,7 @@ function renderMix(r: AnalysisResult) {
               h('li', {},
                 h('button', { type: 'button', class: 'btn small ghost', onclick: () => select(m.path) }, `${m.title}${m.artist ? ` — ${m.artist}` : ''}`),
                 h('span', { class: 'score' }, `${m.score}`),
-                h('button', { type: 'button', class: 'btn small', title: 'Écouter la transition : fin de ce morceau → début de l’autre, tempo calé, temps alignés, fondu de 16 mesures',
+          h('button', { type: 'button', class: 'btn small', title: 'Écouter la transition : fin de ce morceau → début de l’autre, tempo calé, temps alignés, fondu adapté à la fenêtre propre',
                   onclick: () => {
                     if (tx?.b === m.path) { audio.pause(); return; }
                     const other = doneResults().find((x) => x.path === m.path);

@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { DOMParser } from '@xmldom/xmldom';
 import { cueAt } from '../cues';
 import { mergeWithPrevious } from '../merge';
 import { CUE_KIND_LABEL } from '../profiles';
@@ -27,14 +28,27 @@ export interface ImportedTrack {
   loops: { name: string; startSec: number; endSec: number }[];
 }
 
-const unescape = (s: string) =>
-  s.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&amp;/g, '&');
-
-export function attrs(tag: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const m of tag.matchAll(/([\w:]+)="([^"]*)"/g)) out[m[1]] = unescape(m[2]);
-  return out;
+function parseCollectionXml(xml: string, root: 'DJ_PLAYLISTS' | 'NML'): Element {
+  if (/<!DOCTYPE/i.test(xml)) throw new Error('XML invalide : les déclarations DOCTYPE ne sont pas autorisées');
+  const errors: string[] = [];
+  const doc = new DOMParser({
+    errorHandler: {
+      warning: () => {},
+      error: (message) => errors.push(String(message)),
+      fatalError: (message) => errors.push(String(message)),
+    },
+  }).parseFromString(xml, 'application/xml');
+  if (errors.length) throw new Error(`XML invalide : ${errors[0]}`);
+  if (doc.documentElement?.tagName !== root) throw new Error(`XML invalide : racine ${root} attendue`);
+  const collection = doc.getElementsByTagName('COLLECTION').item(0);
+  if (!collection) throw new Error('XML invalide : collection absente');
+  return collection;
 }
+
+const elements = (parent: Element, name: string): Element[] =>
+  Array.from({ length: parent.getElementsByTagName(name).length }, (_, i) => parent.getElementsByTagName(name).item(i)).filter((x): x is Element => !!x);
+
+const attr = (element: Element, name: string): string | undefined => element.getAttribute(name) ?? undefined;
 
 /** rekordbox Location (file://localhost/Users/…, file://localhost/C:/…) → OS path. */
 export function pathFromRekordboxLocation(loc: string): string {
@@ -49,31 +63,35 @@ export function pathFromRekordboxLocation(loc: string): string {
 }
 
 export function parseRekordboxXml(xml: string): ImportedTrack[] {
-  const coll = xml.slice(xml.indexOf('<COLLECTION'), xml.indexOf('</COLLECTION>') + 13);
+  const coll = parseCollectionXml(xml, 'DJ_PLAYLISTS');
   const out: ImportedTrack[] = [];
-  for (const m of coll.matchAll(/<TRACK\b([^>]*?)(\/>|>([\s\S]*?)<\/TRACK>)/g)) {
-    const a = attrs(m[1]);
-    if (!a.Location) continue;
-    const body = m[3] ?? '';
-    const t: ImportedTrack = { path: pathFromRekordboxLocation(a.Location), source: 'rekordbox', cues: [], loops: [] };
-    const bpm = Number(a.AverageBpm);
+  for (const track of elements(coll, 'TRACK')) {
+    const location = attr(track, 'Location');
+    if (!location) continue;
+    const t: ImportedTrack = { path: pathFromRekordboxLocation(location), source: 'rekordbox', cues: [], loops: [] };
+    const bpm = Number(attr(track, 'AverageBpm'));
     if (bpm > 0) t.bpm = bpm;
-    const tempo = /<TEMPO\b([^>]*)\/?>/.exec(body);
+    const tempo = track.getElementsByTagName('TEMPO').item(0);
     if (tempo) {
-      const ta = attrs(tempo[1]);
       // Battito = beat number in the bar of that marker: step back to its bar's beat 1
-      const start = Number(ta.Inizio), b = Number(ta.Bpm) || bpm, beat = Number(ta.Battito) || 1;
+      const start = Number(attr(tempo, 'Inizio'));
+      const b = Number(attr(tempo, 'Bpm')) || bpm;
+      const beat = Number(attr(tempo, 'Battito')) || 1;
       if (Number.isFinite(start) && b > 0) t.gridSec = start - (beat - 1) * (60 / b);
     }
-    for (const pm of body.matchAll(/<POSITION_MARK\b([^>]*)\/?>/g)) {
-      const p = attrs(pm[1]);
-      const start = Number(p.Start);
+    for (const mark of elements(track, 'POSITION_MARK')) {
+      const start = Number(attr(mark, 'Start'));
       if (!Number.isFinite(start)) continue;
-      const num = Number(p.Num ?? -1);
-      if (p.Type === '4' && p.End) t.loops.push({ name: p.Name || 'Loop', startSec: start, endSec: Number(p.End) });
-      else if (p.Type === '0' || p.Type === undefined) {
-        const color: RGB | undefined = p.Red !== undefined ? [Number(p.Red), Number(p.Green), Number(p.Blue)] : undefined;
-        t.cues.push({ slot: num >= 0 && num <= 7 ? num : -1, name: p.Name ?? '', timeSec: start, color });
+      const type = attr(mark, 'Type');
+      const num = Number(attr(mark, 'Num') ?? -1);
+      const end = attr(mark, 'End');
+      if (type === '4' && end !== undefined) t.loops.push({ name: attr(mark, 'Name') || 'Loop', startSec: start, endSec: Number(end) });
+      else if (type === '0' || type === undefined) {
+        const red = attr(mark, 'Red');
+        const color: RGB | undefined = red !== undefined
+          ? [Number(red), Number(attr(mark, 'Green')), Number(attr(mark, 'Blue'))]
+          : undefined;
+        t.cues.push({ slot: num >= 0 && num <= 7 ? num : -1, name: attr(mark, 'Name') ?? '', timeSec: start, color });
       }
     }
     out.push(t);
@@ -90,41 +108,42 @@ export function pathFromTraktorLocation(volume: string, dir: string, file: strin
 }
 
 export function parseTraktorNml(nml: string, bootVolume = 'Macintosh HD'): ImportedTrack[] {
-  const coll = nml.slice(nml.indexOf('<COLLECTION'), nml.indexOf('</COLLECTION>') + 13);
+  const coll = parseCollectionXml(nml, 'NML');
   const out: ImportedTrack[] = [];
-  for (const m of coll.matchAll(/<ENTRY\b[^>]*>([\s\S]*?)<\/ENTRY>/g)) {
-    const body = m[1];
-    const loc = /<LOCATION\b([^>]*)>/.exec(body);
+  for (const entry of elements(coll, 'ENTRY')) {
+    const loc = entry.getElementsByTagName('LOCATION').item(0);
     if (!loc) continue;
-    const l = attrs(loc[1]);
-    if (!l.FILE) continue;
-    const t: ImportedTrack = { path: pathFromTraktorLocation(l.VOLUME ?? '', l.DIR ?? '/:', l.FILE, bootVolume), source: 'traktor', cues: [], loops: [] };
-    const tempo = /<TEMPO\b([^>]*)>/.exec(body);
-    if (tempo && Number(attrs(tempo[1]).BPM) > 0) t.bpm = Number(attrs(tempo[1]).BPM);
+    const file = attr(loc, 'FILE');
+    if (!file) continue;
+    const t: ImportedTrack = {
+      path: pathFromTraktorLocation(attr(loc, 'VOLUME') ?? '', attr(loc, 'DIR') ?? '/:', file, bootVolume),
+      source: 'traktor', cues: [], loops: [],
+    };
+    const tempo = entry.getElementsByTagName('TEMPO').item(0);
+    if (tempo && Number(attr(tempo, 'BPM')) > 0) t.bpm = Number(attr(tempo, 'BPM'));
     const hotOf = new Set<number>();
-    const raw: { a: Record<string, string>; hot: number }[] = [];
-    for (const cm of body.matchAll(/<CUE_V2\b([^>]*)>/g)) {
-      const a = attrs(cm[1]);
-      raw.push({ a, hot: Number(a.HOTCUE ?? -1) });
-    }
-    for (const { a, hot } of raw) {
-      const start = Number(a.START) / 1000;
+    for (const cue of elements(entry, 'CUE_V2')) {
+      const hot = Number(attr(cue, 'HOTCUE') ?? -1);
+      const start = Number(attr(cue, 'START')) / 1000;
       if (!Number.isFinite(start)) continue;
-      if (a.TYPE === '4') {
+      const type = attr(cue, 'TYPE');
+      if (type === '4') {
         if (t.gridSec === undefined) t.gridSec = start;
         continue;
       }
-      if (a.TYPE === '5' && Number(a.LEN) > 0) {
-        t.loops.push({ name: a.NAME || 'Loop', startSec: start, endSec: start + Number(a.LEN) / 1000 });
+      const len = Number(attr(cue, 'LEN'));
+      if (type === '5' && len > 0) {
+        t.loops.push({ name: attr(cue, 'NAME') || 'Loop', startSec: start, endSec: start + len / 1000 });
         continue;
       }
-      if (a.TYPE !== '0' && a.TYPE !== '1' && a.TYPE !== '2' && a.TYPE !== '3') continue;
+      if (type !== '0' && type !== '1' && type !== '2' && type !== '3') continue;
       // Traktor hotcue 1 (index 0) usually holds the grid marker: hotcues 2–8 → pads A–G, as CueKoda exports.
       // A cue on hotcue 1 goes to pad H when it is free, otherwise it is kept as a memory cue.
       let slot = hot >= 1 && hot <= 7 ? hot - 1 : -1;
       if (hot === 0) slot = hotOf.has(7) ? -1 : 7;
       if (slot >= 0) hotOf.add(slot);
-      t.cues.push({ slot, name: a.NAME && a.NAME !== 'n.n.' ? a.NAME : '', timeSec: start });
+      const name = attr(cue, 'NAME');
+      t.cues.push({ slot, name: name && name !== 'n.n.' ? name : '', timeSec: start });
     }
     out.push(t);
   }

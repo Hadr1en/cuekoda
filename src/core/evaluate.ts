@@ -16,6 +16,9 @@ export interface Reference {
   /** Engine version whose output was corrected */
   engineVersion: string;
   profileId?: string;
+  /** Optional corpus dimensions used to detect blind spots in real-world evaluation. */
+  genre?: string;
+  scenario?: 'steady' | 'variable' | 'live' | 'edit';
   // Every annotation is optional: public datasets annotate only part of it (tempo, key, beats…).
   bpm?: number;
   firstDownbeatSec?: number;

@@ -1,6 +1,7 @@
 import type { AnalysisResult } from '../types';
 import { buildRekordboxXml, exportedLoops } from './rekordbox';
 import { buildTraktorNml, traktorCues } from './traktor';
+import { buildM3u8 } from './m3u8';
 import { duplicateCueIds } from '../cues';
 import { formatKey, type KeyNotation } from '../key';
 
@@ -47,7 +48,7 @@ export interface Capability {
   note: string;
 }
 
-export type ExportTargetId = 'rekordbox' | 'traktor' | 'engine' | 'virtualdj' | 'djay';
+export type ExportTargetId = 'rekordbox' | 'traktor' | 'engine' | 'virtualdj' | 'djay' | 'serato';
 
 export interface ExportAdapter {
   id: ExportTargetId;
@@ -135,6 +136,25 @@ export const ADAPTERS: ExportAdapter[] = [
     ],
     build: (tracks, opts) => buildTraktorNml(tracks, opts, opts.macVolume),
   },
+  {
+    id: 'serato',
+    name: 'Serato / M3U8',
+    tagline: 'Playlist ordonnée portable — sans écriture dans la base Serato',
+    extension: 'm3u8',
+    formatName: 'Playlist M3U8 UTF-8',
+    capabilities: [
+      { field: 'Ordre et chemins des morceaux', support: 'yes', note: 'Playlist UTF-8 avec durées, artistes et titres' },
+      { field: 'BPM, grille, tonalité', support: 'no', note: 'M3U8 ne transporte pas les données d’analyse DJ' },
+      { field: 'Hot cues, boucles, couleurs', support: 'no', note: 'À préparer ou vérifier dans Serato' },
+      { field: 'Fichiers audio', support: 'no', note: 'La playlist référence les fichiers existants sans les copier' },
+    ],
+    howToImport: [
+      'Le fichier M3U8 conserve l’ordre et les chemins ; il sert de playlist portable et de référence pour créer une crate.',
+      'Dans Serato, ouvrir Files, localiser les morceaux référencés puis les déposer dans une nouvelle crate dans cet ordre.',
+      'Ne pas copier le M3U8 dans le dossier interne _Serato_ : CueKoda ne modifie jamais la base ou les crates Serato.',
+    ],
+    build: (tracks) => buildM3u8(tracks),
+  },
   ...viaRekordbox({
     id: 'engine',
     name: 'Engine DJ',
@@ -170,6 +190,12 @@ export const ADAPTERS: ExportAdapter[] = [
 
 /** What will actually be transferred for these tracks (shown before exporting). */
 export function exportSummary(adapter: ExportAdapter, tracks: AnalysisResult[], opts: ExportOptions): string[] {
+  if (adapter.id === 'serato') return [
+    `${tracks.length} morceau(x) dans l’ordre de la playlist`,
+    'Chemins, durées, artistes et titres dans un fichier M3U8 UTF-8',
+    'Non transférés : BPM, grille, tonalité, cues, boucles, sections, énergie et phrases',
+    'Les fichiers audio et la bibliothèque Serato ne sont pas modifiés',
+  ];
   const xml = adapter.id === 'rekordbox' || adapter.via === 'rekordbox';
   const cuesByTrack = tracks.map((t) => xml
     ? t.cues.filter((c) => c.slot <= 7).map((cue) => ({ cue, hotcue: cue.slot }))

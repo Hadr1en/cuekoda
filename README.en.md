@@ -186,12 +186,15 @@ The **“Export…”** dialog lists the fields transferred and displays import 
 | **Engine DJ** (Denon, Numark, Rane) | rekordbox XML | depends on Engine DJ | depends on Engine DJ | ? | ? | ? |
 | **VirtualDJ** | rekordbox XML | depends on VirtualDJ | depends on VirtualDJ | ? | ? | ? |
 | **djay Pro** | rekordbox XML | depends on djay | depends on djay | ? | ? | ? |
+| **Serato** | M3U8 | — | — | — | — | — |
 
 **Useful options**:
 - **"E8 · 8B · Vocal" comment** (on by default): energy, Camelot key and vocals written to the Comments field,
   for sorting and filtering in the DJ software. "Vocal" or "Instru" is only written on
   clear evidence.
 - **Export a set**: from "Mix order…", "Export this set…" creates a named playlist with the tracks in the displayed order.
+- **Serato / M3U8**: writes an ordered UTF-8 playlist that references audio files without modifying the
+  Serato database. Grids and cues still need to be checked in Serato.
 
 In Traktor, AutoGrid occupies button 1. CueKoda fills buttons 2–8 in pad order, skipping cues
 at the first downbeat. The Traktor button preview shows all eight buttons and the stored markers for the

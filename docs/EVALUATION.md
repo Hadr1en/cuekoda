@@ -1,7 +1,8 @@
-# Évaluation du moteur CueKoda v0.4.0
+# Évaluation du moteur CueKoda v0.5.2
 
 3 morceau(x) — références vérifiées par le DJ.
 Les références du DJ ne sont pas exhaustives : pour les cues, le rappel compte plus que la précision.
+Couverture du corpus : 3/100 titres cibles, 1/5 genres cibles, 1/4 plages BPM cibles.
 
 | Mesure | Morceaux | Résultat |
 |---|---|---|
@@ -80,7 +81,7 @@ de cues sur des morceaux complets.
 
 ### Modèles de cues électro
 
-CueKoda 0.4.4 utilise deux petits modèles d’arbres pour comparer les emplacements de drops et
+CueKoda 0.5.2 utilise deux petits modèles d’arbres pour comparer les emplacements de drops et
 de breaks sur une grille EDM déjà établie. Les modèles suivent l’énergie, le bas du spectre,
 la brillance et les attaques de grosse caisse sur plusieurs mesures. Les seuils de sélection
 et le résultat passent ensuite par le profil habituel de hot cues.
