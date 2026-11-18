@@ -1,9 +1,11 @@
 // Bundles every entry point with esbuild and copies the static renderer files.
 import { build } from 'esbuild';
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync } from 'node:fs';
 
 const common = { bundle: true, sourcemap: true, logLevel: 'info', target: 'node20' };
 
+// A removed entry point must never survive in a later installer as a stale bundle.
+rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist/renderer', { recursive: true });
 
 await Promise.all([

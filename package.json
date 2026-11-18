@@ -1,7 +1,7 @@
 {
   "name": "cuekoda",
   "productName": "CueKoda",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "license": "AGPL-3.0-or-later",
   "description": "Préparation musicale pour DJ : BPM, grille, tonalité, structure, énergie, hot cues, boucles — export rekordbox, Traktor et M3U8",
   "main": "dist/main/main.js",
@@ -18,7 +18,7 @@
     "test:unit": "npm run build && node --test dist/test/unit.js",
     "test:regression": "npm run build && node dist/test/regression.js samples",
     "test:all": "npm run typecheck && npm run test:unit && npm test",
-    "smoke": "npm run build && CUEKODA_SMOKE_DIR=samples CUEKODA_SMOKE_REPORT=smoke-report.json electron .",
+    "smoke": "npm run build && node scripts/smoke.mjs",
     "preview": "npm run build && node dist/cli/cli.js samples --out cuekoda-out --preview dist/renderer/preview-data.js && node scripts/make-preview.mjs",
     "dist": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac --win",
     "dist:mac": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac",
@@ -80,6 +80,16 @@
       "minimumSystemVersion": "13.0",
       "identity": "-",
       "files": [
+        "!src{,/**/*}",
+        "!scripts{,/**/*}",
+        "!tests{,/**/*}",
+        "!docs{,/**/*}",
+        "!site{,/**/*}",
+        "!assets{,/**/*}",
+        "!vendor{,/**/*}",
+        "!dist/test{,/**/*}",
+        "!dist/**/*.map",
+        "!*.md",
         "!node_modules/onnxruntime-node/bin/napi-v6/{linux,win32}/**",
         "!node_modules/onnxruntime-node/bin/napi-v6/darwin/!(${arch})/**"
       ],
@@ -93,6 +103,16 @@
     },
     "win": {
       "files": [
+        "!src{,/**/*}",
+        "!scripts{,/**/*}",
+        "!tests{,/**/*}",
+        "!docs{,/**/*}",
+        "!site{,/**/*}",
+        "!assets{,/**/*}",
+        "!vendor{,/**/*}",
+        "!dist/test{,/**/*}",
+        "!dist/**/*.map",
+        "!*.md",
         "!node_modules/onnxruntime-node/bin/napi-v6/{darwin,linux}/**",
         "!node_modules/onnxruntime-node/bin/napi-v6/win32/!(${arch})/**",
         "!node_modules/onnxruntime-node/bin/napi-v6/win32/${arch}/{DirectML,dxcompiler,dxil}.dll"
