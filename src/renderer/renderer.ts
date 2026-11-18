@@ -15,7 +15,7 @@ import type { TrackEdits, TrackRecord } from '../shared/api';
 import { allProfiles, api, applyTheme, changedEdits, doneResults, history, keyLabel, snapshotEdits, state } from './state';
 import { metronome } from './metronome';
 import { WaveView, drawOverview } from './waveform';
-import { openDuplicates, openExport, openHelp, openSetOrder, openSettings, renderUpdateBadge } from './dialogs';
+import { openAbout, openDuplicates, openExport, openHelp, openSetOrder, openSettings, renderUpdateBadge } from './dialogs';
 import {
   $, announce, camelotColor, setText, translateDom, clearTokenCache, confBadge, fmtBpm, fmtDur, fmtTime, h, hexOf, initToast, LETTERS, rgb, rgbOf, toast, toFileUrl, worst,
 } from './util';
@@ -1758,6 +1758,7 @@ $('btn-export').addEventListener('click', exportCurrentView);
 $('btn-crates').addEventListener('click', showCrates);
 $('btn-dupes').addEventListener('click', openDuplicates);
 $('btn-settings').addEventListener('click', () => openSettings(() => { fillProfiles(); renderDetail(); }));
+$('btn-about').addEventListener('click', openAbout);
 $('profile').addEventListener('change', async (e) => {
   state.settings = await api.setSettings({ profileId: (e.target as HTMLSelectElement).value });
   toast('Profil sélectionné pour les prochaines suggestions.');

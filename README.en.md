@@ -169,7 +169,7 @@ With the panel focused, use **1 / 2 / 3** to listen, **T** to set the downbeat a
 checked and move on.
 
 Select tracks using their checkboxes, Ctrl/⌘-click or Shift-click. Right-click the selection to re-analyze or remove it.
-Open **More › Compare re-analysis…** to listen to changed tracks before and after and restore the
+Open **Prepare › Compare re-analysis…** to listen to changed tracks before and after and restore the
 previous analysis for each track.
 
 **Crates** stores selections as local, ordered lists. Tracks can be added through the context menu. A crate can filter the library or be exported as a named playlist. Export also accepts the current selection.
@@ -218,6 +218,8 @@ Export safety: CueKoda writes a **new collection file** and leaves the DJ softwa
 - **Language**: French or English. Cue names are preserved in their original language.
 - **Theme**: dark (default), light or system. Also: number of parallel analyses, watched folders, learning,
   profiles.
+- **About** presents the author, technologies, licence and credits, with links to the source code, issue
+  tracker and the project's Ko-fi page.
 
 Use the library selector to switch between Camelot and Open Key (Traktor).
 For example, **5A** and **10m** both mean **C minor**. Search accepts both codes.

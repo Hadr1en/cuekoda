@@ -332,9 +332,19 @@ function registerIpc() {
   }));
   ipcMain.handle('update-check', () => updater.check());
   ipcMain.handle('update-install', () => updater.install());
-  // only the CueKoda release pages on GitHub can be opened from the UI
+  // Only CueKoda's own public pages and the author's support page can be opened from the UI.
   ipcMain.on('open-external', (_e, url: string) => {
-    if (typeof url === 'string' && url.startsWith('https://github.com/Hadr1en/cuekoda/')) void shell.openExternal(url);
+    if (typeof url !== 'string') return;
+    try {
+      const target = new URL(url);
+      const github = target.origin === 'https://github.com'
+        && (target.pathname === '/Hadr1en/cuekoda' || target.pathname.startsWith('/Hadr1en/cuekoda/'));
+      const kofi = target.origin === 'https://ko-fi.com'
+        && (target.pathname === '/hadr1en' || target.pathname === '/hadr1en/');
+      if (github || kofi) void shell.openExternal(target.toString());
+    } catch {
+      // Ignore malformed or non-HTTPS external URLs.
+    }
   });
 
   ipcMain.handle('reference-save', (_e, p: string, rating?: number) => {
@@ -1167,7 +1177,9 @@ function runSmoke() {
           const d = document.getElementById('dlg-settings'); const h = [...d.querySelectorAll('h3')].find((x) => /Mises à jour|Updates/.test(x.textContent));
           if (h) h.scrollIntoView({ block: 'start' }); return true;`);
         await shot('settings');
-        await js(`document.getElementById('dlg-settings').close(); return true;`);
+        await js(`document.getElementById('dlg-settings').close(); document.getElementById('btn-about').click(); await wait(200); return true;`);
+        await shot('about');
+        await js(`document.getElementById('dlg-about').close(); return true;`);
       }
       report.dialogs = await win!.webContents.executeJavaScript(`(async () => {
         const wait = (ms) => new Promise((r) => setTimeout(r, ms));

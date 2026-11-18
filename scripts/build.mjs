@@ -54,4 +54,5 @@ await Promise.all([
 
 cpSync('src/renderer/index.html', 'dist/renderer/index.html');
 cpSync('src/renderer/styles.css', 'dist/renderer/styles.css');
+cpSync('assets/logo/png/cuekoda-icone-128.png', 'dist/renderer/cuekoda-icon.png');
 console.log('build ok');

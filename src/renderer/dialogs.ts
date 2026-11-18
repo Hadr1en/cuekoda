@@ -16,6 +16,14 @@ const closeBtn = (dlg: HTMLDialogElement) =>
 
 // ================================================================= export
 const SUPPORT_TEXT = { yes: '✓', partial: '≈', no: '✗' } as const;
+const TARGET_WORDMARK: Record<AdapterInfo['id'], string> = {
+  rekordbox: 'rekordbox',
+  traktor: 'TRAKTOR',
+  serato: 'serato',
+  engine: 'ENGINE DJ',
+  virtualdj: 'VirtualDJ',
+  djay: 'djay',
+};
 
 function traktorInspector(
   paths: string[], opts: ExportOptions, inspectedPath: string | null, onChoose: (path: string) => void, expanded: boolean,
@@ -112,6 +120,7 @@ export function openExport(currentPath: string | null, set?: { name: string; pat
         ...state.adapters.map((a) =>
           h('label', { class: `target${a.id === target ? ' on' : ''}` },
             h('input', { type: 'radio', name: 'target', checked: a.id === target, onchange: () => { target = a.id; void render(); } }),
+            h('span', { class: `target-wordmark target-wordmark-${a.id}`, 'aria-hidden': 'true' }, TARGET_WORDMARK[a.id]),
             h('b', {}, a.name),
             h('span', { class: 'muted' }, a.tagline),
           ),
@@ -244,6 +253,39 @@ export function openHelp() {
   dlg.replaceChildren(
     h('h2', { id: 'dlg-help-title' }, 'Raccourcis clavier'),
     h('table', { class: 'caps' }, h('tbody', {}, ...rows.map(([k, v]) => h('tr', {}, h('td', {}, h('kbd', {}, k)), h('td', {}, v))))),
+    h('div', { class: 'dlg-actions' }, closeBtn(dlg)),
+  );
+  dlg.showModal();
+}
+
+// ================================================================= about
+export function openAbout() {
+  const dlg = $<HTMLDialogElement>('dlg-about');
+  const external = (url: string) => () => api.openExternal(url);
+  const version = `Version ${state.appVersion}${state.appBuild ? ` (build ${state.appBuild})` : ' (build de développement : pas de mise à jour automatique)'}`;
+  dlg.replaceChildren(
+    h('div', { class: 'about-head' },
+      h('img', { src: 'cuekoda-icon.png', alt: '' }),
+      h('div', {},
+        h('h2', { id: 'dlg-about-title' }, 'CueKoda'),
+        h('p', { class: 'about-tagline' }, 'Analyze. Cue. Mix.'),
+        h('p', { class: 'muted' }, version),
+      ),
+    ),
+    h('p', {}, 'Application de préparation musicale pour DJ : analyse locale, repères modifiables et exports vers rekordbox, Traktor et M3U8.'),
+    h('p', {}, 'Conçu et développé par Hadrien.'),
+    h('section', { class: 'set' },
+      h('h3', {}, 'Technologies et crédits'),
+      h('p', {}, 'Construit avec Electron, TypeScript, Essentia.js, FFmpeg, TensorFlow.js et ONNX Runtime.'),
+      h('p', { class: 'muted' }, 'CueKoda est un logiciel libre sous GNU AGPL v3 ou ultérieure. Les composants, bibliothèques et modèles tiers restent soumis à leurs propres licences.'),
+    ),
+    h('div', { class: 'about-links' },
+      h('button', { type: 'button', class: 'btn ghost', onclick: external('https://github.com/Hadr1en/cuekoda') }, 'Code source'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: external('https://github.com/Hadr1en/cuekoda/issues') }, 'Signaler un problème'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: external('https://github.com/Hadr1en/cuekoda/blob/main/README.md#licence') }, 'Licence et crédits'),
+      h('button', { type: 'button', class: 'btn', onclick: external('https://ko-fi.com/hadr1en') }, 'Soutenir sur Ko-fi ☕'),
+    ),
+    h('p', { class: 'muted about-support' }, 'CueKoda est développé indépendamment et proposé gratuitement. Si l’application vous est utile, vous pouvez soutenir son développement sur Ko-fi.'),
     h('div', { class: 'dlg-actions' }, closeBtn(dlg)),
   );
   dlg.showModal();
