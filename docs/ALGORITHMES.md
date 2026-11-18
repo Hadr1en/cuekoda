@@ -1,6 +1,6 @@
 # Algorithmes de CueKoda et leurs limites
 
-Moteur v0.5.2 (`ENGINE_VERSION`). Tout s'exécute localement (CPU). Les niveaux de confiance sont
+Moteur v0.6.0 (`ENGINE_VERSION`). Tout s'exécute localement (CPU). Les niveaux de confiance sont
 **qualitatifs** (forte / moyenne / faible) : ils ne sont pas encore calibrés sur un corpus annoté et ne
 doivent pas être lus comme des probabilités.
 

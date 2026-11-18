@@ -488,7 +488,7 @@ test('IPC export validation rejects malformed paths and options', () => {
 });
 
 test('evaluation corpus coverage exposes genre, tempo and annotation blind spots', () => {
-  const base = { version: 1 as const, fileHash: '', path: '', title: '', createdAt: '', engineVersion: '0.5.2' };
+  const base = { version: 1 as const, fileHash: '', path: '', title: '', createdAt: '', engineVersion: '0.6.0' };
   const coverage = evaluationCoverage([
     { ...base, fileName: 'a.mp3', genre: 'House', scenario: 'steady', bpm: 128, firstDownbeatSec: 0, cues: [] },
     { ...base, fileName: 'b.mp3', genre: 'Drum & Bass', scenario: 'edit', bpm: 174, key: 'Am', sections: [{ type: 'drop', label: 'Drop', startSec: 10 }] },
