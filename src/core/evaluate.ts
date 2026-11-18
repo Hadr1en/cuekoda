@@ -22,7 +22,9 @@ export interface Reference {
   genreFamily?: GenreFamily;
   rhythm?: RhythmMode;
   scenario?: 'steady' | 'variable' | 'live' | 'edit';
-  vocalStyle?: 'instrumental' | 'sung' | 'rap-spoken' | 'chops' | 'mixed' | 'unknown';
+  vocalStyle?: 'instrumental' | 'sung' | 'rap-spoken' | 'crowd' | 'chops' | 'mixed' | 'unknown';
+  /** Official corpus split. Thresholds are selected on validation and reported once on test. */
+  partition?: 'train' | 'validation' | 'test';
   // Every annotation is optional: public datasets annotate only part of it (tempo, key, beats…).
   bpm?: number;
   firstDownbeatSec?: number;
@@ -40,6 +42,8 @@ export interface Reference {
   /** Where the annotation comes from (DJ, dataset name) */
   source?: string;
   vocalSegments?: { startSec: number; endSec: number }[];
+  /** Clip-level label for corpora without temporal boundaries (e.g. AudioSet). */
+  vocalPresence?: boolean;
   /** Optional energy feeling given by the DJ (1–10) */
   energyRating?: number;
 }
@@ -50,6 +54,7 @@ export interface ReferenceDetails {
   rhythm?: RhythmMode;
   scenario?: Reference['scenario'];
   vocalStyle?: Reference['vocalStyle'];
+  partition?: Reference['partition'];
   source?: string;
 }
 
@@ -71,6 +76,7 @@ export function referenceFrom(r: AnalysisResult, energyRating?: number, details:
     rhythm: details.rhythm ?? matchedGenre?.rhythm,
     scenario: details.scenario ?? (r.tempo?.variable ? 'variable' : 'steady'),
     vocalStyle: details.vocalStyle,
+    partition: details.partition,
     source: details.source ?? 'CueKoda quick review',
     bpm: r.bpm,
     firstDownbeatSec: r.grid.firstDownbeatSec,
@@ -96,6 +102,13 @@ export interface CueMiss {
 
 export interface TrackEvaluation {
   fileName: string;
+  genre?: string;
+  genreFamily?: GenreFamily;
+  rhythm?: RhythmMode;
+  scenario?: Reference['scenario'];
+  vocalStyle?: Reference['vocalStyle'];
+  partition?: Reference['partition'];
+  performance?: { analysisMs: number; cpuMs: number; rssDeltaMb: number; fileSizeMb: number };
   bpm?: { reference: number; detected: number; errorPct: number; octaveError: boolean; confidence?: Confidence; competingBpm?: number };
   /** Phase error of the grid, in ms (−beat/2 … +beat/2), and whether the bar start is the same beat */
   grid?: { phaseErrorMs: number; downbeatOk: boolean };
@@ -110,6 +123,21 @@ export interface TrackEvaluation {
    */
   cues?: { exact: number; matched: number; reference: number; detected: number; precision: number; recall: number; meanOffsetBeats: number; misses: CueMiss[] };
   sections?: { matched: number; reference: number; detected: number; precision: number; recall: number };
+  /** Duration-weighted vocal-presence score against manually annotated intervals. */
+  vocals?: {
+    truePositiveSec: number;
+    referenceSec: number;
+    detectedSec: number;
+    precision: number;
+    recall: number;
+    f1: number;
+    intersectionOverUnion: number;
+    /** Brier score of the per-bar detector curve (0 is perfectly calibrated). */
+    brier: number;
+    bars: number;
+    thresholds: { threshold: number; truePositive: number; falsePositive: number; falseNegative: number; trueNegative: number }[];
+  };
+  vocalClip?: { expected: boolean; detected: boolean };
   energy?: { reference: number; detected: number };
 }
 
@@ -163,12 +191,45 @@ const fMeasure = (ref: number[], det: number[], tol: number) => {
   return ref.length + det.length ? (2 * m) / (ref.length + det.length) : 0;
 };
 
+type Interval = { startSec: number; endSec: number };
+
+function mergeIntervals(intervals: Interval[]): Interval[] {
+  const sorted = intervals.filter((v) => v.endSec > v.startSec)
+    .map((v) => ({ ...v })).sort((a, b) => a.startSec - b.startSec);
+  const out: Interval[] = [];
+  for (const current of sorted) {
+    const previous = out[out.length - 1];
+    if (previous && current.startSec <= previous.endSec) previous.endSec = Math.max(previous.endSec, current.endSec);
+    else out.push(current);
+  }
+  return out;
+}
+
+const intervalDuration = (intervals: Interval[]) => intervals.reduce((sum, v) => sum + v.endSec - v.startSec, 0);
+
+function overlapDuration(a: Interval[], b: Interval[]): number {
+  let i = 0, j = 0, total = 0;
+  while (i < a.length && j < b.length) {
+    total += Math.max(0, Math.min(a[i].endSec, b[j].endSec) - Math.max(a[i].startSec, b[j].startSec));
+    if (a[i].endSec < b[j].endSec) i++; else j++;
+  }
+  return total;
+}
+
 /**
  * Compares a fresh analysis (no corrections) with a reference. Every part of the reference is optional:
  * a public dataset may annotate only the tempo, the key or the beats.
  */
 export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluation {
-  const out: TrackEvaluation = { fileName: ref.fileName };
+  const out: TrackEvaluation = {
+    fileName: ref.fileName,
+    genre: ref.genre,
+    genreFamily: ref.genreFamily,
+    rhythm: ref.rhythm,
+    scenario: ref.scenario,
+    vocalStyle: ref.vocalStyle,
+    partition: ref.partition,
+  };
   const refBpm = ref.bpm ?? det.bpm;
   const beat = 60 / refBpm;
   if (ref.bpm) {
@@ -198,15 +259,19 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
 
   if (ref.cues) {
     const refCues = ref.cues;
-    const same = (i: number, j: number) => refCues[i].kind === 'custom' || refCues[i].kind === det.cues[j].kind;
+    const acceptsAnyKind = refCues.some((cue) => cue.kind === 'custom');
+    const annotatedKinds = new Set(refCues.map((cue) => cue.kind));
+    // A partial corpus such as M-DJCUE annotates only mix-in/out. Other CueKoda cue kinds are not false positives.
+    const detCues = acceptsAnyKind ? det.cues : det.cues.filter((cue) => annotatedKinds.has(cue.kind));
+    const same = (i: number, j: number) => refCues[i].kind === 'custom' || refCues[i].kind === detCues[j].kind;
     const rt = refCues.map((c) => c.timeSec);
-    const dt = det.cues.map((c) => c.timeSec);
+    const dt = detCues.map((c) => c.timeSec);
     const exact = matchTimes(rt, dt, EXACT_CUE_SEC, same);
     const near = matchTimes(rt, dt, beat + 1e-6, same);
     const misses: CueMiss[] = refCues
       .filter((c) => !exact.some(([a]) => a === c.timeSec))
       .map((c) => {
-        const cands = det.cues.filter((d) => c.kind === 'custom' || d.kind === c.kind);
+        const cands = detCues.filter((d) => c.kind === 'custom' || d.kind === c.kind);
         const best = cands.sort((a, b) => Math.abs(a.timeSec - c.timeSec) - Math.abs(b.timeSec - c.timeSec))[0];
         return { kind: c.kind, name: c.name, timeSec: c.timeSec, errorBeats: best ? (best.timeSec - c.timeSec) / beat : null };
       });
@@ -233,6 +298,55 @@ export function evaluateTrack(det: AnalysisResult, ref: Reference): TrackEvaluat
       recall: ratio(secPairs.length, refSec.length),
     };
   }
+  if (ref.vocalSegments) {
+    const reference = mergeIntervals(ref.vocalSegments);
+    const vocals = det.vocals;
+    const barSec = 240 / det.bpm;
+    const detected = mergeIntervals((vocals?.segments ?? []).map((segment) => ({
+      startSec: det.grid.firstDownbeatSec + segment.startBar * barSec,
+      endSec: det.grid.firstDownbeatSec + segment.endBar * barSec,
+    })));
+    const referenceSec = intervalDuration(reference);
+    const detectedSec = intervalDuration(detected);
+    const truePositiveSec = overlapDuration(reference, detected);
+    const precision = detectedSec ? truePositiveSec / detectedSec : referenceSec ? 0 : 1;
+    const recall = referenceSec ? truePositiveSec / referenceSec : detectedSec ? 0 : 1;
+    // Calibrate the exact smoothed fused score consumed by segmentVocals, not the raw model output.
+    const curve = vocals?.curve ?? [];
+    let brier = 0;
+    const thresholds = Array.from({ length: 9 }, (_, index) => ({
+      threshold: (index + 1) / 10, truePositive: 0, falsePositive: 0, falseNegative: 0, trueNegative: 0,
+    }));
+    for (let bar = 0; bar < curve.length; bar++) {
+      const midpoint = det.grid.firstDownbeatSec + (bar + 0.5) * barSec;
+      const expected = reference.some((v) => midpoint >= v.startSec && midpoint < v.endSec) ? 1 : 0;
+      brier += (curve[bar] - expected) ** 2;
+      for (const stat of thresholds) {
+        const present = curve[bar] >= stat.threshold;
+        if (present && expected) stat.truePositive++;
+        else if (present) stat.falsePositive++;
+        else if (expected) stat.falseNegative++;
+        else stat.trueNegative++;
+      }
+    }
+    out.vocals = {
+      truePositiveSec,
+      referenceSec,
+      detectedSec,
+      precision,
+      recall,
+      f1: precision + recall ? (2 * precision * recall) / (precision + recall) : 0,
+      intersectionOverUnion: referenceSec + detectedSec - truePositiveSec
+        ? truePositiveSec / (referenceSec + detectedSec - truePositiveSec) : 1,
+      brier: curve.length ? brier / curve.length : 0,
+      bars: curve.length,
+      thresholds,
+    };
+  }
+  if (ref.vocalPresence !== undefined) out.vocalClip = {
+    expected: ref.vocalPresence,
+    detected: Boolean(det.vocals?.segments.length),
+  };
   if (ref.energyRating !== undefined && det.energy) out.energy = { reference: ref.energyRating, detected: det.energy.score };
   return out;
 }
@@ -266,7 +380,7 @@ export function spearman(a: number[], b: number[]): number | null {
 export interface EvaluationSummary {
   tracks: number;
   /** number of tracks each figure is computed on */
-  counts: { bpm: number; grid: number; beats: number; key: number; cues: number; sections: number };
+  counts: { bpm: number; grid: number; beats: number; key: number; cues: number; sections: number; vocals: number; vocalClips: number };
   bpmWithin1Pct: number;
   bpmOctaveErrors: number;
   medianPhaseErrorMs: number;
@@ -283,6 +397,19 @@ export interface EvaluationSummary {
   cueF1: number;
   cueMeanOffsetBeats: number;
   sectionF1: number;
+  vocalPrecision: number;
+  vocalRecall: number;
+  vocalF1: number;
+  vocalIntersectionOverUnion: number;
+  vocalBrier: number;
+  vocalFalsePositiveSec: number;
+  /** Best fused MusiCNN + spectral score threshold on this set; never applied automatically. */
+  vocalBestThreshold: number;
+  vocalThresholdF1: number;
+  vocalClipPrecision: number;
+  vocalClipRecall: number;
+  vocalClipF1: number;
+  vocalClipFalsePositives: number;
   energySpearman: number | null;
 }
 
@@ -290,13 +417,23 @@ export function summarize(evals: TrackEvaluation[]): EvaluationSummary {
   const of = <K extends keyof TrackEvaluation>(k: K) => evals.map((e) => e[k]).filter((v): v is NonNullable<TrackEvaluation[K]> => v !== undefined);
   const mean = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0);
   const f1 = (m: number, r: number, d: number) => (r + d ? (2 * m) / (r + d) : 1);
-  const bpm = of('bpm'), grid = of('grid'), beats = of('beats'), key = of('key'), cues = of('cues'), sections = of('sections'), energy = of('energy');
+  const bpm = of('bpm'), grid = of('grid'), beats = of('beats'), key = of('key'), cues = of('cues'), sections = of('sections'), vocals = of('vocals'), vocalClips = of('vocalClip'), energy = of('energy');
   const phases = grid.map((g) => Math.abs(g.phaseErrorMs)).sort((a, b) => a - b);
   const sum = <T>(a: T[], f: (x: T) => number) => a.reduce((s, x) => s + f(x), 0);
   const cuesNear = sum(cues, (c) => c.matched);
+  const thresholdStats = Array.from({ length: 9 }, (_, index) => {
+    const threshold = (index + 1) / 10;
+    const stats = vocals.flatMap((v) => v.thresholds.filter((value) => value.threshold === threshold));
+    const tp = sum(stats, (v) => v.truePositive), fp = sum(stats, (v) => v.falsePositive), fn = sum(stats, (v) => v.falseNegative);
+    return { threshold, f1: 2 * tp + fp + fn ? (2 * tp) / (2 * tp + fp + fn) : 1 };
+  });
+  const bestThreshold = thresholdStats.sort((a, b) => b.f1 - a.f1 || Math.abs(a.threshold - 0.5) - Math.abs(b.threshold - 0.5))[0];
+  const clipTp = vocalClips.filter((v) => v.expected && v.detected).length;
+  const clipFp = vocalClips.filter((v) => !v.expected && v.detected).length;
+  const clipFn = vocalClips.filter((v) => v.expected && !v.detected).length;
   return {
     tracks: evals.length,
-    counts: { bpm: bpm.length, grid: grid.length, beats: beats.length, key: key.length, cues: cues.length, sections: sections.length },
+    counts: { bpm: bpm.length, grid: grid.length, beats: beats.length, key: key.length, cues: cues.length, sections: sections.length, vocals: vocals.length, vocalClips: vocalClips.length },
     bpmWithin1Pct: mean(bpm.map((b) => (Math.abs(b.errorPct) <= 1 ? 1 : 0))),
     bpmOctaveErrors: bpm.filter((b) => b.octaveError).length,
     medianPhaseErrorMs: phases.length ? phases[Math.floor(phases.length / 2)] : 0,
@@ -310,6 +447,21 @@ export function summarize(evals: TrackEvaluation[]): EvaluationSummary {
     cueF1: f1(cuesNear, sum(cues, (c) => c.reference), sum(cues, (c) => c.detected)),
     cueMeanOffsetBeats: cuesNear ? sum(cues, (c) => c.meanOffsetBeats * c.matched) / cuesNear : 0,
     sectionF1: f1(sum(sections, (c) => c.matched), sum(sections, (c) => c.reference), sum(sections, (c) => c.detected)),
+    vocalPrecision: ratio(sum(vocals, (v) => v.truePositiveSec), sum(vocals, (v) => v.detectedSec)),
+    vocalRecall: ratio(sum(vocals, (v) => v.truePositiveSec), sum(vocals, (v) => v.referenceSec)),
+    vocalF1: f1(sum(vocals, (v) => v.truePositiveSec), sum(vocals, (v) => v.referenceSec), sum(vocals, (v) => v.detectedSec)),
+    vocalIntersectionOverUnion: ratio(
+      sum(vocals, (v) => v.truePositiveSec),
+      sum(vocals, (v) => v.referenceSec + v.detectedSec - v.truePositiveSec),
+    ),
+    vocalBrier: ratio(sum(vocals, (v) => v.brier * v.bars), sum(vocals, (v) => v.bars)),
+    vocalFalsePositiveSec: sum(vocals, (v) => v.detectedSec - v.truePositiveSec),
+    vocalBestThreshold: vocals.length ? bestThreshold.threshold : 0,
+    vocalThresholdF1: vocals.length ? bestThreshold.f1 : 0,
+    vocalClipPrecision: clipTp + clipFp ? clipTp / (clipTp + clipFp) : 1,
+    vocalClipRecall: clipTp + clipFn ? clipTp / (clipTp + clipFn) : 1,
+    vocalClipF1: 2 * clipTp + clipFp + clipFn ? 2 * clipTp / (2 * clipTp + clipFp + clipFn) : 1,
+    vocalClipFalsePositives: clipFp,
     energySpearman: spearman(energy.map((e) => e.reference), energy.map((e) => e.detected)),
   };
 }

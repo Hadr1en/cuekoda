@@ -1,0 +1,87 @@
+{
+  "policy": "Evaluation resources are developer-only and are never downloaded or shipped by CueKoda.",
+  "corpora": [
+    {
+      "id": "giantsteps-tempo",
+      "task": "tempo",
+      "official": "https://github.com/GiantSteps/giantsteps-tempo-dataset",
+      "revision": "d51ab2422e76abacfaa86616a57054bc222ec9fd",
+      "license": "see upstream repository",
+      "audio": "Beatport previews must be obtained separately"
+    },
+    {
+      "id": "giantsteps-key",
+      "task": "key",
+      "official": "https://github.com/GiantSteps/giantsteps-key-dataset",
+      "revision": "6bcd492c825ac9b8597bc650a5f6fd18b6c43d2b",
+      "license": "see upstream repository",
+      "audio": "Beatport previews must be obtained separately"
+    },
+    {
+      "id": "ballroom",
+      "task": "beats and downbeats",
+      "official": "https://github.com/CPJKU/BallroomAnnotations",
+      "revision": "1db08914a8ae15edb01f104046e30bad88effe67",
+      "license": "see upstream repository",
+      "audio": "not redistributed"
+    },
+    {
+      "id": "harmonix",
+      "task": "beats, downbeats and structure",
+      "official": "https://github.com/urinieto/harmonixset",
+      "revision": "64abeb509429e73d74559fb98e621dac866efea1",
+      "license": "MIT for annotations",
+      "audio": "not redistributed"
+    },
+    {
+      "id": "raveform",
+      "task": "EDM beats, downbeats and functional structure",
+      "official": "https://raveform.netlify.app/",
+      "paper": "https://doi.org/10.5334/tismir.288",
+      "license": "see official project",
+      "audio": "not redistributed"
+    },
+    {
+      "id": "m-djcue",
+      "task": "DJ mix-in and mix-out cue points",
+      "official": "https://github.com/MZehren/M-DJCUE",
+      "revision": "7fd692c793a4a4744ab61e409854302269b0974c",
+      "license": "GPL-3.0 for annotations",
+      "audio": "alternative audio mapping is supplied by the corpus; audio is not redistributed"
+    },
+    {
+      "id": "jamendo-vocal",
+      "task": "singing and spoken voice presence",
+      "official": "https://zenodo.org/records/2585988",
+      "archiveMd5": "4d6b907b224c6df3a5ed3ffc3e98b8b1",
+      "license": "Creative Commons tracks; consult per-track metadata",
+      "audio": "included by the official archive for evaluation only"
+    },
+    {
+      "id": "audioset",
+      "task": "separate singing, rapping/speech and crowd false positives",
+      "official": "https://research.google.com/audioset/download.html",
+      "version": "v1 evaluation split",
+      "license": "CC BY 4.0 annotations; CC BY-SA 4.0 ontology",
+      "audio": "YouTube segments are not redistributed or downloaded by CueKoda"
+    },
+    {
+      "id": "groove",
+      "task": "live, syncopated and non-four-on-floor tempo",
+      "official": "https://magenta.withgoogle.com/datasets/groove",
+      "version": "1.0.0",
+      "audioSha256": "21559feb2f1c96ca53988fd4d7060b1f2afe1d854fb2a8dcea5ff95cf3cce7e9",
+      "license": "CC BY 4.0",
+      "audio": "official aligned audio archive; never shipped by CueKoda"
+    },
+    {
+      "id": "brid",
+      "task": "Brazilian rhythms, beats and tempo",
+      "official": "https://zenodo.org/records/14051323",
+      "annotationsMd5": "678b2fa99c8d220cddd9f5e20d55d0c1",
+      "audioMd5": "3514b53d66515181f95619adb71a59b4",
+      "license": "CC BY-NC-SA 4.0",
+      "audio": "official corpus only; never shipped by CueKoda"
+    }
+  ]
+}

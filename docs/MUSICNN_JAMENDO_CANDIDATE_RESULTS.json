@@ -1,0 +1,3154 @@
+{
+  "engine": "0.6.0",
+  "summary": {
+    "tracks": 32,
+    "counts": {
+      "bpm": 0,
+      "grid": 0,
+      "beats": 0,
+      "key": 0,
+      "cues": 0,
+      "sections": 0,
+      "vocals": 32,
+      "vocalClips": 0
+    },
+    "bpmWithin1Pct": 0,
+    "bpmOctaveErrors": 0,
+    "medianPhaseErrorMs": 0,
+    "downbeatAccuracy": 0,
+    "beatF": 0,
+    "downbeatF": 0,
+    "keyMirexScore": 0,
+    "keyExact": 0,
+    "cueExactF1": 1,
+    "cueExactRecall": 1,
+    "cueF1": 1,
+    "cueMeanOffsetBeats": 0,
+    "sectionF1": 1,
+    "vocalPrecision": 0.7092259718053857,
+    "vocalRecall": 0.9276341364150624,
+    "vocalF1": 0.8038588252896903,
+    "vocalIntersectionOverUnion": 0.672043436247711,
+    "vocalBrier": 0.2031048927820603,
+    "vocalBestThreshold": 0.1,
+    "vocalThresholdF1": 0.8028019528762471,
+    "vocalClipPrecision": 1,
+    "vocalClipRecall": 1,
+    "vocalClipF1": 1,
+    "energySpearman": null
+  },
+  "tracks": [
+    {
+      "fileName": "03 - castaway.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 158.17999999999995,
+        "referenceSec": 158.1800000000001,
+        "detectedSec": 199.43437394576358,
+        "precision": 0.7931431120445526,
+        "recall": 0.9999999999999991,
+        "f1": 0.8846400565766397,
+        "intersectionOverUnion": 0.793143112044552,
+        "brier": 0.18660301744186047,
+        "bars": 172,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 97,
+            "falsePositive": 33,
+            "falseNegative": 0,
+            "trueNegative": 42
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 93,
+            "falsePositive": 18,
+            "falseNegative": 4,
+            "trueNegative": 57
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 83,
+            "falsePositive": 18,
+            "falseNegative": 14,
+            "trueNegative": 57
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 71,
+            "falsePositive": 16,
+            "falseNegative": 26,
+            "trueNegative": 59
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 54,
+            "falsePositive": 13,
+            "falseNegative": 43,
+            "trueNegative": 62
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 33,
+            "falsePositive": 9,
+            "falseNegative": 64,
+            "trueNegative": 66
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 18,
+            "falsePositive": 4,
+            "falseNegative": 79,
+            "trueNegative": 71
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 10,
+            "falsePositive": 2,
+            "falseNegative": 87,
+            "trueNegative": 73
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 1,
+            "falsePositive": 0,
+            "falseNegative": 96,
+            "trueNegative": 75
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 14998,
+        "cpuMs": 9828,
+        "rssDeltaMb": 214.25,
+        "fileSizeMb": 3.7614660263061523
+      }
+    },
+    {
+      "fileName": "03 - Say me Good Bye.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 164.81071519274366,
+        "referenceSec": 174.07799999999995,
+        "detectedSec": 198.64114285714294,
+        "precision": 0.8296907318504044,
+        "recall": 0.9467636070769638,
+        "f1": 0.8843694688142858,
+        "intersectionOverUnion": 0.7927081987209156,
+        "brier": 0.10202799770642199,
+        "bars": 436,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 109,
+            "falsePositive": 19,
+            "falseNegative": 9,
+            "trueNegative": 299
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 96,
+            "falsePositive": 18,
+            "falseNegative": 22,
+            "trueNegative": 300
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 91,
+            "falsePositive": 17,
+            "falseNegative": 27,
+            "trueNegative": 301
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 76,
+            "falsePositive": 13,
+            "falseNegative": 42,
+            "trueNegative": 305
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 61,
+            "falsePositive": 10,
+            "falseNegative": 57,
+            "trueNegative": 308
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 49,
+            "falsePositive": 6,
+            "falseNegative": 69,
+            "trueNegative": 312
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 20,
+            "falsePositive": 2,
+            "falseNegative": 98,
+            "trueNegative": 316
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 6,
+            "falsePositive": 1,
+            "falseNegative": 112,
+            "trueNegative": 317
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 118,
+            "trueNegative": 318
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 26290,
+        "cpuMs": 14438,
+        "rssDeltaMb": 113.30859375,
+        "fileSizeMb": 8.969897270202637
+      }
+    },
+    {
+      "fileName": "03 - School.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 157.6943589600224,
+        "referenceSec": 161.82800000000015,
+        "detectedSec": 270.11333146957406,
+        "precision": 0.5838081300988482,
+        "recall": 0.9744565771066952,
+        "f1": 0.7301656381134267,
+        "intersectionOverUnion": 0.57500856806917,
+        "brier": 0.19584256944444436,
+        "bars": 144,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 74,
+            "falsePositive": 53,
+            "falseNegative": 6,
+            "trueNegative": 11
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 65,
+            "falsePositive": 33,
+            "falseNegative": 15,
+            "trueNegative": 31
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 62,
+            "falsePositive": 24,
+            "falseNegative": 18,
+            "trueNegative": 40
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 57,
+            "falsePositive": 13,
+            "falseNegative": 23,
+            "trueNegative": 51
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 54,
+            "falsePositive": 10,
+            "falseNegative": 26,
+            "trueNegative": 54
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 44,
+            "falsePositive": 9,
+            "falseNegative": 36,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 41,
+            "falsePositive": 6,
+            "falseNegative": 39,
+            "trueNegative": 58
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 19,
+            "falsePositive": 2,
+            "falseNegative": 61,
+            "trueNegative": 62
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 11,
+            "falsePositive": 1,
+            "falseNegative": 69,
+            "trueNegative": 63
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 16188,
+        "cpuMs": 11390,
+        "rssDeltaMb": -105.17578125,
+        "fileSizeMb": 6.707697868347168
+      }
+    },
+    {
+      "fileName": "03 - Si Dieu.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 118.65205348346231,
+        "referenceSec": 121.17199999999994,
+        "detectedSec": 142.75862068965517,
+        "precision": 0.8311375727102432,
+        "recall": 0.9792035576161355,
+        "f1": 0.8991154809807405,
+        "intersectionOverUnion": 0.8167209779475613,
+        "brier": 0.14332518181818188,
+        "bars": 88,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 60,
+            "falsePositive": 9,
+            "falseNegative": 1,
+            "trueNegative": 18
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 58,
+            "falsePositive": 6,
+            "falseNegative": 3,
+            "trueNegative": 21
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 56,
+            "falsePositive": 3,
+            "falseNegative": 5,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 52,
+            "falsePositive": 3,
+            "falseNegative": 9,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 46,
+            "falsePositive": 1,
+            "falseNegative": 15,
+            "trueNegative": 26
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 36,
+            "falsePositive": 1,
+            "falseNegative": 25,
+            "trueNegative": 26
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 26,
+            "falsePositive": 0,
+            "falseNegative": 35,
+            "trueNegative": 27
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 18,
+            "falsePositive": 0,
+            "falseNegative": 43,
+            "trueNegative": 27
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 7,
+            "falsePositive": 0,
+            "falseNegative": 54,
+            "trueNegative": 27
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 10418,
+        "cpuMs": 7344,
+        "rssDeltaMb": -4.28125,
+        "fileSizeMb": 3.994678497314453
+      }
+    },
+    {
+      "fileName": "03 - Une charogne.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 211.10635909632097,
+        "referenceSec": 212.18299999999988,
+        "detectedSec": 247.12941300354788,
+        "precision": 0.8542340489971959,
+        "recall": 0.9949258851855289,
+        "f1": 0.9192277548775517,
+        "intersectionOverUnion": 0.8505286465543956,
+        "brier": 0.2332994774193548,
+        "bars": 155,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 118,
+            "falsePositive": 18,
+            "falseNegative": 1,
+            "trueNegative": 18
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 113,
+            "falsePositive": 13,
+            "falseNegative": 6,
+            "trueNegative": 23
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 103,
+            "falsePositive": 12,
+            "falseNegative": 16,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 81,
+            "falsePositive": 8,
+            "falseNegative": 38,
+            "trueNegative": 28
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 64,
+            "falsePositive": 6,
+            "falseNegative": 55,
+            "trueNegative": 30
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 49,
+            "falsePositive": 4,
+            "falseNegative": 70,
+            "trueNegative": 32
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 30,
+            "falsePositive": 2,
+            "falseNegative": 89,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 119,
+            "trueNegative": 36
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 119,
+            "trueNegative": 36
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 14182,
+        "cpuMs": 8938,
+        "rssDeltaMb": 14.84765625,
+        "fileSizeMb": 3.857759475708008
+      }
+    },
+    {
+      "fileName": "04 - Believe.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 123.71205526980445,
+        "referenceSec": 142.6380000000001,
+        "detectedSec": 158.01246686208358,
+        "precision": 0.7829259154455375,
+        "recall": 0.8673148478652559,
+        "f1": 0.8229626686497343,
+        "intersectionOverUnion": 0.6991814505200558,
+        "brier": 0.21742291743119244,
+        "bars": 109,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 61,
+            "falsePositive": 17,
+            "falseNegative": 10,
+            "trueNegative": 21
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 59,
+            "falsePositive": 13,
+            "falseNegative": 12,
+            "trueNegative": 25
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 58,
+            "falsePositive": 10,
+            "falseNegative": 13,
+            "trueNegative": 28
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 55,
+            "falsePositive": 7,
+            "falseNegative": 16,
+            "trueNegative": 31
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 49,
+            "falsePositive": 4,
+            "falseNegative": 22,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 35,
+            "falsePositive": 4,
+            "falseNegative": 36,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 12,
+            "falsePositive": 0,
+            "falseNegative": 59,
+            "trueNegative": 38
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 5,
+            "falsePositive": 0,
+            "falseNegative": 66,
+            "trueNegative": 38
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 3,
+            "falsePositive": 0,
+            "falseNegative": 68,
+            "trueNegative": 38
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 12591,
+        "cpuMs": 8203,
+        "rssDeltaMb": -26.8515625,
+        "fileSizeMb": 4.918919563293457
+      }
+    },
+    {
+      "fileName": "04 - Healing Luna.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 136.4878095238096,
+        "referenceSec": 169.5370000000001,
+        "detectedSec": 170,
+        "precision": 0.8028694677871153,
+        "recall": 0.8050620780349395,
+        "f1": 0.8039642779656387,
+        "intersectionOverUnion": 0.6721908578099657,
+        "brier": 0.2639409306930693,
+        "bars": 202,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 62,
+            "falsePositive": 11,
+            "falseNegative": 25,
+            "trueNegative": 104
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 43,
+            "falsePositive": 0,
+            "falseNegative": 44,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 28,
+            "falsePositive": 0,
+            "falseNegative": 59,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 18,
+            "falsePositive": 0,
+            "falseNegative": 69,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 10,
+            "falsePositive": 0,
+            "falseNegative": 77,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 85,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 87,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 87,
+            "trueNegative": 115
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 87,
+            "trueNegative": 115
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 19078,
+        "cpuMs": 11547,
+        "rssDeltaMb": 46.54296875,
+        "fileSizeMb": 7.769033432006836
+      }
+    },
+    {
+      "fileName": "04 - Inside.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 49.32000000000002,
+        "referenceSec": 49.32000000000002,
+        "detectedSec": 104.71914434210265,
+        "precision": 0.4709740545518453,
+        "recall": 1,
+        "f1": 0.6403567120636058,
+        "intersectionOverUnion": 0.4709740545518453,
+        "brier": 0.07953421904761905,
+        "bars": 105,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 30,
+            "falsePositive": 18,
+            "falseNegative": 0,
+            "trueNegative": 57
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 30,
+            "falsePositive": 13,
+            "falseNegative": 0,
+            "trueNegative": 62
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 30,
+            "falsePositive": 9,
+            "falseNegative": 0,
+            "trueNegative": 66
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 30,
+            "falsePositive": 9,
+            "falseNegative": 0,
+            "trueNegative": 66
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 24,
+            "falsePositive": 6,
+            "falseNegative": 6,
+            "trueNegative": 69
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 19,
+            "falsePositive": 4,
+            "falseNegative": 11,
+            "trueNegative": 71
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 9,
+            "falsePositive": 2,
+            "falseNegative": 21,
+            "trueNegative": 73
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 1,
+            "falseNegative": 30,
+            "trueNegative": 74
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 30,
+            "trueNegative": 75
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 12310,
+        "cpuMs": 7968,
+        "rssDeltaMb": -26.4609375,
+        "fileSizeMb": 3.666166305541992
+      }
+    },
+    {
+      "fileName": "04 - You are.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 48.539462585034,
+        "referenceSec": 50.15499999999999,
+        "detectedSec": 69.01170068027213,
+        "precision": 0.7033512014131486,
+        "recall": 0.9677891054737118,
+        "f1": 0.8146480905813925,
+        "intersectionOverUnion": 0.6872626467366656,
+        "brier": 0.1779895714285715,
+        "bars": 35,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 21,
+            "falsePositive": 8,
+            "falseNegative": 0,
+            "trueNegative": 6
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 21,
+            "falsePositive": 8,
+            "falseNegative": 0,
+            "trueNegative": 6
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 21,
+            "falsePositive": 8,
+            "falseNegative": 0,
+            "trueNegative": 6
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 21,
+            "falsePositive": 8,
+            "falseNegative": 0,
+            "trueNegative": 6
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 18,
+            "falsePositive": 7,
+            "falseNegative": 3,
+            "trueNegative": 7
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 15,
+            "falsePositive": 4,
+            "falseNegative": 6,
+            "trueNegative": 10
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 1,
+            "falsePositive": 1,
+            "falseNegative": 20,
+            "trueNegative": 13
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 21,
+            "trueNegative": 14
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 21,
+            "trueNegative": 14
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 5419,
+        "cpuMs": 3985,
+        "rssDeltaMb": -43.28125,
+        "fileSizeMb": 1.8046464920043945
+      }
+    },
+    {
+      "fileName": "05 - 05 LIrlandaise.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 76.84174149659864,
+        "referenceSec": 84.38299999999995,
+        "detectedSec": 107.99999999999997,
+        "precision": 0.7114976064499876,
+        "recall": 0.9106305949847563,
+        "f1": 0.7988412853172959,
+        "intersectionOverUnion": 0.6650588931774236,
+        "brier": 0.19564366355140203,
+        "bars": 107,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 41,
+            "falsePositive": 10,
+            "falseNegative": 7,
+            "trueNegative": 49
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 39,
+            "falsePositive": 4,
+            "falseNegative": 9,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 31,
+            "falsePositive": 3,
+            "falseNegative": 17,
+            "trueNegative": 56
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 20,
+            "falsePositive": 1,
+            "falseNegative": 28,
+            "trueNegative": 58
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 19,
+            "falsePositive": 1,
+            "falseNegative": 29,
+            "trueNegative": 58
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 9,
+            "falsePositive": 0,
+            "falseNegative": 39,
+            "trueNegative": 59
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 4,
+            "falsePositive": 0,
+            "falseNegative": 44,
+            "trueNegative": 59
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 46,
+            "trueNegative": 59
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 48,
+            "trueNegative": 59
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 11791,
+        "cpuMs": 7750,
+        "rssDeltaMb": 21.546875,
+        "fileSizeMb": 2.8737049102783203
+      }
+    },
+    {
+      "fileName": "05 - 16 ans.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 82.59176688598939,
+        "referenceSec": 82.8420000000001,
+        "detectedSec": 283.13742983532205,
+        "precision": 0.2917020435412806,
+        "recall": 0.9969793931337882,
+        "f1": 0.45134649738731364,
+        "intersectionOverUnion": 0.29144446877617275,
+        "brier": 0.1785586883116883,
+        "bars": 154,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 33,
+            "falsePositive": 96,
+            "falseNegative": 0,
+            "trueNegative": 25
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 33,
+            "falsePositive": 48,
+            "falseNegative": 0,
+            "trueNegative": 73
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 33,
+            "falsePositive": 35,
+            "falseNegative": 0,
+            "trueNegative": 86
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 33,
+            "falsePositive": 33,
+            "falseNegative": 0,
+            "trueNegative": 88
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 33,
+            "falsePositive": 32,
+            "falseNegative": 0,
+            "trueNegative": 89
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 33,
+            "falsePositive": 30,
+            "falseNegative": 0,
+            "trueNegative": 91
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 33,
+            "falsePositive": 30,
+            "falseNegative": 0,
+            "trueNegative": 91
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 28,
+            "falsePositive": 25,
+            "falseNegative": 5,
+            "trueNegative": 96
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 17,
+            "falsePositive": 15,
+            "falseNegative": 16,
+            "trueNegative": 106
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 14749,
+        "cpuMs": 9172,
+        "rssDeltaMb": 38.15625,
+        "fileSizeMb": 3.5354080200195312
+      }
+    },
+    {
+      "fileName": "05 - 2003-Circonstances attenuantes part II.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 63.588670985854655,
+        "referenceSec": 67.34200000000001,
+        "detectedSec": 92.58588921282805,
+        "precision": 0.6868073690979279,
+        "recall": 0.944264663744092,
+        "f1": 0.7952167855005257,
+        "intersectionOverUnion": 0.6600496885499001,
+        "brier": 0.18309098901098894,
+        "bars": 91,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 42,
+            "falsePositive": 9,
+            "falseNegative": 3,
+            "trueNegative": 37
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 35,
+            "falsePositive": 5,
+            "falseNegative": 10,
+            "trueNegative": 41
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 31,
+            "falsePositive": 4,
+            "falseNegative": 14,
+            "trueNegative": 42
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 26,
+            "falsePositive": 2,
+            "falseNegative": 19,
+            "trueNegative": 44
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 24,
+            "falsePositive": 2,
+            "falseNegative": 21,
+            "trueNegative": 44
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 19,
+            "falsePositive": 1,
+            "falseNegative": 26,
+            "trueNegative": 45
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 9,
+            "falsePositive": 0,
+            "falseNegative": 36,
+            "trueNegative": 46
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 3,
+            "falsePositive": 0,
+            "falseNegative": 42,
+            "trueNegative": 46
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 45,
+            "trueNegative": 46
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 9630,
+        "cpuMs": 6750,
+        "rssDeltaMb": -24.859375,
+        "fileSizeMb": 2.140634536743164
+      }
+    },
+    {
+      "fileName": "05 - A Poings Fermes.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 100.13880952380961,
+        "referenceSec": 101.36800000000005,
+        "detectedSec": 139.42857142857136,
+        "precision": 0.718208674863389,
+        "recall": 0.987873979202604,
+        "f1": 0.8317295294506654,
+        "intersectionOverUnion": 0.711932339657251,
+        "brier": 0.12192477519379841,
+        "bars": 129,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 50,
+            "falsePositive": 6,
+            "falseNegative": 1,
+            "trueNegative": 72
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 49,
+            "falsePositive": 0,
+            "falseNegative": 2,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 43,
+            "falsePositive": 0,
+            "falseNegative": 8,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 35,
+            "falsePositive": 0,
+            "falseNegative": 16,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 25,
+            "falsePositive": 0,
+            "falseNegative": 26,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 10,
+            "falsePositive": 0,
+            "falseNegative": 41,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 49,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 51,
+            "trueNegative": 78
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 51,
+            "trueNegative": 78
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 14488,
+        "cpuMs": 9062,
+        "rssDeltaMb": 17.84375,
+        "fileSizeMb": 3.649871826171875
+      }
+    },
+    {
+      "fileName": "05 - Angeliques.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 70.75002699232301,
+        "referenceSec": 72.31399999999995,
+        "detectedSec": 102.01917219900007,
+        "precision": 0.6934973639495623,
+        "recall": 0.9783724727206774,
+        "f1": 0.8116645397992572,
+        "intersectionOverUnion": 0.6830264407511198,
+        "brier": 0.1934933389830507,
+        "bars": 59,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 34,
+            "falsePositive": 17,
+            "falseNegative": 1,
+            "trueNegative": 7
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 34,
+            "falsePositive": 17,
+            "falseNegative": 1,
+            "trueNegative": 7
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 30,
+            "falsePositive": 16,
+            "falseNegative": 5,
+            "trueNegative": 8
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 29,
+            "falsePositive": 13,
+            "falseNegative": 6,
+            "trueNegative": 11
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 25,
+            "falsePositive": 6,
+            "falseNegative": 10,
+            "trueNegative": 18
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 24,
+            "falsePositive": 3,
+            "falseNegative": 11,
+            "trueNegative": 21
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 10,
+            "falsePositive": 0,
+            "falseNegative": 25,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 33,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 35,
+            "trueNegative": 24
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 7539,
+        "cpuMs": 5500,
+        "rssDeltaMb": -36.5234375,
+        "fileSizeMb": 1.494476318359375
+      }
+    },
+    {
+      "fileName": "05 - Animal.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 102.53402225620937,
+        "referenceSec": 102.70300000000009,
+        "detectedSec": 155.54855422262577,
+        "precision": 0.6591769545441071,
+        "recall": 0.9983546951521307,
+        "f1": 0.7940631572565087,
+        "intersectionOverUnion": 0.6584616450145309,
+        "brier": 0.18094528688524586,
+        "bars": 122,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 53,
+            "falsePositive": 32,
+            "falseNegative": 0,
+            "trueNegative": 37
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 52,
+            "falsePositive": 29,
+            "falseNegative": 1,
+            "trueNegative": 40
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 50,
+            "falsePositive": 24,
+            "falseNegative": 3,
+            "trueNegative": 45
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 36,
+            "falsePositive": 17,
+            "falseNegative": 17,
+            "trueNegative": 52
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 26,
+            "falsePositive": 14,
+            "falseNegative": 27,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 9,
+            "falsePositive": 6,
+            "falseNegative": 44,
+            "trueNegative": 63
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 1,
+            "falsePositive": 2,
+            "falseNegative": 52,
+            "trueNegative": 67
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 53,
+            "trueNegative": 69
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 53,
+            "trueNegative": 69
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 11340,
+        "cpuMs": 7407,
+        "rssDeltaMb": 20.87890625,
+        "fileSizeMb": 3.12685489654541
+      }
+    },
+    {
+      "fileName": "05 - Anyway.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 149.16499999999996,
+        "referenceSec": 149.165,
+        "detectedSec": 165.28264426353417,
+        "precision": 0.9024843513645904,
+        "recall": 0.9999999999999998,
+        "f1": 0.9487429956701273,
+        "intersectionOverUnion": 0.9024843513645904,
+        "brier": 0.07570481147540983,
+        "bars": 122,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 98,
+            "falsePositive": 11,
+            "falseNegative": 0,
+            "trueNegative": 13
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 98,
+            "falsePositive": 11,
+            "falseNegative": 0,
+            "trueNegative": 13
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 97,
+            "falsePositive": 10,
+            "falseNegative": 1,
+            "trueNegative": 14
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 96,
+            "falsePositive": 9,
+            "falseNegative": 2,
+            "trueNegative": 15
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 95,
+            "falsePositive": 9,
+            "falseNegative": 3,
+            "trueNegative": 15
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 94,
+            "falsePositive": 8,
+            "falseNegative": 4,
+            "trueNegative": 16
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 87,
+            "falsePositive": 5,
+            "falseNegative": 11,
+            "trueNegative": 19
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 66,
+            "falsePositive": 2,
+            "falseNegative": 32,
+            "trueNegative": 22
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 37,
+            "falsePositive": 1,
+            "falseNegative": 61,
+            "trueNegative": 23
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 10189,
+        "cpuMs": 6874,
+        "rssDeltaMb": 8.8125,
+        "fileSizeMb": 1.7255182266235352
+      }
+    },
+    {
+      "fileName": "05 - Argeles.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 82.28945333088188,
+        "referenceSec": 88.22800000000001,
+        "detectedSec": 106.97313476742048,
+        "precision": 0.7692534533067062,
+        "recall": 0.9326909068649621,
+        "f1": 0.8431247433979178,
+        "intersectionOverUnion": 0.7287948623556033,
+        "brier": 0.17510793893129778,
+        "bars": 131,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 38,
+            "falsePositive": 7,
+            "falseNegative": 5,
+            "trueNegative": 81
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 29,
+            "falsePositive": 5,
+            "falseNegative": 14,
+            "trueNegative": 83
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 22,
+            "falsePositive": 4,
+            "falseNegative": 21,
+            "trueNegative": 84
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 15,
+            "falsePositive": 2,
+            "falseNegative": 28,
+            "trueNegative": 86
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 5,
+            "falsePositive": 1,
+            "falseNegative": 38,
+            "trueNegative": 87
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 43,
+            "trueNegative": 88
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 43,
+            "trueNegative": 88
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 43,
+            "trueNegative": 88
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 43,
+            "trueNegative": 88
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 14106,
+        "cpuMs": 8797,
+        "rssDeltaMb": -4.75390625,
+        "fileSizeMb": 3.213449478149414
+      }
+    },
+    {
+      "fileName": "05 - As Longas Passagens.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 92.9883406833998,
+        "referenceSec": 95.33299999999997,
+        "detectedSec": 100.31445773711783,
+        "precision": 0.9269684827194429,
+        "recall": 0.9754055855097378,
+        "f1": 0.9505703959449738,
+        "intersectionOverUnion": 0.9057971990421677,
+        "brier": 0.19766705319148936,
+        "bars": 94,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 44,
+            "falsePositive": 2,
+            "falseNegative": 1,
+            "trueNegative": 47
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 37,
+            "falsePositive": 2,
+            "falseNegative": 8,
+            "trueNegative": 47
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 27,
+            "falsePositive": 2,
+            "falseNegative": 18,
+            "trueNegative": 47
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 20,
+            "falsePositive": 2,
+            "falseNegative": 25,
+            "trueNegative": 47
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 17,
+            "falsePositive": 0,
+            "falseNegative": 28,
+            "trueNegative": 49
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 10,
+            "falsePositive": 0,
+            "falseNegative": 35,
+            "trueNegative": 49
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 7,
+            "falsePositive": 0,
+            "falseNegative": 38,
+            "trueNegative": 49
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 1,
+            "falsePositive": 0,
+            "falseNegative": 44,
+            "trueNegative": 49
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 45,
+            "trueNegative": 49
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 10989,
+        "cpuMs": 7266,
+        "rssDeltaMb": -21.76171875,
+        "fileSizeMb": 2.7359018325805664
+      }
+    },
+    {
+      "fileName": "05 - Au Mage.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 89.86517333072317,
+        "referenceSec": 92.33999999999997,
+        "detectedSec": 109.12018793128763,
+        "precision": 0.8235430586621676,
+        "recall": 0.9731987581841368,
+        "f1": 0.8921382855194561,
+        "intersectionOverUnion": 0.8052794621012455,
+        "brier": 0.1538645494505495,
+        "bars": 91,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 58,
+            "falsePositive": 9,
+            "falseNegative": 2,
+            "trueNegative": 22
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 58,
+            "falsePositive": 9,
+            "falseNegative": 2,
+            "trueNegative": 22
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 57,
+            "falsePositive": 8,
+            "falseNegative": 3,
+            "trueNegative": 23
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 54,
+            "falsePositive": 8,
+            "falseNegative": 6,
+            "trueNegative": 23
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 47,
+            "falsePositive": 7,
+            "falseNegative": 13,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 40,
+            "falsePositive": 5,
+            "falseNegative": 20,
+            "trueNegative": 26
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 33,
+            "falsePositive": 4,
+            "falseNegative": 27,
+            "trueNegative": 27
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 12,
+            "falsePositive": 3,
+            "falseNegative": 48,
+            "trueNegative": 28
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 3,
+            "falsePositive": 0,
+            "falseNegative": 57,
+            "trueNegative": 31
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 9492,
+        "cpuMs": 6718,
+        "rssDeltaMb": 12.3515625,
+        "fileSizeMb": 1.8881855010986328
+      }
+    },
+    {
+      "fileName": "05 - Aux Cieux, Tu es mon Dieu.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 141.90781128747784,
+        "referenceSec": 144.53899999999993,
+        "detectedSec": 216.8943915343915,
+        "precision": 0.6542714649446179,
+        "recall": 0.9817959947659657,
+        "f1": 0.785250143519044,
+        "intersectionOverUnion": 0.646429500962328,
+        "brier": 0.3714583688524592,
+        "bars": 122,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 80,
+            "falsePositive": 26,
+            "falseNegative": 5,
+            "trueNegative": 11
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 45,
+            "falsePositive": 16,
+            "falseNegative": 40,
+            "trueNegative": 21
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 29,
+            "falsePositive": 5,
+            "falseNegative": 56,
+            "trueNegative": 32
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 25,
+            "falsePositive": 4,
+            "falseNegative": 60,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 25,
+            "falsePositive": 3,
+            "falseNegative": 60,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 21,
+            "falsePositive": 3,
+            "falseNegative": 64,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 21,
+            "falsePositive": 3,
+            "falseNegative": 64,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 14,
+            "falsePositive": 3,
+            "falseNegative": 71,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 5,
+            "falsePositive": 0,
+            "falseNegative": 80,
+            "trueNegative": 37
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 12485,
+        "cpuMs": 8360,
+        "rssDeltaMb": 14.4140625,
+        "fileSizeMb": 2.8405771255493164
+      }
+    },
+    {
+      "fileName": "05 - Bandicape.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 100.04492307692311,
+        "referenceSec": 109.8060000000001,
+        "detectedSec": 136.6153846153846,
+        "precision": 0.7323108108108111,
+        "recall": 0.9111061606553651,
+        "f1": 0.8119824765458042,
+        "intersectionOverUnion": 0.6834768515744964,
+        "brier": 0.2848649320388349,
+        "bars": 103,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 41,
+            "falsePositive": 30,
+            "falseNegative": 5,
+            "trueNegative": 27
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 25,
+            "falsePositive": 21,
+            "falseNegative": 21,
+            "trueNegative": 36
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 14,
+            "falsePositive": 12,
+            "falseNegative": 32,
+            "trueNegative": 45
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 7,
+            "falsePositive": 6,
+            "falseNegative": 39,
+            "trueNegative": 51
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 5,
+            "falsePositive": 2,
+            "falseNegative": 41,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 4,
+            "falsePositive": 1,
+            "falseNegative": 42,
+            "trueNegative": 56
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 46,
+            "trueNegative": 57
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 46,
+            "trueNegative": 57
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 46,
+            "trueNegative": 57
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 6931,
+        "cpuMs": 3390,
+        "rssDeltaMb": -29.921875,
+        "fileSizeMb": 2.593463897705078
+      }
+    },
+    {
+      "fileName": "05 - Bazooka enraye.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 113.3118788193243,
+        "referenceSec": 115.89899999999997,
+        "detectedSec": 118.69038471885932,
+        "precision": 0.9546845693332697,
+        "recall": 0.9776777954885231,
+        "f1": 0.9660443839359697,
+        "intersectionOverUnion": 0.934319006470917,
+        "brier": 0.09537582978723404,
+        "bars": 94,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 59,
+            "falsePositive": 3,
+            "falseNegative": 1,
+            "trueNegative": 31
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 57,
+            "falsePositive": 3,
+            "falseNegative": 3,
+            "trueNegative": 31
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 56,
+            "falsePositive": 3,
+            "falseNegative": 4,
+            "trueNegative": 31
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 54,
+            "falsePositive": 1,
+            "falseNegative": 6,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 52,
+            "falsePositive": 1,
+            "falseNegative": 8,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 45,
+            "falsePositive": 1,
+            "falseNegative": 15,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 39,
+            "falsePositive": 1,
+            "falseNegative": 21,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 12,
+            "falsePositive": 0,
+            "falseNegative": 48,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 58,
+            "trueNegative": 34
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 10483,
+        "cpuMs": 7313,
+        "rssDeltaMb": 28.609375,
+        "fileSizeMb": 2.1239404678344727
+      }
+    },
+    {
+      "fileName": "05 - Black Box.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 82.54078534425075,
+        "referenceSec": 104.38699999999983,
+        "detectedSec": 110.48204614482867,
+        "precision": 0.7470968200213246,
+        "recall": 0.7907190104538964,
+        "f1": 0.7682892145257223,
+        "intersectionOverUnion": 0.623757803849942,
+        "brier": 0.20649727906976745,
+        "bars": 129,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 31,
+            "falsePositive": 15,
+            "falseNegative": 11,
+            "trueNegative": 72
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 24,
+            "falsePositive": 11,
+            "falseNegative": 18,
+            "trueNegative": 76
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 21,
+            "falsePositive": 8,
+            "falseNegative": 21,
+            "trueNegative": 79
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 11,
+            "falsePositive": 7,
+            "falseNegative": 31,
+            "trueNegative": 80
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 8,
+            "falsePositive": 4,
+            "falseNegative": 34,
+            "trueNegative": 83
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 1,
+            "falsePositive": 2,
+            "falseNegative": 41,
+            "trueNegative": 85
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 42,
+            "trueNegative": 87
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 42,
+            "trueNegative": 87
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 42,
+            "trueNegative": 87
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 13934,
+        "cpuMs": 8891,
+        "rssDeltaMb": 15.37109375,
+        "fileSizeMb": 3.0024709701538086
+      }
+    },
+    {
+      "fileName": "05 - Bleu horizon.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 91.85587506298816,
+        "referenceSec": 91.91499999999996,
+        "detectedSec": 118.38667863441671,
+        "precision": 0.7758970529669403,
+        "recall": 0.9993567433279464,
+        "f1": 0.8735629278800783,
+        "intersectionOverUnion": 0.7755097461734443,
+        "brier": 0.20712466326530599,
+        "bars": 98,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 51,
+            "falsePositive": 16,
+            "falseNegative": 1,
+            "trueNegative": 30
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 46,
+            "falsePositive": 13,
+            "falseNegative": 6,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 43,
+            "falsePositive": 13,
+            "falseNegative": 9,
+            "trueNegative": 33
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 35,
+            "falsePositive": 12,
+            "falseNegative": 17,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 27,
+            "falsePositive": 9,
+            "falseNegative": 25,
+            "trueNegative": 37
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 18,
+            "falsePositive": 5,
+            "falseNegative": 34,
+            "trueNegative": 41
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 52,
+            "trueNegative": 46
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 52,
+            "trueNegative": 46
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 52,
+            "trueNegative": 46
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 9686,
+        "cpuMs": 6968,
+        "rssDeltaMb": -25.9140625,
+        "fileSizeMb": 2.0056886672973633
+      }
+    },
+    {
+      "fileName": "05 - Bucle Paranoideal.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 127.8097296548249,
+        "referenceSec": 163.1000000000001,
+        "detectedSec": 183.5985084404131,
+        "precision": 0.6961370805270216,
+        "recall": 0.7836280175035244,
+        "f1": 0.7372961033479121,
+        "intersectionOverUnion": 0.5839026119288666,
+        "brier": 0.3139441083333334,
+        "bars": 120,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 61,
+            "falsePositive": 28,
+            "falseNegative": 16,
+            "trueNegative": 15
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 60,
+            "falsePositive": 22,
+            "falseNegative": 17,
+            "trueNegative": 21
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 60,
+            "falsePositive": 21,
+            "falseNegative": 17,
+            "trueNegative": 22
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 44,
+            "falsePositive": 19,
+            "falseNegative": 33,
+            "trueNegative": 24
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 33,
+            "falsePositive": 9,
+            "falseNegative": 44,
+            "trueNegative": 34
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 25,
+            "falsePositive": 5,
+            "falseNegative": 52,
+            "trueNegative": 38
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 10,
+            "falsePositive": 3,
+            "falseNegative": 67,
+            "trueNegative": 40
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 77,
+            "trueNegative": 43
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 77,
+            "trueNegative": 43
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 12505,
+        "cpuMs": 7954,
+        "rssDeltaMb": 6.03515625,
+        "fileSizeMb": 2.906858444213867
+      }
+    },
+    {
+      "fileName": "05 - Budenzauber.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 80.40822013671647,
+        "referenceSec": 89.49200000000002,
+        "detectedSec": 105.10948905109491,
+        "precision": 0.7649948721340385,
+        "recall": 0.8984961799570514,
+        "f1": 0.8263885392532052,
+        "intersectionOverUnion": 0.7041415041459769,
+        "brier": 0.26929753921568633,
+        "bars": 102,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 46,
+            "falsePositive": 11,
+            "falseNegative": 6,
+            "trueNegative": 39
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 42,
+            "falsePositive": 6,
+            "falseNegative": 10,
+            "trueNegative": 44
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 21,
+            "falsePositive": 2,
+            "falseNegative": 31,
+            "trueNegative": 48
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 8,
+            "falsePositive": 0,
+            "falseNegative": 44,
+            "trueNegative": 50
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 5,
+            "falsePositive": 0,
+            "falseNegative": 47,
+            "trueNegative": 50
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 50,
+            "trueNegative": 50
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 52,
+            "trueNegative": 50
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 52,
+            "trueNegative": 50
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 52,
+            "trueNegative": 50
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 10628,
+        "cpuMs": 7343,
+        "rssDeltaMb": 4.65625,
+        "fileSizeMb": 2.373568534851074
+      }
+    },
+    {
+      "fileName": "05 - Callypige palindrome.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 112.25013872611744,
+        "referenceSec": 114.31899999999979,
+        "detectedSec": 251.81917963224902,
+        "precision": 0.4457569073572751,
+        "recall": 0.9819027346820532,
+        "f1": 0.6131572448350625,
+        "intersectionOverUnion": 0.44212456138341333,
+        "brier": 0.1824307548387096,
+        "bars": 155,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 38,
+            "falsePositive": 80,
+            "falseNegative": 0,
+            "trueNegative": 37
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 35,
+            "falsePositive": 67,
+            "falseNegative": 3,
+            "trueNegative": 50
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 30,
+            "falsePositive": 50,
+            "falseNegative": 8,
+            "trueNegative": 67
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 29,
+            "falsePositive": 42,
+            "falseNegative": 9,
+            "trueNegative": 75
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 23,
+            "falsePositive": 34,
+            "falseNegative": 15,
+            "trueNegative": 83
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 15,
+            "falsePositive": 20,
+            "falseNegative": 23,
+            "trueNegative": 97
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 8,
+            "falsePositive": 9,
+            "falseNegative": 30,
+            "trueNegative": 108
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 3,
+            "falsePositive": 3,
+            "falseNegative": 35,
+            "trueNegative": 114
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 38,
+            "trueNegative": 117
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 15168,
+        "cpuMs": 9469,
+        "rssDeltaMb": 9.234375,
+        "fileSizeMb": 3.999757766723633
+      }
+    },
+    {
+      "fileName": "05 - Cecilia.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 167.73221437830387,
+        "referenceSec": 168.02699999999987,
+        "detectedSec": 285.246997823269,
+        "precision": 0.5880244688227219,
+        "recall": 0.9982456056366179,
+        "f1": 0.7400919319607762,
+        "intersectionOverUnion": 0.5874174082499292,
+        "brier": 0.15403957512953367,
+        "bars": 193,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 101,
+            "falsePositive": 74,
+            "falseNegative": 0,
+            "trueNegative": 18
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 100,
+            "falsePositive": 61,
+            "falseNegative": 1,
+            "trueNegative": 31
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 98,
+            "falsePositive": 44,
+            "falseNegative": 3,
+            "trueNegative": 48
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 96,
+            "falsePositive": 31,
+            "falseNegative": 5,
+            "trueNegative": 61
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 89,
+            "falsePositive": 23,
+            "falseNegative": 12,
+            "trueNegative": 69
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 71,
+            "falsePositive": 17,
+            "falseNegative": 30,
+            "trueNegative": 75
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 34,
+            "falsePositive": 8,
+            "falseNegative": 67,
+            "trueNegative": 84
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 17,
+            "falsePositive": 3,
+            "falseNegative": 84,
+            "trueNegative": 89
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 101,
+            "trueNegative": 92
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 14863,
+        "cpuMs": 8953,
+        "rssDeltaMb": 7.2578125,
+        "fileSizeMb": 3.892123222351074
+      }
+    },
+    {
+      "fileName": "05 - Change.ogg",
+      "vocalStyle": "unknown",
+      "partition": "validation",
+      "vocals": {
+        "truePositiveSec": 127.55815873015895,
+        "referenceSec": 171.65900000000005,
+        "detectedSec": 166.39999999999998,
+        "precision": 0.7665754731379746,
+        "recall": 0.7430904218838448,
+        "f1": 0.7546502754262359,
+        "intersectionOverUnion": 0.6059745792970115,
+        "brier": 0.3169954657534247,
+        "bars": 219,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 74,
+            "falsePositive": 21,
+            "falseNegative": 33,
+            "trueNegative": 91
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 47,
+            "falsePositive": 5,
+            "falseNegative": 60,
+            "trueNegative": 107
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 28,
+            "falsePositive": 1,
+            "falseNegative": 79,
+            "trueNegative": 111
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 21,
+            "falsePositive": 0,
+            "falseNegative": 86,
+            "trueNegative": 112
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 15,
+            "falsePositive": 0,
+            "falseNegative": 92,
+            "trueNegative": 112
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 8,
+            "falsePositive": 0,
+            "falseNegative": 99,
+            "trueNegative": 112
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 105,
+            "trueNegative": 112
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 107,
+            "trueNegative": 112
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 107,
+            "trueNegative": 112
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 16455,
+        "cpuMs": 10000,
+        "rssDeltaMb": -3.59375,
+        "fileSizeMb": 4.9253034591674805
+      }
+    },
+    {
+      "fileName": "05 - Crepuscule.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 93.4990158730159,
+        "referenceSec": 131.66300000000007,
+        "detectedSec": 118.66666666666671,
+        "precision": 0.7879130551096843,
+        "recall": 0.7101388839158751,
+        "f1": 0.7470070736563322,
+        "intersectionOverUnion": 0.5961782049609471,
+        "brier": 0.3207097886597939,
+        "bars": 194,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 64,
+            "falsePositive": 24,
+            "falseNegative": 30,
+            "trueNegative": 76
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 46,
+            "falsePositive": 14,
+            "falseNegative": 48,
+            "trueNegative": 86
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 35,
+            "falsePositive": 10,
+            "falseNegative": 59,
+            "trueNegative": 90
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 20,
+            "falsePositive": 6,
+            "falseNegative": 74,
+            "trueNegative": 94
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 9,
+            "falsePositive": 3,
+            "falseNegative": 85,
+            "trueNegative": 97
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 3,
+            "falsePositive": 1,
+            "falseNegative": 91,
+            "trueNegative": 99
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 94,
+            "trueNegative": 100
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 94,
+            "trueNegative": 100
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 94,
+            "trueNegative": 100
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 13286,
+        "cpuMs": 8516,
+        "rssDeltaMb": -3.12890625,
+        "fileSizeMb": 3.3113861083984375
+      }
+    },
+    {
+      "fileName": "05 - Dance.ogg",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 90.26165986394557,
+        "referenceSec": 99.93799999999993,
+        "detectedSec": 111.29009826152684,
+        "precision": 0.8110484335437879,
+        "recall": 0.9031765681116856,
+        "f1": 0.8546368651408334,
+        "intersectionOverUnion": 0.7461710955503373,
+        "brier": 0.30464086440677957,
+        "bars": 59,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 39,
+            "falsePositive": 7,
+            "falseNegative": 4,
+            "trueNegative": 9
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 37,
+            "falsePositive": 6,
+            "falseNegative": 6,
+            "trueNegative": 10
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 32,
+            "falsePositive": 5,
+            "falseNegative": 11,
+            "trueNegative": 11
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 23,
+            "falsePositive": 5,
+            "falseNegative": 20,
+            "trueNegative": 11
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 15,
+            "falsePositive": 4,
+            "falseNegative": 28,
+            "trueNegative": 12
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 11,
+            "falsePositive": 3,
+            "falseNegative": 32,
+            "trueNegative": 13
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 8,
+            "falsePositive": 2,
+            "falseNegative": 35,
+            "trueNegative": 14
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 4,
+            "falsePositive": 2,
+            "falseNegative": 39,
+            "trueNegative": 14
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 2,
+            "falsePositive": 0,
+            "falseNegative": 41,
+            "trueNegative": 16
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 9332,
+        "cpuMs": 6702,
+        "rssDeltaMb": -23.734375,
+        "fileSizeMb": 2.160581588745117
+      }
+    },
+    {
+      "fileName": "05 - Elles disent.mp3",
+      "vocalStyle": "unknown",
+      "partition": "test",
+      "vocals": {
+        "truePositiveSec": 150.83379938642122,
+        "referenceSec": 157.08000000000004,
+        "detectedSec": 173.09742030145387,
+        "precision": 0.8713809779703248,
+        "recall": 0.9602355448588056,
+        "f1": 0.9136530247810954,
+        "intersectionOverUnion": 0.8410324193124297,
+        "brier": 0.2853617142857143,
+        "bars": 147,
+        "thresholds": [
+          {
+            "threshold": 0.1,
+            "truePositive": 83,
+            "falsePositive": 16,
+            "falseNegative": 9,
+            "trueNegative": 39
+          },
+          {
+            "threshold": 0.2,
+            "truePositive": 72,
+            "falsePositive": 9,
+            "falseNegative": 20,
+            "trueNegative": 46
+          },
+          {
+            "threshold": 0.3,
+            "truePositive": 59,
+            "falsePositive": 8,
+            "falseNegative": 33,
+            "trueNegative": 47
+          },
+          {
+            "threshold": 0.4,
+            "truePositive": 33,
+            "falsePositive": 3,
+            "falseNegative": 59,
+            "trueNegative": 52
+          },
+          {
+            "threshold": 0.5,
+            "truePositive": 21,
+            "falsePositive": 0,
+            "falseNegative": 71,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.6,
+            "truePositive": 10,
+            "falsePositive": 0,
+            "falseNegative": 82,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.7,
+            "truePositive": 9,
+            "falsePositive": 0,
+            "falseNegative": 83,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.8,
+            "truePositive": 5,
+            "falsePositive": 0,
+            "falseNegative": 87,
+            "trueNegative": 55
+          },
+          {
+            "threshold": 0.9,
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 92,
+            "trueNegative": 55
+          }
+        ]
+      },
+      "performance": {
+        "analysisMs": 13620,
+        "cpuMs": 9282,
+        "rssDeltaMb": -2.41796875,
+        "fileSizeMb": 5.52387809753418
+      }
+    }
+  ],
+  "breakdown": {
+    "genreFamily": [
+      {
+        "name": "non renseigné",
+        "summary": {
+          "tracks": 32,
+          "counts": {
+            "bpm": 0,
+            "grid": 0,
+            "beats": 0,
+            "key": 0,
+            "cues": 0,
+            "sections": 0,
+            "vocals": 32,
+            "vocalClips": 0
+          },
+          "bpmWithin1Pct": 0,
+          "bpmOctaveErrors": 0,
+          "medianPhaseErrorMs": 0,
+          "downbeatAccuracy": 0,
+          "beatF": 0,
+          "downbeatF": 0,
+          "keyMirexScore": 0,
+          "keyExact": 0,
+          "cueExactF1": 1,
+          "cueExactRecall": 1,
+          "cueF1": 1,
+          "cueMeanOffsetBeats": 0,
+          "sectionF1": 1,
+          "vocalPrecision": 0.7092259718053857,
+          "vocalRecall": 0.9276341364150624,
+          "vocalF1": 0.8038588252896903,
+          "vocalIntersectionOverUnion": 0.672043436247711,
+          "vocalBrier": 0.2031048927820603,
+          "vocalBestThreshold": 0.1,
+          "vocalThresholdF1": 0.8028019528762471,
+          "vocalClipPrecision": 1,
+          "vocalClipRecall": 1,
+          "vocalClipF1": 1,
+          "energySpearman": null
+        }
+      }
+    ],
+    "vocalStyle": [
+      {
+        "name": "unknown",
+        "summary": {
+          "tracks": 32,
+          "counts": {
+            "bpm": 0,
+            "grid": 0,
+            "beats": 0,
+            "key": 0,
+            "cues": 0,
+            "sections": 0,
+            "vocals": 32,
+            "vocalClips": 0
+          },
+          "bpmWithin1Pct": 0,
+          "bpmOctaveErrors": 0,
+          "medianPhaseErrorMs": 0,
+          "downbeatAccuracy": 0,
+          "beatF": 0,
+          "downbeatF": 0,
+          "keyMirexScore": 0,
+          "keyExact": 0,
+          "cueExactF1": 1,
+          "cueExactRecall": 1,
+          "cueF1": 1,
+          "cueMeanOffsetBeats": 0,
+          "sectionF1": 1,
+          "vocalPrecision": 0.7092259718053857,
+          "vocalRecall": 0.9276341364150624,
+          "vocalF1": 0.8038588252896903,
+          "vocalIntersectionOverUnion": 0.672043436247711,
+          "vocalBrier": 0.2031048927820603,
+          "vocalBestThreshold": 0.1,
+          "vocalThresholdF1": 0.8028019528762471,
+          "vocalClipPrecision": 1,
+          "vocalClipRecall": 1,
+          "vocalClipF1": 1,
+          "energySpearman": null
+        }
+      }
+    ],
+    "scenario": [
+      {
+        "name": "non renseigné",
+        "summary": {
+          "tracks": 32,
+          "counts": {
+            "bpm": 0,
+            "grid": 0,
+            "beats": 0,
+            "key": 0,
+            "cues": 0,
+            "sections": 0,
+            "vocals": 32,
+            "vocalClips": 0
+          },
+          "bpmWithin1Pct": 0,
+          "bpmOctaveErrors": 0,
+          "medianPhaseErrorMs": 0,
+          "downbeatAccuracy": 0,
+          "beatF": 0,
+          "downbeatF": 0,
+          "keyMirexScore": 0,
+          "keyExact": 0,
+          "cueExactF1": 1,
+          "cueExactRecall": 1,
+          "cueF1": 1,
+          "cueMeanOffsetBeats": 0,
+          "sectionF1": 1,
+          "vocalPrecision": 0.7092259718053857,
+          "vocalRecall": 0.9276341364150624,
+          "vocalF1": 0.8038588252896903,
+          "vocalIntersectionOverUnion": 0.672043436247711,
+          "vocalBrier": 0.2031048927820603,
+          "vocalBestThreshold": 0.1,
+          "vocalThresholdF1": 0.8028019528762471,
+          "vocalClipPrecision": 1,
+          "vocalClipRecall": 1,
+          "vocalClipF1": 1,
+          "energySpearman": null
+        }
+      }
+    ],
+    "partition": [
+      {
+        "name": "test",
+        "summary": {
+          "tracks": 16,
+          "counts": {
+            "bpm": 0,
+            "grid": 0,
+            "beats": 0,
+            "key": 0,
+            "cues": 0,
+            "sections": 0,
+            "vocals": 16,
+            "vocalClips": 0
+          },
+          "bpmWithin1Pct": 0,
+          "bpmOctaveErrors": 0,
+          "medianPhaseErrorMs": 0,
+          "downbeatAccuracy": 0,
+          "beatF": 0,
+          "downbeatF": 0,
+          "keyMirexScore": 0,
+          "keyExact": 0,
+          "cueExactF1": 1,
+          "cueExactRecall": 1,
+          "cueF1": 1,
+          "cueMeanOffsetBeats": 0,
+          "sectionF1": 1,
+          "vocalPrecision": 0.7062025237817964,
+          "vocalRecall": 0.9300054835710377,
+          "vocalF1": 0.8027979531665372,
+          "vocalIntersectionOverUnion": 0.6705617947195264,
+          "vocalBrier": 0.19257084357541895,
+          "vocalBestThreshold": 0.2,
+          "vocalThresholdF1": 0.8129858253315043,
+          "vocalClipPrecision": 1,
+          "vocalClipRecall": 1,
+          "vocalClipF1": 1,
+          "energySpearman": null
+        }
+      },
+      {
+        "name": "validation",
+        "summary": {
+          "tracks": 16,
+          "counts": {
+            "bpm": 0,
+            "grid": 0,
+            "beats": 0,
+            "key": 0,
+            "cues": 0,
+            "sections": 0,
+            "vocals": 16,
+            "vocalClips": 0
+          },
+          "bpmWithin1Pct": 0,
+          "bpmOctaveErrors": 0,
+          "medianPhaseErrorMs": 0,
+          "downbeatAccuracy": 0,
+          "beatF": 0,
+          "downbeatF": 0,
+          "keyMirexScore": 0,
+          "keyExact": 0,
+          "cueExactF1": 1,
+          "cueExactRecall": 1,
+          "cueF1": 1,
+          "cueMeanOffsetBeats": 0,
+          "sectionF1": 1,
+          "vocalPrecision": 0.7124402419467459,
+          "vocalRecall": 0.9251482478946073,
+          "vocalF1": 0.8049798171584558,
+          "vocalIntersectionOverUnion": 0.6736119010512087,
+          "vocalBrier": 0.21564979170931425,
+          "vocalBestThreshold": 0.1,
+          "vocalThresholdF1": 0.7945685501533071,
+          "vocalClipPrecision": 1,
+          "vocalClipRecall": 1,
+          "vocalClipF1": 1,
+          "energySpearman": null
+        }
+      }
+    ]
+  },
+  "vocalCalibration": {
+    "selectedOn": "validation",
+    "threshold": 0.1,
+    "validationF1": 0.7945685501533071,
+    "testF1": 0.8105436573311368
+  },
+  "performance": {
+    "meanCpuMs": 8189.9375,
+    "meanAnalysisMs": 12661.34375,
+    "meanRssDeltaMb": 6.6080322265625,
+    "meanFileSizeMb": 3.5466834008693695
+  },
+  "coverage": {
+    "tracks": 32,
+    "genres": [],
+    "genreFamilies": {
+      "mainstage": 0,
+      "house": 0,
+      "techno": 0,
+      "trance": 0,
+      "hard-dance": 0,
+      "drum-and-bass": 0,
+      "bass": 0,
+      "global": 0,
+      "open-format": 0
+    },
+    "missingBeatportGenres": [
+      "140 / Deep Dubstep / Grime",
+      "Afro House",
+      "Amapiano",
+      "Ambient / Experimental",
+      "Bass / Club",
+      "Bass House",
+      "Brazilian Funk",
+      "Breaks / Breakbeat / UK Bass",
+      "Dance / Pop",
+      "Deep House",
+      "DJ Edits",
+      "DJ Tools",
+      "Downtempo",
+      "Drum & Bass",
+      "Dubstep",
+      "Electro (Classic / Detroit / Modern)",
+      "Electronica",
+      "Funky House",
+      "Hard Dance / Hardcore / Neo Rave",
+      "Hard Techno",
+      "House",
+      "Indie Dance",
+      "Indie Tech",
+      "Jackin House",
+      "Latin Electronic",
+      "Mainstage",
+      "Melodic House & Techno",
+      "Minimal / Deep Tech",
+      "Nu Disco / Disco",
+      "Organic House",
+      "Progressive House",
+      "Psy-Trance",
+      "Tech House",
+      "Techno (Peak Time / Driving)",
+      "Techno (Raw / Deep / Hypnotic)",
+      "Trance (Main Floor)",
+      "Trance (Raw / Deep / Hypnotic)",
+      "Trap / Future Bass",
+      "UK Garage / Bassline",
+      "Hip-Hop",
+      "Pop",
+      "R&B",
+      "Latin",
+      "African",
+      "Caribbean",
+      "Rock",
+      "Country"
+    ],
+    "rhythms": {
+      "four-on-floor": 0,
+      "broken": 0,
+      "half-time": 0,
+      "open": 0
+    },
+    "vocalStyles": {
+      "instrumental": 0,
+      "sung": 0,
+      "rap-spoken": 0,
+      "chops": 0,
+      "mixed": 0,
+      "unknown": 32
+    },
+    "bpmBands": {
+      "<80": 0,
+      "80–99": 0,
+      "100–119": 0,
+      "120–129": 0,
+      "130–149": 0,
+      "150–179": 0,
+      "≥180": 0
+    },
+    "scenarios": {
+      "steady": 0,
+      "variable": 0,
+      "live": 0,
+      "edit": 0
+    },
+    "annotations": {
+      "grid": 0,
+      "key": 0,
+      "cues": 0,
+      "sections": 0,
+      "vocals": 32,
+      "energy": 0
+    },
+    "targetMet": false,
+    "attempted": 32,
+    "annotationsWithoutAudio": 0,
+    "missing": [],
+    "failures": []
+  }
+}

@@ -284,6 +284,9 @@ export function analyzeStructure(f: BarFeatures, energyCurve?: number[]): Struct
     .filter((x) => x.jump >= 2.5)
     .map((x) => ({
       bar: x.bar,
+      // The end of a sustained quiet run is an observed musical boundary. Snapping it to an
+      // uncertain 8-bar phrase phase can move an edit's re-entry by two bars (UK garage test).
+      exact: true,
       run: x.run,
       confidence: (x.jump >= 4 ? 'high' : 'medium') as Confidence,
       reason: `Le groove revient après ${x.run.e - x.run.s} mesures plus calmes (+${x.jump.toFixed(1)} dB)`,

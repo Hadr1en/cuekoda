@@ -24,6 +24,8 @@ await Promise.all([
       'test/regression': 'src/test/regression.ts',
       'test/unit': 'src/test/unit.ts',
       'test/evaluate': 'src/test/evaluate-cli.ts',
+      'test/compare-evaluations': 'src/test/compare-evaluations.ts',
+      'test/rhythm-benchmark': 'src/test/rhythm-benchmark.ts',
       'test/export-electro-cue-features': 'src/test/export-electro-cue-features.ts',
       'test/fingerprint-diag': 'src/test/fingerprint-diag.ts',
       'test/offset-test': 'src/test/offset-test.ts',
