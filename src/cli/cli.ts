@@ -2,7 +2,8 @@
  * Command line front-end (same engine as the app):
  *   node dist/cli/cli.js <file|folder> [...] [--out DIR] [--min-bpm N] [--max-bpm N]
  * Writes rekordbox.xml + traktor.nml + analysis.json into --out (default ./cuekoda-out).
- *   --profile <id>   DJ profile (edm, house, techhouse, techno, trance, hiphop, openformat)
+ *   --profile <id>   DJ profile (edm, house, techhouse, techno, trance, harddance,
+ *                    drumandbass, bass, global, hiphop, openformat, edm-fixed)
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';

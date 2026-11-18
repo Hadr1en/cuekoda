@@ -249,7 +249,10 @@ export async function analyzeFile(
   const opt = { ...DEFAULT_OPTIONS, ...options };
   const progress = opt.onProgress ?? (() => {});
   const profile = sanitizeProfile(opt.profile ?? findProfile(opt.profileId));
-  const { minBpm, maxBpm } = opt;
+  // A selected preparation family supplies a sensible automatic search range (70 BPM trap must not
+  // be forced to 140; 200+ BPM hardcore must remain reachable). Explicit API/CLI limits win.
+  const minBpm = options.minBpm ?? profile.bpmRange[0];
+  const maxBpm = options.maxBpm ?? profile.bpmRange[1];
   if (!Number.isFinite(minBpm) || !Number.isFinite(maxBpm) || minBpm <= 0 || maxBpm <= minBpm) {
     throw new Error('Plage de tempo invalide : le BPM maximal doit être supérieur au BPM minimal (positif).');
   }
@@ -307,8 +310,11 @@ export async function analyzeFile(
   const bands = analyseBands(x, SR_DSP);
   const automaticRange = options.minBpm === undefined && options.maxBpm === undefined;
   const fromRaw = (raw: number) => {
-    const tempo = chooseTempo(bands, raw, minBpm, maxBpm, automaticRange);
-    const rechecked = automaticRange ? recheckEdmTempo(bands, tempo.bpm) : { bpm: tempo.bpm, halfTime: undefined };
+    const tempo = chooseTempo(bands, raw, minBpm, maxBpm, automaticRange && profile.rhythmMode === 'four-on-floor');
+    // The aggressive pulse-family recheck is useful for a steady kick, but can turn a snare, a
+    // syncopated bass or a half-time pulse into the displayed BPM on breaks, bass music and open format.
+    const rechecked = automaticRange && profile.rhythmMode === 'four-on-floor'
+      ? recheckEdmTempo(bands, tempo.bpm) : { bpm: tempo.bpm, halfTime: undefined };
     return { raw, tempo, rechecked };
   };
   let grid: ReturnType<typeof estimateGrid>;
@@ -379,15 +385,18 @@ export async function analyzeFile(
     firstDownbeatSec = ((ov.firstDownbeatSec % barLen) + barLen) % barLen;
     downbeatConfidence = 'high';
   } else {
-    const bassPhase = !ov.bpm ? corroboratedBassPhase(bands, grid) : undefined;
+    const steadyKick = profile.rhythmMode === 'four-on-floor';
+    const bassPhase = !ov.bpm && steadyKick ? corroboratedBassPhase(bands, grid) : undefined;
+    const rhythmicMode = profile.rhythmMode === 'four-on-floor' ? (bassPhase !== undefined ? 'bass-aligned' : 'common')
+      : profile.rhythmMode === 'open' ? 'open' : 'broken';
     const downbeat = (phase: number, bassAligned = false) => {
       const probe = computeBarFeatures(bands, phase, barLen, durSec);
       const firstAudibleSec = phase + firstAudibleBar(probe) * barLen;
-      const mode = grid.variable ? 'standard' : bassAligned ? 'bass-aligned' : 'common';
+      const mode = grid.variable ? 'standard' : bassAligned ? 'bass-aligned' : rhythmicMode;
       const db = pickDownbeatOffset(bands, bpm, phase, firstAudibleSec, durSec, mode);
       return { time: phase + db.offset * P, confident: db.confident };
     };
-    const alternate = !ov.bpm && bassPhase === undefined ? entranceBackedPhase(bands, grid) : undefined;
+    const alternate = !ov.bpm && steadyKick && bassPhase === undefined ? entranceBackedPhase(bands, grid) : undefined;
     const alternateDownbeat = alternate === undefined ? undefined : downbeat(alternate);
     const db = alternateDownbeat?.confident ? alternateDownbeat : downbeat(bassPhase ?? grid.firstBeatSec, bassPhase !== undefined);
     firstDownbeatSec = db.time;

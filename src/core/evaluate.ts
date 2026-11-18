@@ -1,4 +1,5 @@
 import { gridBeats } from './beatgrid';
+import { beatportGenre, type GenreFamily, type RhythmMode } from './genres';
 import { camelotRelation } from './matching';
 import type { AnalysisResult, Confidence, CueKind, SectionType, VocalInfo } from './types';
 
@@ -18,7 +19,10 @@ export interface Reference {
   profileId?: string;
   /** Optional corpus dimensions used to detect blind spots in real-world evaluation. */
   genre?: string;
+  genreFamily?: GenreFamily;
+  rhythm?: RhythmMode;
   scenario?: 'steady' | 'variable' | 'live' | 'edit';
+  vocalStyle?: 'instrumental' | 'sung' | 'rap-spoken' | 'chops' | 'mixed' | 'unknown';
   // Every annotation is optional: public datasets annotate only part of it (tempo, key, beats…).
   bpm?: number;
   firstDownbeatSec?: number;
@@ -40,9 +44,19 @@ export interface Reference {
   energyRating?: number;
 }
 
-export function referenceFrom(r: AnalysisResult, energyRating?: number): Reference {
+export interface ReferenceDetails {
+  genre?: string;
+  genreFamily?: GenreFamily;
+  rhythm?: RhythmMode;
+  scenario?: Reference['scenario'];
+  vocalStyle?: Reference['vocalStyle'];
+  source?: string;
+}
+
+export function referenceFrom(r: AnalysisResult, energyRating?: number, details: ReferenceDetails = {}): Reference {
   const bar = (4 * 60) / r.bpm;
   const vocals = (r as AnalysisResult & { vocals?: VocalInfo }).vocals;
+  const matchedGenre = beatportGenre(details.genre || r.genre);
   return {
     version: 1,
     fileHash: r.fileHash ?? '',
@@ -52,6 +66,12 @@ export function referenceFrom(r: AnalysisResult, energyRating?: number): Referen
     createdAt: new Date().toISOString(),
     engineVersion: r.engineVersion ?? '?',
     profileId: r.profileId,
+    genre: details.genre || matchedGenre?.name || r.genre || undefined,
+    genreFamily: details.genreFamily ?? matchedGenre?.family,
+    rhythm: details.rhythm ?? matchedGenre?.rhythm,
+    scenario: details.scenario ?? (r.tempo?.variable ? 'variable' : 'steady'),
+    vocalStyle: details.vocalStyle,
+    source: details.source ?? 'CueKoda quick review',
     bpm: r.bpm,
     firstDownbeatSec: r.grid.firstDownbeatSec,
     key: r.key.musical,
