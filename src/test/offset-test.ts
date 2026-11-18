@@ -81,7 +81,9 @@ function track(file: string, title: string): AnalysisResult {
 }
 
 async function main() {
-  const out = path.resolve(process.argv[2] ?? 'cuekoda-offset-test');
+  const args = process.argv.slice(2);
+  const positional = args.find((value) => !value.startsWith('--'));
+  const out = path.resolve(positional ?? 'cuekoda-offset-test');
   fs.mkdirSync(out, { recursive: true });
   const wav = path.join(out, 'clic-reference.wav');
   fs.writeFileSync(wav, clickWav());
@@ -97,14 +99,37 @@ async function main() {
   }
   const all = [{ file: path.basename(wav), title: 'Clic WAV (référence)' }, ...variants];
   console.log(`Premier clic placé à ${T0.toFixed(3)} s dans le fichier source. Vu par le décodeur de CueKoda :`);
+  const decoderResults: { file: string; title: string; attackSec: number; decoderOffsetMs: number }[] = [];
   for (const v of all) {
     const t = await firstAttack(path.join(out, v.file));
+    decoderResults.push({ file: v.file, title: v.title, attackSec: t, decoderOffsetMs: (t - T0) * 1000 });
     console.log(`  ${v.title.padEnd(36)} ${t.toFixed(4)} s  (écart ${((t - T0) * 1000).toFixed(1)} ms)`);
   }
   const tracks = all.map((v) => track(path.join(out, v.file), v.title));
   const opts = { memoryCues: false, loops: 'none' as const, commentTags: false, playlistName: 'CueKoda test de décalage' };
-  fs.writeFileSync(path.join(out, 'test-decalage-rekordbox.xml'), buildRekordboxXml(tracks, opts, opts.playlistName));
-  fs.writeFileSync(path.join(out, 'test-decalage-traktor.nml'), buildTraktorNml(tracks, opts));
+  const rekordbox = buildRekordboxXml(tracks, opts, opts.playlistName);
+  const traktor = buildTraktorNml(tracks, opts);
+  fs.writeFileSync(path.join(out, 'test-decalage-rekordbox.xml'), rekordbox);
+  fs.writeFileSync(path.join(out, 'test-decalage-traktor.nml'), traktor);
+  const rekordboxCueSeconds = [...rekordbox.matchAll(/POSITION_MARK[^>]+Start="([0-9.]+)"/g)].map((match) => Number(match[1]));
+  const traktorCueSeconds = [...traktor.matchAll(/CUE_V2[^>]+START="([0-9.]+)"/g)].map((match) => Number(match[1]) / 1000);
+  const expectedPerTrack = [T0, T0 + 8];
+  const exportRoundTrip = {
+    rekordbox: tracks.every((_, index) => expectedPerTrack.every((time, cue) => rekordboxCueSeconds[index * 2 + cue] === time)),
+    traktor: tracks.every((_, index) => {
+      // The cue on the first downbeat is intentionally represented by AutoGrid, not duplicated.
+      const starts = traktorCueSeconds.slice(index * 2, index * 2 + 2);
+      return starts.includes(T0) && starts.includes(T0 + 8);
+    }),
+  };
+  const report = {
+    generatedAt: new Date().toISOString(), sourceClickSec: T0, decoderResults, exportRoundTrip,
+    proprietaryValidation: all.flatMap((variant) => ['rekordbox', 'traktor'].map((software) => ({
+      software, file: variant.file, observedOffsetMs: null, status: 'à mesurer dans le logiciel',
+    }))),
+  };
+  fs.writeFileSync(path.join(out, 'offset-results.json'), JSON.stringify(report, null, 2));
+  if (!exportRoundTrip.rekordbox || !exportRoundTrip.traktor) throw new Error('Décalage introduit par un export XML/NML');
   console.log(`
 Fichiers écrits dans ${out}
 À vérifier dans rekordbox puis dans Traktor (importer le XML / le NML comme un export CueKoda) :

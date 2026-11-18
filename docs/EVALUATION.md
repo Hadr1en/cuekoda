@@ -45,6 +45,9 @@ annotations à la commande suivante.
 npm run eval -- --dataset ballroom --annotations /chemin/vers/BallroomAnnotations --audio /chemin/vers/BallroomData --json ballroom.json
 npm run eval -- --dataset brid --annotations /chemin/vers/Annotations --audio /chemin/vers/Data --json brid.json
 npm run eval -- --dataset raveform --annotations /chemin/vers/raveform --audio /chemin/vers/audio --json raveform.json
+npm run eval -- --dataset jamendo-vocal --annotations /chemin/vers/jamendo/labels --audio /chemin/vers/jamendo/audio --partition validation,test --json jamendo.json
+npm run eval -- --dataset m-djcue --annotations /chemin/vers/M-DJCUE/annotations --audio /chemin/vers/audio --json mdjcue.json
+npm run eval -- --dataset groove --annotations /chemin/vers/groove --audio /chemin/vers/groove --json groove.json
 ```
 
 - [Ballroom](https://github.com/CPJKU/BallroomAnnotations) fournit les annotations de temps et de
@@ -52,7 +55,7 @@ npm run eval -- --dataset raveform --annotations /chemin/vers/raveform --audio /
   de l'intervalle médian entre temps annotés.
 - [BRID](https://zenodo.org/records/14051323) fournit l'audio, les annotations de temps et les
   BPM de référence. Les enregistrements d'ensemble annotés sont le corpus évaluable.
-- [Raveform](https://mir-aidj.github.io/raveform/) fournit des annotations de temps, de premiers
+- [Raveform](https://raveform.netlify.app/) fournit des annotations de temps, de premiers
   temps et de sections sur des titres électro complets. Le dossier audio doit contenir les versions
   exactes et non découpées identifiées par le corpus. Nommer chaque fichier avec son identifiant
   vidéo YouTube en respectant la casse, par exemple 5WvMql1Ejzs.flac. Les sections sont évaluées
@@ -60,6 +63,12 @@ npm run eval -- --dataset raveform --annotations /chemin/vers/raveform --audio /
 - [GiantSteps Tempo](https://github.com/GiantSteps/giantsteps-tempo-dataset) utilise
   `--dataset giantsteps-tempo` et le dossier `annotations_v2/tempo`. [GiantSteps Key](https://github.com/GiantSteps/giantsteps-key-dataset)
   utilise `--dataset giantsteps-key` et le dossier `annotations/key`.
+- [Jamendo Singing Voice](https://zenodo.org/records/2585988) fournit 93 titres Creative Commons
+  annotés manuellement en voix chantée ou parlée / non-voix, avec les partitions officielles
+  `train`, `valid` et `test`. La somme MD5 de l’archive est vérifiée avant évaluation.
+- [M-DJCUE](https://github.com/MZehren/M-DJCUE) fournit trois annotations indépendantes par titre.
+  CueKoda conserve les positions réunissant au moins deux voix à ±0,5 s et applique le recalage
+  officiel quand une source audio alternative est utilisée.
 
 Le JSON donne la couverture et les échecs par fichier. Pour comparer la grille sur des titres
 hors EDM, regrouper les résultats par `beats.referenceBeatsPerBar`. Le moteur de préparation

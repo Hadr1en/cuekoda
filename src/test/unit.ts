@@ -1000,7 +1000,7 @@ test('model → bars → fused score', () => {
   assert.ok(Number.isNaN(p[3]), 'no patch');
   const f = fuseScores([0, 0.4, 0.4, 0.3], [0.9, 0.5, 0.9, NaN]);
   assert.ok(f[0] >= FUSED_THRESHOLDS.strong, 'model alone, confident → clear voice');
-  assert.ok(f[1] < FUSED_THRESHOLDS.on, 'heuristic alone cannot overrule an undecided model');
+  assert.ok(f[1] < FUSED_THRESHOLDS.strong, 'heuristic evidence with an undecided model never becomes clear voice');
   assert.ok(Math.abs(f[2] - 1) < 1e-9);
   assert.equal(f[3], 0.3, 'no model patch → heuristic');
 });
@@ -1126,6 +1126,78 @@ test('datasets: key labels and GiantSteps / Harmonix loaders', () => {
   assert.equal(Math.round(hx.bpm!), 120);
   assert.deepEqual(hx.downbeats, [0.5, 2.5, 4.5, 6.5]);
   assert.equal(hx.sections!.length, 2);
+});
+
+test('validated corpus loaders: Jamendo voice, M-DJCUE consensus and Groove live tempo', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-validated-corpora-'));
+  const audio = path.join(root, 'audio');
+  fs.mkdirSync(audio);
+  try {
+    fs.writeFileSync(path.join(audio, 'voice.wav'), '');
+    const jamendo = path.join(root, 'jamendo');
+    fs.mkdirSync(jamendo);
+    fs.writeFileSync(path.join(jamendo, 'voice.lab'), '0 1 nosing\n1 4 singing\n4 5 instrumental\n');
+    const voice = loadDataset('jamendo-vocal', jamendo, audio).refs[0];
+    assert.deepEqual(voice.vocalSegments, [{ startSec: 1, endSec: 4 }]);
+
+    fs.writeFileSync(path.join(audio, 'mix.wav'), '');
+    const mdjcue = path.join(root, 'mdjcue');
+    fs.mkdirSync(mdjcue);
+    fs.writeFileSync(path.join(mdjcue, 'mix.jams'), JSON.stringify({
+      file_metadata: { title: 'mix' },
+      annotations: [
+        { data: [{ time: 10, value: 'IN' }, { time: 90, value: 'OUT' }] },
+        { data: [{ time: 10.2, value: { label: 'IN' } }, { time: 89.8, value: 'OUT' }] },
+        { data: [{ time: 40, value: 'IN' }] },
+      ],
+    }));
+    const dj = loadDataset('m-djcue', mdjcue, audio).refs[0];
+    assert.deepEqual(dj.cues?.map(({ kind, timeSec }) => [kind, Math.round(timeSec * 10) / 10]), [['mixin', 10.1], ['mixout', 89.9]]);
+
+    fs.writeFileSync(path.join(audio, 'groove.wav'), '');
+    const groove = path.join(root, 'groove');
+    fs.mkdirSync(groove);
+    fs.writeFileSync(path.join(groove, 'info.csv'), 'id,style,bpm,audio_filename\n1,afrobeat,112,groove.wav\n');
+    const live = loadDataset('groove', groove, audio).refs[0];
+    assert.equal(live.bpm, 112);
+    assert.equal(live.scenario, 'live');
+    assert.equal(live.genreFamily, 'global');
+
+    fs.writeFileSync(path.join(audio, 'yt1.wav'), '');
+    fs.writeFileSync(path.join(audio, 'yt2.wav'), '');
+    const audioSet = path.join(root, 'eval_segments.csv');
+    fs.writeFileSync(audioSet, [
+      '# YTID, start_seconds, end_seconds, positive_labels',
+      'yt1, 10.000, 20.000, "/m/06bxc,/m/015lz1"',
+      'yt2, 0.000, 10.000, "/m/03qtwd"',
+    ].join('\n'));
+    const clips = loadDataset('audioset', audioSet, audio).refs;
+    assert.deepEqual(clips.map((ref) => ref.vocalStyle), ['mixed', 'crowd']);
+    assert.equal(clips[0].vocalPresence, true);
+    assert.equal(clips[1].vocalPresence, false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('vocal evaluation is duration-weighted and reports calibration', () => {
+  const detected = track({
+    path: 'voice.wav',
+    bpm: 120,
+    grid: { bpm: 120, firstDownbeatSec: 0, confidence: 1 },
+    durationSec: 8,
+    vocals: vinfo([[1, 3, 'strong']], 4),
+  });
+  detected.vocals!.curve = [0.1, 0.9, 0.9, 0.1];
+  detected.vocals!.modelCurve = [0.1, 0.9, 0.9, 0.1];
+  const result = evaluateTrack(detected, {
+    version: 1, fileHash: '', path: '', fileName: 'voice.wav', title: '', createdAt: '', engineVersion: '',
+    vocalSegments: [{ startSec: 2, endSec: 6 }],
+  });
+  assert.equal(result.vocals?.precision, 1);
+  assert.equal(result.vocals?.recall, 1);
+  assert.ok(result.vocals!.brier < 0.02);
+  assert.equal(summarize([result]).vocalF1, 1);
 });
 
 test('Raveform uses case-sensitive video IDs and imports musical landmarks', () => {

@@ -56,7 +56,7 @@ export interface VocalThresholds {
 /** Heuristic score alone */
 export const HEURISTIC_THRESHOLDS: VocalThresholds = { on: 0.2, off: 0.13, strong: 0.32 };
 /** Fused model + heuristic score (fuseScores) */
-export const FUSED_THRESHOLDS: VocalThresholds = { on: 0.35, off: 0.25, strong: 0.55 };
+export const FUSED_THRESHOLDS: VocalThresholds = { on: 0.1, off: 0.07, strong: 0.55 };
 export const VOCAL_ON = HEURISTIC_THRESHOLDS.on;
 /** Below this share of tonal frames (400 Hz–4 kHz) the detector has nothing to judge: 'unknown'. */
 const MIN_TONAL_SHARE = 0.15;

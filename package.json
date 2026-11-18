@@ -24,6 +24,9 @@
     "dist:mac": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --mac",
     "dist:win": "node scripts/fetch-ffmpeg.mjs && npm run build && electron-builder --win",
     "eval": "npm run build && node dist/test/evaluate.js",
+    "eval:compare": "npm run build && node dist/test/compare-evaluations.js",
+    "benchmark:rhythm": "npm run build && node dist/test/rhythm-benchmark.js",
+    "corpora:verify": "node scripts/verify-evaluation-corpus.mjs",
     "eval:dj": "npm run build && node dist/test/evaluate.js --refs tests/ground-truth --audio samples",
     "offset-test": "npm run build && node dist/test/offset-test.js"
   },
