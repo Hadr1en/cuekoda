@@ -61,13 +61,13 @@ Les installeurs sont reconstruits à chaque mise à jour du code et publiés dan
 **Mises à jour** — CueKoda vérifie les releases publiques de GitHub. Les installateurs publiés sur GitHub permettent également une mise à jour manuelle.
 
 ## Prise en main en 4 étapes
-1. **Importer** : déposer des fichiers ou un dossier dans la fenêtre, ou utiliser « Ajouter » / « Actions › Ajouter un dossier… ».
+1. **Importer** : déposer des fichiers ou un dossier dans la fenêtre, ou utiliser « + Fichiers » / « + Dossier ».
    Formats : MP3, WAV, AIFF, FLAC, M4A / AAC, OGG, Opus, WMA.
 2. **Analyser** : l'analyse démarre seule, plusieurs morceaux en parallèle. Chaque ligne affiche l'étape et
    le pourcentage.
 3. **Vérifier et corriger** : ouvrir un morceau, contrôler la grille à l’écoute, déplacer les cues et corriger le BPM,
    grille ou tonalité si besoin. La colonne **Fiabilité** indique quoi vérifier en priorité.
-4. **Exporter** : ouvrir « Exporter », choisir le format, enregistrer le fichier et suivre les étapes d’import affichées.
+4. **Exporter** : ouvrir « Exporter… », choisir le format, enregistrer le fichier et suivre les étapes d’import affichées.
 
 ## Fonctionnalités en détail
 
@@ -165,14 +165,14 @@ Le **métronome** permet de vérifier la grille à l’oreille, avec un clic acc
 Dans cette vue, les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place le temps 1 et **V** valide la piste et ouvre la suivante.
 
 La sélection utilise les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
-Dans **Actions › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
+Dans **Préparer › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
 
-**Actions › Bacs…** enregistre des sélections ordonnées dans des listes locales. Le menu contextuel permet d’ajouter des morceaux à un bac. Un bac peut filtrer la bibliothèque ou être exporté sous forme de playlist nommée. Une sélection peut aussi être exportée directement.
+**Bacs…** enregistre des sélections ordonnées dans des listes locales. Le menu contextuel permet d’ajouter des morceaux à un bac. Un bac peut filtrer la bibliothèque ou être exporté sous forme de playlist nommée. Une sélection peut aussi être exportée directement.
 
 ### 8. Export vers les logiciels DJ
 <img src="docs/screenshots/fr/export.png" alt="Fenêtre d’export de CueKoda" width="100%">
 
-Le dialogue **« Exporter »** affiche les données transférées et les étapes d’import propres à chaque logiciel.
+Le dialogue **« Exporter… »** affiche les données transférées et les étapes d’import propres à chaque logiciel.
 
 | Logiciel | Fichier écrit | BPM / grille / clé | Hot cues, noms | Couleurs | Memory cues | Boucles |
 |---|---|---|---|---|---|---|

@@ -246,7 +246,7 @@ function syncWatch() {
 function windowsTitleBarOverlay() {
   const theme = settingsStore.data.theme;
   const light = theme === 'light' || (theme === 'system' && !nativeTheme.shouldUseDarkColors);
-  return { color: light ? '#ffffff' : '#0f1115', symbolColor: light ? '#1b1e23' : '#f1f3f5', height: 42 };
+  return { color: light ? '#ffffff' : '#171923', symbolColor: light ? '#1b1e2a' : '#e8eaf0', height: 42 };
 }
 
 function updateWindowsTitleBar() {
@@ -262,7 +262,7 @@ function createWindow() {
     minWidth: 980,
     minHeight: 660,
     // Matches the --color-bg token (dark by default, see styles.css)
-    backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f1f3f5' : '#0f1115',
+    backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
     title: 'CueKoda',
     ...(process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() } : {}),
     show: !SMOKE_DIR,
@@ -1151,7 +1151,6 @@ function runSmoke() {
       const js = (code: string) => win!.webContents.executeJavaScript(`(async () => { const wait = (ms) => new Promise((r) => setTimeout(r, ms)); ${code} })()`);
       if (captureOnly) {
         report.ui = await js(`
-          document.getElementById('queue').hidden = true;
           const row = [...document.querySelectorAll('tr.row')].find((tr) => tr.textContent.includes('This Dream of You')) ?? document.querySelector('tr.row');
           row.click();
           await wait(800);
