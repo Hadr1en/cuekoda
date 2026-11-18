@@ -724,7 +724,9 @@ function renderCues(r: AnalysisResult) {
     const selected = wave.selectedCueId === cue.id;
     pads.push(h('div', {
       class: `pad${selected ? ' selected' : ''}${dups.has(cue.id) ? ' dup' : ''}`, style: { '--pad-color': rgb(cue.color) },
-      title: dups.has(cue.id) ? 'Même position qu’un autre cue : ce pad est en double' : undefined,
+      title: dups.has(cue.id)
+        ? 'Même position qu’un autre cue : ce pad est en double'
+        : cue.reason.replace(/ — détection heuristique non validée$/, ''),
       onclick: () => { wave.selectedCueId = cue.id; renderDetail(); },
     },
       h('div', { class: 'pad-head' },
@@ -738,7 +740,7 @@ function renderCues(r: AnalysisResult) {
       h('input', { class: 'nm', type: 'text', value: cue.name, 'aria-label': `Nom du pad ${LETTERS[slot]}`, disabled: cue.locked,
         onchange: (e: Event) => edit(r, () => { cue.name = (e.target as HTMLInputElement).value || cue.name; cue.origin = 'user'; }) }),
       h('div', { class: 'tm' }, `${fmtTime(cue.timeSec)} · mes. ${cue.bar + 1}`),
-      h('div', { class: 'why' }, cue.reason.replace(/ — détection heuristique non validée$/, '')),
+      h('div', { class: 'why', title: cue.reason.replace(/ — détection heuristique non validée$/, '') }, cue.reason.replace(/ — détection heuristique non validée$/, '')),
       h('div', { class: 'ctl' },
         b('▶', 'Aller au cue', () => { jump(cue.timeSec); void audio.play(); }),
         b('−mes', '1 mesure plus tôt', () => moveCue(r, cue, -4), cue.locked),
@@ -756,7 +758,7 @@ function renderCues(r: AnalysisResult) {
     h('button', { type: 'button', class: 'btn small', title: 'Raccourci : C', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind) }, '+ Cue ici'),
     kindSel,
     h('button', { type: 'button', class: 'btn small ghost', title: 'Raccourci : M', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind, true) }, '+ Memory cue ici'),
-    h('span', { class: 'muted' }, 'Posé sur le temps le plus proche de la lecture. Pads pleins : le cue devient une memory cue (exportée sans pad).'),
+    h('span', { class: 'muted', title: 'Quand les huit pads sont occupés, le cue devient une memory cue exportée sans pad.' }, 'Calé sur le temps le plus proche.'),
   );
   const memo = r.cues.filter((c) => c.slot < 0).sort((a, b) => a.timeSec - b.timeSec);
   const memoBlock = memo.length
