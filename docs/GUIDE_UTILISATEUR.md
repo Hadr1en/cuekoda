@@ -3,7 +3,7 @@
 L’analyse est effectuée localement. CueKoda conserve les fichiers audio à leur emplacement d’origine et enregistre les annotations séparément.
 
 ## 1. Importer
-Déposer des fichiers ou un dossier dans la fenêtre (ou « Ajouter » / « Actions › Ajouter un dossier… »). Formats : mp3, wav,
+Déposer des fichiers ou un dossier dans la fenêtre (ou « + Fichiers » / « + Dossier »). Formats : mp3, wav,
 flac, aiff, m4a, aac, ogg, opus, wma. Le BPM, la tonalité et la grille sont calculés automatiquement.
 Le **profil de préparation** règle les suggestions de cues, de boucles et de transitions. Pour changer les
 suggestions d’un morceau déjà analysé, utilisez **Appliquer le profil à la sélection** dans son menu contextuel.
@@ -46,7 +46,7 @@ Annuler / rétablir : ⌘Z / ⇧⌘Z. Toutes les modifications sont enregistrée
 une ré-analyse**.
 
 ## 4. Exporter
-Dans « Exporter », sélectionner le logiciel et les options. L’aperçu récapitule les données transférées.
+Dans « Exporter… », sélectionner le logiciel et les options. L’aperçu récapitule les données transférées.
 Enregistrer le fichier, puis suivre les étapes d’import affichées. L'option
 « Énergie, clé et voix dans le commentaire » écrit par exemple « E8 · 8B · Vocal » dans le champ Commentaire,
 pour le tri par énergie dans le logiciel DJ. Le commentaire d’un morceau déjà présent est remplacé si l’écrasement est autorisé lors de l’import. Voir
@@ -56,14 +56,16 @@ Pour un export NML, **Aperçu des boutons Traktor** présente les huit boutons e
 
 ## Contrôle express et comparaison
 Dans le détail d’un morceau, **Contrôle express** lit quatre mesures au métronome au début, au premier
-drop ou vers la fin. Raccourcis dans ce panneau **1 / 2 / 3** pour écouter, **T** pour placer le temps 1,
-**[ / ]** pour décaler la grille de 10 ms et **V** pour valider et avancer.
+drop — ou au point fort si le profil ne force pas ce vocabulaire — et vers la fin. Choisir le genre Beatport,
+vérifier le comportement rythmique et préciser version, voix et énergie ressentie permet d’enregistrer une
+référence exploitable immédiatement. Raccourcis dans ce panneau **1 / 2 / 3** pour écouter, **T** pour placer
+le temps 1, **[ / ]** pour décaler la grille de 10 ms et **V** pour valider, enregistrer et avancer.
 
-Après une réanalyse, **Actions › Comparer la réanalyse…** liste les morceaux dont le BPM, la grille ou les
+Après une réanalyse, **Préparer › Comparer la réanalyse…** liste les morceaux dont le BPM, la grille ou les
 cues ont changé. La comparaison permet d’écouter les deux analyses et de rétablir la précédente pour chaque morceau.
 
 ## Bacs de préparation
-Sélectionner les morceaux, puis utiliser le menu contextuel › **Ajouter à un bac…**. **Actions › Bacs…** permet
+Sélectionner les morceaux, puis utiliser le menu contextuel › **Ajouter à un bac…**. Le bouton **Bacs…** permet
 ensuite de réordonner, filtrer et exporter chaque bac en playlist. Le bac conserve l’ordre choisi.
 Dans la bibliothèque filtrée sur un bac, **Suppr** retire uniquement l’appartenance au bac.
 

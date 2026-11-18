@@ -516,7 +516,7 @@ export function pickDownbeatOffset(
   firstBeatSec: number,
   firstAudibleSec: number,
   durSec: number,
-  mode: 'standard' | 'bass-aligned' | 'common' = 'standard',
+  mode: 'standard' | 'bass-aligned' | 'common' | 'broken' | 'open' = 'standard',
 ): { offset: number; confident: boolean } {
   const P = 60 / bpm;
   const pL = prefixSums(bands.eLow);
@@ -593,11 +593,16 @@ export function pickDownbeatOffset(
   const total = (a: number[]) => a.reduce((s, v) => s + v, 0);
   const sChange = total(score), sEntry = total(entry);
   // entries are the most reliable cue (confirmed by the DJ's corrections) once there is real evidence
-  const wEntry = sEntry >= 12 ? (sChange > 0 ? 0.75 : 1) : sEntry > 0 ? 0.4 : 0;
+  // A bass entry is strong downbeat evidence for four-on-the-floor dance music. In broken rhythms it
+  // can be a syncopated bass note; in open-format music it may not describe the meter at all.
+  const entryWeight = sEntry >= 12 ? (sChange > 0 ? 0.75 : 1) : sEntry > 0 ? 0.4 : 0;
+  const wEntry = mode === 'open' ? Math.min(0.1, entryWeight)
+    : mode === 'broken' ? Math.min(0.3, entryWeight)
+      : entryWeight;
   const combined = [0, 1, 2, 3].map(
     (o) => (sChange > 0 ? (1 - wEntry) * (score[o] / sChange) : 0) + (sEntry > 0 ? wEntry * (entry[o] / sEntry) : 0),
   );
-  if (mode === 'common') {
+  if (mode === 'common' || mode === 'broken' || mode === 'open') {
     // A short transient can mimic a section change. Require a sharp edge with different energy
     // on both sides across two, four and eight beats, then pool evidence along the track.
     const phrase = new Float64Array(D.length);

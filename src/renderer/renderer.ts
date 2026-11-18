@@ -5,6 +5,7 @@ import { openComparison } from './comparison';
 import type { AnalysisResult, CueKind, HotCue, Loop, Section, SectionType, VocalSegment } from '../core/types';
 import { allKeys, formatKey } from '../core/key';
 import { BUILTIN_PROFILES, CUE_KIND_LABEL, DEFAULT_COLORS } from '../core/profiles';
+import { BEATPORT_GENRES, beatportGenre } from '../core/genres';
 import { cueAt, duplicateCueIds } from '../core/cues';
 import { SECTION_LABEL } from '../core/structure';
 import { matchTracks } from '../core/matching';
@@ -724,9 +725,7 @@ function renderCues(r: AnalysisResult) {
     const selected = wave.selectedCueId === cue.id;
     pads.push(h('div', {
       class: `pad${selected ? ' selected' : ''}${dups.has(cue.id) ? ' dup' : ''}`, style: { '--pad-color': rgb(cue.color) },
-      title: dups.has(cue.id)
-        ? 'Même position qu’un autre cue : ce pad est en double'
-        : cue.reason.replace(/ — détection heuristique non validée$/, ''),
+      title: dups.has(cue.id) ? 'Même position qu’un autre cue : ce pad est en double' : undefined,
       onclick: () => { wave.selectedCueId = cue.id; renderDetail(); },
     },
       h('div', { class: 'pad-head' },
@@ -740,7 +739,7 @@ function renderCues(r: AnalysisResult) {
       h('input', { class: 'nm', type: 'text', value: cue.name, 'aria-label': `Nom du pad ${LETTERS[slot]}`, disabled: cue.locked,
         onchange: (e: Event) => edit(r, () => { cue.name = (e.target as HTMLInputElement).value || cue.name; cue.origin = 'user'; }) }),
       h('div', { class: 'tm' }, `${fmtTime(cue.timeSec)} · mes. ${cue.bar + 1}`),
-      h('div', { class: 'why', title: cue.reason.replace(/ — détection heuristique non validée$/, '') }, cue.reason.replace(/ — détection heuristique non validée$/, '')),
+      h('div', { class: 'why' }, cue.reason.replace(/ — détection heuristique non validée$/, '')),
       h('div', { class: 'ctl' },
         b('▶', 'Aller au cue', () => { jump(cue.timeSec); void audio.play(); }),
         b('−mes', '1 mesure plus tôt', () => moveCue(r, cue, -4), cue.locked),
@@ -758,7 +757,7 @@ function renderCues(r: AnalysisResult) {
     h('button', { type: 'button', class: 'btn small', title: 'Raccourci : C', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind) }, '+ Cue ici'),
     kindSel,
     h('button', { type: 'button', class: 'btn small ghost', title: 'Raccourci : M', onclick: () => addCue(r, audio.currentTime, kindSel.value as CueKind, true) }, '+ Memory cue ici'),
-    h('span', { class: 'muted', title: 'Quand les huit pads sont occupés, le cue devient une memory cue exportée sans pad.' }, 'Calé sur le temps le plus proche.'),
+    h('span', { class: 'muted' }, 'Posé sur le temps le plus proche de la lecture. Pads pleins : le cue devient une memory cue (exportée sans pad).'),
   );
   const memo = r.cues.filter((c) => c.slot < 0).sort((a, b) => a.timeSec - b.timeSec);
   const memoBlock = memo.length
@@ -1368,28 +1367,58 @@ audio.addEventListener('timeupdate', () => {
 });
 
 const reviewPanel = $('quick-review');
-function firstDrop(r: AnalysisResult) {
+function reviewFocus(r: AnalysisResult) {
   const drops = r.cues.filter(({ kind }) => kind === 'drop').map(({ timeSec }) => timeSec);
-  return drops.length ? Math.min(...drops) : r.sections?.find(({ type }) => type === 'drop')?.startSec;
+  const drop = drops.length ? Math.min(...drops) : r.sections?.find(({ type }) => type === 'drop')?.startSec;
+  if (drop !== undefined) return { timeSec: drop, label: 'Premier drop' };
+  const peak = r.energy?.events.find(({ type }) => type === 'peak');
+  if (peak) return { timeSec: peak.timeSec, label: 'Point fort' };
+  if (r.energy?.curve.length) {
+    const bar = r.energy.curve.reduce((best, value, i, values) => value > values[best] ? i : best, 0);
+    return { timeSec: r.grid.firstDownbeatSec + bar * 240 / r.bpm, label: 'Point fort' };
+  }
+  return undefined;
+}
+function syncReviewMetadata(r: AnalysisResult) {
+  const genre = $<HTMLSelectElement>('review-genre');
+  const inferred = beatportGenre(r.genre);
+  genre.replaceChildren(
+    h('option', { value: '' }, 'Choisir…'),
+    ...BEATPORT_GENRES.map(({ name }) => h('option', { value: name, selected: name === inferred?.name }, name)),
+  );
+  genre.value = inferred?.name ?? '';
+  $<HTMLSelectElement>('review-rhythm').value = inferred?.rhythm
+    ?? BUILTIN_PROFILES.find(({ id }) => id === r.profileId)?.rhythmMode ?? 'open';
+  $<HTMLSelectElement>('review-scenario').value = r.tempo?.variable ? 'variable' : 'steady';
+  $<HTMLSelectElement>('review-vocals').value = 'unknown';
+  $<HTMLSelectElement>('review-energy').value = '';
 }
 function playReview(where: 'intro' | 'drop' | 'tail') {
   const r = current();
   if (!r || state.tracks.get(r.path)?.missing) return;
   const around = where === 'intro' ? r.cues.find((c) => c.kind === 'intro')?.timeSec ?? r.grid.firstDownbeatSec
-    : where === 'tail' ? r.durationSec - 16 * 60 / r.bpm : firstDrop(r);
+    : where === 'tail' ? r.durationSec - 16 * 60 / r.bpm : reviewFocus(r)?.timeSec;
   if (around !== undefined) void playAudition(wave.beats, r.durationSec, around, 'review');
 }
 $('btn-quick-review').addEventListener('click', () => {
   reviewPanel.hidden = !reviewPanel.hidden;
   $('btn-quick-review').setAttribute('aria-expanded', String(!reviewPanel.hidden));
   if (reviewPanel.hidden) stopAudition('review');
-  else reviewPanel.focus();
+  else {
+    const r = current();
+    if (r) syncReviewMetadata(r);
+    reviewPanel.focus();
+  }
+});
+$<HTMLSelectElement>('review-genre').addEventListener('change', (event) => {
+  const matched = beatportGenre((event.target as HTMLSelectElement).value);
+  if (matched) $<HTMLSelectElement>('review-rhythm').value = matched.rhythm;
 });
 for (const where of ['intro', 'drop', 'tail'] as const) $('review-' + where).addEventListener('click', () => playReview(where));
 $('review-stop').addEventListener('click', () => { stopAudition('review'); reviewPanel.focus(); });
 $('review-shift').addEventListener('click', () => $('grid-beat').click());
 $('review-set').addEventListener('click', () => $('grid-here').click());
-$('review-accept').addEventListener('click', () => void validateAndNext());
+$('review-accept').addEventListener('click', () => void validateAndNext(true));
 reviewPanel.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const actions: Record<string, string> = { '1': 'review-intro', '2': 'review-drop', '3': 'review-tail',
@@ -1566,8 +1595,11 @@ function updateTransport() {
   $<HTMLButtonElement>('review-accept').disabled = !canReview;
   $<HTMLButtonElement>('review-shift').disabled = !canReview;
   $<HTMLButtonElement>('review-set').disabled = !canReview;
-  $<HTMLButtonElement>('review-drop').disabled = !selected?.result || firstDrop(selected.result) === undefined;
-  for (const id of ['btn-review-next', 'review-accept']) setText($(id), next ? 'Valider et passer au suivant' : 'Valider le morceau');
+  const focus = selected?.result ? reviewFocus(selected.result) : undefined;
+  $<HTMLButtonElement>('review-drop').disabled = !focus;
+  setText($('review-drop'), `2 · ${focus?.label ?? 'Point fort'}`);
+  setText($('btn-review-next'), next ? 'Valider et passer au suivant' : 'Valider le morceau');
+  setText($('review-accept'), next ? 'Valider, enregistrer et passer' : 'Valider et enregistrer');
 }
 
 for (const [id, direction] of [['btn-prev-track', -1], ['btn-next-track', 1]] as const) {
@@ -1643,17 +1675,35 @@ $('btn-reviewed').addEventListener('click', async () => {
   if (!rec) return;
   await api.setReviewed([rec.path], !rec.reviewedAt);
 });
-async function validateAndNext() {
+async function validateAndNext(saveReference = false) {
   const path = state.selected;
   const next = adjacentTrack(1);
   const rec = path ? state.tracks.get(path) : undefined;
   if (!path || rec?.status !== 'done' || rec.missing) return;
+  if (saveReference) {
+    const genreName = $<HTMLSelectElement>('review-genre').value;
+    if (!genreName) {
+      toast('Choisissez le genre Beatport pour compléter le corpus');
+      $<HTMLSelectElement>('review-genre').focus();
+      return;
+    }
+    const genre = beatportGenre(genreName)!;
+    const energyValue = $<HTMLSelectElement>('review-energy').value;
+    state.references = await api.saveReference(path, energyValue ? Number(energyValue) : undefined, {
+      genre: genre.name,
+      genreFamily: genre.family,
+      rhythm: $<HTMLSelectElement>('review-rhythm').value as typeof genre.rhythm,
+      scenario: $<HTMLSelectElement>('review-scenario').value as 'steady' | 'variable' | 'live' | 'edit',
+      vocalStyle: $<HTMLSelectElement>('review-vocals').value as 'instrumental' | 'sung' | 'rap-spoken' | 'chops' | 'mixed' | 'unknown',
+    });
+    toast('Morceau vérifié et ajouté au corpus de référence');
+  }
   stopAudition('review');
   await api.setReviewed([path], true);
   if (next && state.selected === path && state.tracks.has(next)) select(next);
   if (!reviewPanel.hidden) reviewPanel.focus();
 }
-$('btn-review-next').addEventListener('click', () => void validateAndNext());
+$('btn-review-next').addEventListener('click', () => void validateAndNext(false));
 $('btn-import').addEventListener('click', async () => {
   const s = await api.importCollection();
   if (s.canceled) return;

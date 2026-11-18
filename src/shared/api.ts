@@ -9,6 +9,7 @@ import type { Peaks } from '../core/peaks';
 import type { UpdateStatus } from './update';
 import type { ImportedTrack } from '../core/import/collection';
 import type { LangSetting } from './i18n';
+import type { ReferenceDetails } from '../core/evaluate';
 
 export type TrackStatus = 'queued' | 'analyzing' | 'done' | 'error' | 'cancelled';
 
@@ -182,7 +183,7 @@ export interface CueKodaApi {
   setReviewed(paths: string[], reviewed: boolean): Promise<void>;
   addWatchFolder(): Promise<Settings>;
   /** Store the current (checked) state of a track as a reference for engine evaluation (spec §21) */
-  saveReference(path: string, energyRating?: number): Promise<Record<string, string>>;
+  saveReference(path: string, energyRating?: number, details?: ReferenceDetails): Promise<Record<string, string>>;
   exportReferences(): Promise<ExportResponse>;
   /** High-resolution waveform of one track (computed on demand) */
   peaks(path: string): Promise<Peaks | null>;

@@ -2,25 +2,25 @@
 
 3 morceau(x) — références vérifiées par le DJ.
 Les références du DJ ne sont pas exhaustives : pour les cues, le rappel compte plus que la précision.
-Couverture du corpus : 3/100 titres cibles, 1/5 genres cibles, 1/4 plages BPM cibles.
+Couverture du corpus : 3/180 titres cibles, 1/9 familles, 1/47 genres Beatport et 1/7 plages BPM.
 
 | Mesure | Morceaux | Résultat |
 |---|---|---|
 | BPM à ±1 % | 3 | 100 % (0 erreur(s) d'octave) |
-| Erreur de phase de grille (médiane) | 2 | 0.4 ms |
+| Erreur de phase de grille (médiane) | 2 | 2.1 ms |
 | Premier temps correct | 2 | 100 % |
 | Cues au bon temps (±40 ms, même type) : rappel | 3 | 67 % |
 | Cues au bon temps : F1 | 3 | 0.53 |
-| Cues à ±1 temps : F1 (écart moyen) | 3 | 0.60 (0.11 temps) |
+| Cues à ±1 temps : F1 (écart moyen) | 3 | 0.53 (0.02 temps) |
 
 ## Résultats par morceau
 
 | Morceau | Cues à ±40 ms | Cues à ±1 temps |
 |---|---:|---:|
 | Martin Garrix — *This Dream of You* | 4/5 | 4/5 |
-| Alesso — *Heroes (we could be)* | 2/4 | 3/4 |
+| Alesso — *Heroes (we could be)* | 2/4 | 2/4 |
 | Sebastian Ingrosso & Alesso — *Calling (Lose My Mind)* | 2/3 | 2/3 |
-| Total | 8/12 | 9/12 |
+| Total | 8/12 | 8/12 |
 
 Le moteur 0.3.3 retrouvait aussi 8 cues sur 12 à ±40 ms sur ces références. Le corpus contient trois
 morceaux et des annotations partielles. Deux d'entre eux ont une grille annotée.

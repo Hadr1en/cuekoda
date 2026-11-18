@@ -14,7 +14,7 @@ import { analyzeFile } from '../core/analyzer';
 import { evaluateTrack, summarize, type Reference, type TrackEvaluation } from '../core/evaluate';
 import { ENGINE_VERSION } from '../core/types';
 import { DATASETS, loadDataset, type DatasetId } from '../core/datasets';
-import { evaluationCoverage } from '../core/evaluationCoverage';
+import { COVERAGE_TARGET_TRACKS, evaluationCoverage } from '../core/evaluationCoverage';
 import { collectAudioFiles } from '../core/scan';
 
 function appReferencesPath(): string {
@@ -135,7 +135,8 @@ async function main() {
     `${s.tracks} morceau(x) — ${label}${missing.length ? ` (${missing.length} introuvable(s) : ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''})` : ''}.`,
     ...(dataset ? [`${refs.length - missing.length} analyse(s) tentée(s), ${failures.length} échec(s) de l'analyse.`] : []),
     'Les références du DJ ne sont pas exhaustives : pour les cues, le rappel compte plus que la précision.',
-    `Couverture du corpus : ${coverage.tracks}/100 titres cibles, ${coverage.genres.length}/5 genres cibles, ${Object.values(coverage.bpmBands).filter((count) => count > 0).length}/4 plages BPM cibles.`,
+    `Couverture du corpus : ${coverage.tracks}/${COVERAGE_TARGET_TRACKS} titres cibles, ${Object.values(coverage.genreFamilies).filter((count) => count > 0).length}/9 familles, ${coverage.genres.length}/${coverage.genres.length + coverage.missingBeatportGenres.length} genres Beatport, ${Object.values(coverage.bpmBands).filter((count) => count > 0).length}/7 plages BPM.`,
+    `Genres Beatport encore absents : ${coverage.missingBeatportGenres.join(', ') || 'aucun'}.`,
     '',
     '| Mesure | Morceaux | Résultat |',
     '|---|---|---|',

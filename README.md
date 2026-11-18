@@ -61,13 +61,13 @@ Les installeurs sont reconstruits à chaque mise à jour du code et publiés dan
 **Mises à jour** — CueKoda vérifie les releases publiques de GitHub. Les installateurs publiés sur GitHub permettent également une mise à jour manuelle.
 
 ## Prise en main en 4 étapes
-1. **Importer** : déposer des fichiers ou un dossier dans la fenêtre, ou utiliser « Ajouter » / « Actions › Ajouter un dossier… ».
+1. **Importer** : déposer des fichiers ou un dossier dans la fenêtre, ou utiliser « + Fichiers » / « + Dossier ».
    Formats : MP3, WAV, AIFF, FLAC, M4A / AAC, OGG, Opus, WMA.
 2. **Analyser** : l'analyse démarre seule, plusieurs morceaux en parallèle. Chaque ligne affiche l'étape et
    le pourcentage.
 3. **Vérifier et corriger** : ouvrir un morceau, contrôler la grille à l’écoute, déplacer les cues et corriger le BPM,
    grille ou tonalité si besoin. La colonne **Fiabilité** indique quoi vérifier en priorité.
-4. **Exporter** : ouvrir « Exporter », choisir le format, enregistrer le fichier et suivre les étapes d’import affichées.
+4. **Exporter** : ouvrir « Exporter… », choisir le format, enregistrer le fichier et suivre les étapes d’import affichées.
 
 ## Fonctionnalités en détail
 
@@ -151,8 +151,10 @@ La commande « Ordre de mix… » propose un ordre pour les morceaux affichés. 
   sa copie terminée.
 - **Doublons** : doublons exacts, même enregistrement dans un autre format, versions liées (remix, edit),
   grâce à l'empreinte acoustique. La détection préserve les fichiers sources.
-- **Profils de préparation** — Équilibré, Transitions longues, Pads fixes et profils personnalisés.
-  Ils règlent les cues, les boucles et les transitions. Le BPM, la tonalité et la grille suivent la même analyse.
+- **Profils de préparation** — Mainstage, House, Tech House, Techno, Trance, Hard dance, Drum & Bass,
+  Bass / breaks / garage, Afro / Latin / global, Open Format, Pads fixes et profils personnalisés.
+  Ils règlent la plage BPM, les hypothèses rythmiques, les cues, les boucles et les transitions. La tonalité
+  reste indépendante du genre éditorial.
 - **Pads fixes** — Réserve les pads A à H à Intro, Build 1, Drop 1, Break, Build 2, Drop 2, Outro
   et Mix Out. Si un repère manque, son pad reste libre.
 - **Révision** — Filtre « À vérifier » pour les morceaux à contrôler et « Fichiers introuvables »
@@ -161,18 +163,20 @@ La commande « Ordre de mix… » propose un ordre pour les morceaux affichés. 
   références servent à mesurer la justesse du moteur (`npm run eval`).
 
 Le **métronome** permet de vérifier la grille à l’oreille, avec un clic accentué sur le temps 1.
-**Contrôle express** permet d’écouter quatre mesures au métronome au début, au premier drop et à la fin.
-Dans cette vue, les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place le temps 1 et **V** valide la piste et ouvre la suivante.
+**Contrôle express** permet d’écouter quatre mesures au métronome au début, au premier drop — ou au point
+fort d’un morceau sans drop — et à la fin. Le genre Beatport, le rythme, la version, les voix et l’énergie
+ressentie alimentent le corpus local de référence. Les raccourcis **1 / 2 / 3** lancent l’écoute. **T** place
+le temps 1 et **V** valide, enregistre la référence et ouvre la piste suivante.
 
 La sélection utilise les cases à cocher, Ctrl/⌘ + clic ou Maj + clic. Un clic droit sur la sélection permet de la réanalyser ou de la retirer.
-Dans **Actions › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
+Dans **Préparer › Comparer la réanalyse…**, la comparaison présente les BPM, grilles et cues modifiés. Elle permet d’écouter les deux analyses et de rétablir la précédente par morceau.
 
-**Actions › Bacs…** enregistre des sélections ordonnées dans des listes locales. Le menu contextuel permet d’ajouter des morceaux à un bac. Un bac peut filtrer la bibliothèque ou être exporté sous forme de playlist nommée. Une sélection peut aussi être exportée directement.
+**Bacs…** enregistre des sélections ordonnées dans des listes locales. Le menu contextuel permet d’ajouter des morceaux à un bac. Un bac peut filtrer la bibliothèque ou être exporté sous forme de playlist nommée. Une sélection peut aussi être exportée directement.
 
 ### 8. Export vers les logiciels DJ
 <img src="docs/screenshots/fr/export.png" alt="Fenêtre d’export de CueKoda" width="100%">
 
-Le dialogue **« Exporter »** affiche les données transférées et les étapes d’import propres à chaque logiciel.
+Le dialogue **« Exporter… »** affiche les données transférées et les étapes d’import propres à chaque logiciel.
 
 | Logiciel | Fichier écrit | BPM / grille / clé | Hot cues, noms | Couleurs | Memory cues | Boucles |
 |---|---|---|---|---|---|---|
