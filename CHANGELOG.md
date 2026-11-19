@@ -15,7 +15,7 @@
 - validation continue renforcée sous Windows et Linux ;
 - profils rythmiques et benchmark de non-régression pour DnB, trap half-time, UK garage, Afro/Latin et hard techno ;
 - reprises après un break soutenu conservées sur la frontière audio mesurée, sans décalage artificiel de phrase ;
-- MusiCNN recalibré sur les partitions officielles `valid`/`test` de Jamendo SVD : F1 0,74 → 0,80 et rappel 0,70 → 0,93 ;
+- MusiCNN évalué sur les partitions officielles `valid`/`test` de Jamendo SVD ; le candidat à rappel élevé a été rejeté afin de préserver la précision et de limiter les fausses alertes ;
 - chargeurs d’évaluation officiels ajoutés pour Jamendo, M-DJCUE, Groove et AudioSet, avec rapports par famille et type vocal ;
 - moteur et caches d’analyse identifiés en version 0.6.0.
 

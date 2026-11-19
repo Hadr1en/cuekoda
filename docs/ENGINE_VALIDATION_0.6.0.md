@@ -6,26 +6,28 @@ par l’application ou modifié. Les sources, versions, licences et empreintes d
 
 ## Décision
 
-MusiCNN reste l’unique détecteur vocal distribué. Le seuil du score fusionné passe de `on=0.35/off=0.25`
-à `on=0.10/off=0.07`, valeur choisie sur les 16 titres du lot officiel Jamendo `valid`, puis évaluée une seule
-fois sur les 16 titres `test`. Le gain de rappel est privilégié car une voix manquée peut provoquer un conflit
-de voix pendant un mix ; une fausse alerte rend seulement CueKoda plus prudent.
+MusiCNN reste l’unique détecteur vocal distribué. Le réglage de production reste `on=0.35/off=0.25`.
+Le candidat `on=0.10/off=0.07`, choisi sur les 16 titres du lot officiel Jamendo `valid`, a été évalué une
+seule fois sur les 16 titres `test`, puis rejeté le 19 novembre 2026 : son gain de rappel ne compense pas la
+chute de précision et le doublement des faux positifs. Le seuil `0.20` reste une piste expérimentale, pas un
+réglage distribué, jusqu’à une validation temporelle sur un corpus plus large et représentatif des genres ciblés.
 
 | Jamendo SVD | Précision | Rappel | F1 | IoU | Faux positifs |
 |---|---:|---:|---:|---:|---:|
 | Seuil 0.35/0.25 — validation | 0,78 | 0,66 | 0,72 | 0,56 | 351,0 s |
 | Seuil 0.10/0.07 — validation | 0,71 | 0,93 | 0,80 | 0,67 | 699,5 s |
 | Seuil 0.35/0.25 — test réservé | 0,81 | 0,73 | 0,77 | 0,63 | 326,6 s |
-| **Seuil 0.10/0.07 — test réservé** | **0,71** | **0,93** | **0,80** | **0,67** | **759,8 s** |
+| Seuil 0.10/0.07 — test réservé (rejeté) | 0,71 | 0,93 | 0,80 | 0,67 | 759,8 s |
 
-Sur l’ensemble validation+test, le F1 passe de 0,74 à 0,80 et le rappel de 0,70 à 0,93. La précision passe
-de 0,80 à 0,71. Le coût ne change pas matériellement : 8,19 s CPU, 12,66 s mur et 6,6 Mio de variation RSS
+Sur l’ensemble validation+test, le candidat fait passer le F1 de 0,74 à 0,80 et le rappel de 0,70 à 0,93,
+mais la précision passe de 0,80 à 0,71 et les faux positifs font plus que doubler. Il n’est donc pas retenu.
+Le coût ne change pas matériellement : 8,19 s CPU, 12,66 s mur et 6,6 Mio de variation RSS
 en moyenne par titre ; taille audio moyenne 3,5 Mio. Le modèle distribué ne change pas, donc la taille du paquet
 reste identique.
 
 Les résultats détaillés et reproductibles sont dans
 [`MUSICNN_JAMENDO_RESULTS.json`](MUSICNN_JAMENDO_RESULTS.json) (référence) et
-[`MUSICNN_JAMENDO_CANDIDATE_RESULTS.json`](MUSICNN_JAMENDO_CANDIDATE_RESULTS.json) (candidat retenu).
+[`MUSICNN_JAMENDO_CANDIDATE_RESULTS.json`](MUSICNN_JAMENDO_CANDIDATE_RESULTS.json) (candidat rejeté).
 
 ## Familles rythmiques et structure
 
@@ -72,10 +74,12 @@ score est donc affiché comme type `unknown`, pas attribué artificiellement au 
 | AAC/M4A | 1,0000 s | 0,0 ms |
 
 Les positions exportées rekordbox XML et Traktor NML sont relues automatiquement et restent exactement à
-1,000 s et 9,000 s. Traktor Pro 3 est installé, mais ne dispose actuellement d’aucun périphérique audio connecté ;
-la mesure visuelle finale dans son décodeur ne peut donc pas être déclarée validée. Rekordbox n’est pas installé.
-Le fichier `cuekoda-offset-test/offset-results.json` est généré localement et conserve ces deux contrôles comme
-« à mesurer », sans leur attribuer une valeur fictive.
+1,000 s et 9,000 s. Le 19 novembre 2026, le NML a aussi été importé dans Traktor Pro 3.5.1 : les quatre fichiers,
+leurs BPM et leurs deux repères ont été acceptés. La référence WAV a été chargée dans le deck A ; les repères
+1 et 2 sont visibles sur les transitoires attendus. Ce contrôle confirme l’interopérabilité réelle du NML, sans
+prétendre à une mesure sous-pixel des autres décodeurs propriétaires. Rekordbox n’est pas installé. Le fichier
+`cuekoda-offset-test/offset-results.json` conserve les mesures reproductibles du décodeur local et du round-trip
+XML/NML ; les champs propriétaires non mesurés restent explicitement nuls.
 
 ## Garde-fous
 
