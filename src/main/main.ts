@@ -814,6 +814,17 @@ const SMOKE_UI_SCRIPT = `(async () => {
   out.columnResizers = resizers.length;
   out.columnResized = titleHeader.getBoundingClientRect().width > titleWidth;
   resizers[0].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  const energyHeader = document.querySelector('th[data-column="energy"]');
+  const energyResizer = energyHeader.querySelector('.column-resizer');
+  const energyBar = document.querySelector('.c-energy .meter-track');
+  const energyWidth = energyBar.getBoundingClientRect().width;
+  energyResizer.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  energyResizer.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  await wait(30);
+  out.energyMeterExpanded = energyBar.getBoundingClientRect().width > energyWidth;
+  energyResizer.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+  out.structureHeaderOnTop = Number(getComputedStyle(document.querySelector('th[data-column="structure"]')).zIndex) >= 3;
+  out.reviewBannerCleared = $('d-warn').hidden;
   out.pads = pads().length;
   out.padColorApplied = !!pads()[0]?.style.getPropertyValue('--pad-color');
   const t0 = pads()[0].querySelector('.tm').textContent;

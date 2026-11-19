@@ -377,7 +377,7 @@ test('transition plan: tempo match, bar-aligned points, fades, guards', () => {
   assert.ok('error' in planTransition(a, { ...b, bpm: 100 }), 'too far apart: refused, not stretched');
 });
 
-test('review queue covers structure, cues, vocals and analysis warnings', () => {
+test('review queue follows structured uncertainty, not informational engine notes', () => {
   const result = track({
     path: 'review.mp3',
     sections: [{ id: 's', type: 'section', label: 'Section', startBar: 0, endBar: 16, startSec: 0, endSec: 30, energy: 0.5, confidence: 'low', origin: 'auto' }],
@@ -389,7 +389,12 @@ test('review queue covers structure, cues, vocals and analysis warnings', () => 
   assert.ok(reasons.includes('structure incertaine'));
   assert.ok(reasons.includes('cues incertains'));
   assert.ok(reasons.includes('voix incertaine'));
-  assert.ok(reasons.includes('avertissement d’analyse'));
+  const informational = track({
+    path: 'informational.mp3',
+    sections: [{ id: 's', type: 'drop', label: 'Drop', startBar: 0, endBar: 16, startSec: 0, endSec: 30, energy: 0.8, confidence: 'high', origin: 'auto' }],
+    warnings: ['Tempo Essentia remplacé par une pulsation mieux alignée'],
+  });
+  assert.deepEqual(reviewReasons({ status: 'done', result: informational }), []);
   assert.deepEqual(reviewReasons({ status: 'done', result, reviewedAt: Date.now() }), []);
 });
 
