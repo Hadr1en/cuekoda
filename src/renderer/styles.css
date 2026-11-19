@@ -137,6 +137,11 @@
 
     :is(button, select, input, a, label) { app-region: no-drag; }
   }
+  [data-macos] .bar {
+    /* hiddenInset keeps the traffic lights but folds the native title bar into CueKoda's toolbar. */
+    min-block-size: 42px; padding-inline-start: 82px; app-region: drag;
+    :is(button, select, input, a, label) { app-region: no-drag; }
+  }
   .spacer { flex: 1; }
   .toolbar-separator { inline-size: 1px; block-size: 26px; flex: none; background: var(--color-line); margin-inline: 2px; }
   .field { color: var(--color-muted); display: flex; align-items: center; gap: 6px; }

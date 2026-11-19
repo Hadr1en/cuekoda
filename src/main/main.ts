@@ -264,7 +264,11 @@ function createWindow() {
     // Matches the --color-bg token (dark by default, see styles.css)
     backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
     title: 'CueKoda',
-    ...(process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() } : {}),
+    ...(process.platform === 'win32'
+      ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() }
+      : process.platform === 'darwin'
+        ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 15 } }
+        : {}),
     show: !SMOKE_DIR,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

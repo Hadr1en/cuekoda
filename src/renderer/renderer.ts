@@ -22,6 +22,7 @@ import {
 } from './util';
 
 const windowOverlay = (navigator as Navigator & { windowControlsOverlay?: EventTarget & { visible: boolean } }).windowControlsOverlay;
+document.documentElement.toggleAttribute('data-macos', navigator.platform.startsWith('Mac'));
 if (windowOverlay) {
   const syncOverlay = () => document.documentElement.toggleAttribute('data-window-overlay', windowOverlay.visible);
   windowOverlay.addEventListener('geometrychange', syncOverlay);
