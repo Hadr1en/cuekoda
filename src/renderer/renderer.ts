@@ -122,16 +122,52 @@ function keyBadge(key: AnalysisResult['key'], showAmbiguity = false) {
     code + (showAmbiguity && key.ambiguous ? '?' : ''));
 }
 
-function energyMeter(score: number, showValue = true) {
-  const value = Math.max(0, Math.min(10, score));
-  const ratio = value / 10;
-  // Cool colours mean low energy; the hue moves continuously through green and amber to red/pink.
-  // Length carries the exact magnitude, while colour makes neighbouring energy bands scannable.
-  const color = `hsl(${Math.round(210 - ratio * 250)} 82% 60%)`;
-  return h('span', { class: `meter${showValue ? '' : ' compact'}`, title: `Énergie estimée ${value.toFixed(1)}/10` },
-    h('span', { class: 'meter-track', 'aria-hidden': 'true' },
-      h('span', { class: 'meter-fill', style: { inlineSize: `${ratio * 100}%`, background: color } })),
+function energyColor(value: number) {
+  const level = Math.max(0, Math.min(1, value));
+  return `hsl(${Math.round(135 - level * 135)} 78% 57%)`;
+}
+
+function energyProfile(curve: number[]) {
+  const values = curve.filter(Number.isFinite).map((value) => Math.max(0, Math.min(1, value)));
+  if (!values.length) return '';
+
+  // A library cell only has 60 px: average neighbouring bars into readable time slices.
+  const count = Math.min(32, values.length);
+  const slices = Array.from({ length: count }, (_, i) => {
+    const start = Math.floor(i * values.length / count);
+    const end = Math.max(start + 1, Math.floor((i + 1) * values.length / count));
+    const group = values.slice(start, end);
+    return group.reduce((sum, value) => sum + value, 0) / group.length;
+  });
+  const low = Math.min(...slices);
+  const high = Math.max(...slices);
+  // The number already carries absolute energy. Colour uses the track's own range so a break
+  // stays visibly green and its strongest drop visibly red, even on an energetic master.
+  const levels = high - low >= 0.12 ? slices.map((value) => (value - low) / (high - low)) : slices;
+  const stops = levels.flatMap((level, i) => {
+    const color = energyColor(level);
+    return [`${color} ${(i / count) * 100}%`, `${color} ${((i + 1) / count) * 100}%`];
+  });
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
+function energyMeter(energy: NonNullable<AnalysisResult['energy']>, showValue = true) {
+  const value = Math.max(0, Math.min(10, energy.score));
+  const profile = energyProfile(energy.curve ?? []);
+  const title = profile
+    ? `Profil énergétique du morceau · score global ${value.toFixed(1)}/10`
+    : `Énergie estimée ${value.toFixed(1)}/10 · ré-analyser pour afficher le profil`;
+  return h('span', { class: `meter${showValue ? '' : ' compact'}`, title },
+    h('span', { class: `meter-track${profile ? '' : ' unavailable'}`, 'aria-hidden': 'true' },
+      profile ? h('span', { class: 'meter-profile', style: { background: profile } }) : ''),
     showValue ? h('b', {}, value.toFixed(1)) : '');
+}
+
+function sectionEnergyMeter(value: number) {
+  const level = Math.max(0, Math.min(1, value));
+  return h('span', { class: 'meter compact', title: `Énergie de la section ${Math.round(level * 100)} %` },
+    h('span', { class: 'meter-track', 'aria-hidden': 'true' },
+      h('span', { class: 'meter-profile', style: { background: energyColor(level) } })));
 }
 
 function sortValue(rec: TrackRecord): string | number {
@@ -356,7 +392,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
       td(r.artist, 'muted'),
       td(h('span', {}, fmtBpm(r.bpm), r.tempo ? confBadge(r.tempo.confidence, true) : ''), 'c-num'),
       td(keyBadge(r.key, true), 'c-key'),
-      td(r.energy ? energyMeter(r.energy.score) : '—', 'c-energy'),
+      td(r.energy ? energyMeter(r.energy) : '—', 'c-energy'),
       td(h('div', { class: 'strip' }, ...r.cues.map((c) =>
         h('i', { style: { insetInlineStart: `${Math.min(99, (c.timeSec / r.durationSec) * 100)}%`, background: rgb(c.color) }, title: `${LETTERS[c.slot] ?? ''} · ${c.name} · ${fmtTime(c.timeSec)}` }))), 'c-cues'),
       td(String(r.cues.length), 'c-num'),
@@ -1034,7 +1070,7 @@ function renderSections(r: AnalysisResult) {
             h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Écouter', onclick: () => { jump(sec.startSec); void audio.play(); } }, '▶'),
           ),
           h('td', { class: 'muted' }, `${sec.endBar - sec.startBar} mes.`),
-          h('td', {}, energyMeter(sec.energy * 10, false)),
+          h('td', {}, sectionEnergyMeter(sec.energy)),
           h('td', {}, confBadge(sec.confidence)),
           h('td', {}, i > 0 ? h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Supprimer (fusionner avec la section précédente)', onclick: () => sectionEdit(r, (list) => { list.splice(list.indexOf(sec), 1); }) }, '✕') : ''),
         ))),
