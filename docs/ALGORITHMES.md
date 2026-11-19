@@ -135,19 +135,22 @@ doivent pas être lus comme des probabilités.
   comme « instrumental ».
 - Matching : si la sortie de A et l'entrée de B sont toutes deux « voix nette », avertissement « éviter de
   superposer les deux passages chantés » et −5 points.
-- **Limite** : la détection vocale n'est pas validée et manque encore des voix (voir ci-dessous) :
-  « aucune voix détectée » ne garantit pas une fenêtre instrumentale.
+- **Limite** : la détection vocale est mesurée sur Jamendo SVD, mais ce corpus reste trop réduit pour couvrir
+  toutes les productions DJ et le modèle manque encore des voix (voir ci-dessous) : « aucune voix détectée »
+  ne garantit pas une fenêtre instrumentale.
 
-## Détection vocale — `vocalModel.ts` + `vocals.ts` (expérimentale, non validée)
+## Détection vocale — `vocalModel.ts` + `vocals.ts`
 
-CueKoda est un logiciel **gratuit et non commercial** : cela rend utilisable le modèle d'Essentia, sous
-licence CC BY-NC-SA 4.0, qui était écarté en v0.3.0.
+CueKoda est un logiciel **gratuit et non commercial**. Le modèle d’Essentia est distribué avec ses mentions
+de licence et d’attribution ; l’incertitude documentaire sur le droit de redistribuer sa conversion ONNX est
+consignée dans [DISTRIBUTION.md](DISTRIBUTION.md).
 
 ### Options évaluées (hors ligne, compatibles worker_threads Node, aucun réseau à l'analyse)
 
 | Option | Licence | Taille | CPU mesuré / morceau | Localisation | Verdict |
 |---|---|---|---|---|---|
-| **Modèle Essentia `voice_instrumental-musicnn-msd-2`** (MTG, TensorFlow.js) + backend WebAssembly de TensorFlow.js | poids CC BY-NC-SA 4.0 (MTG) — compatible avec un logiciel gratuit non commercial ; tfjs Apache-2.0 | modèle 3,2 Mo ; `@tensorflow/tfjs` + `tfjs-backend-wasm` (fichiers .wasm de quelques Mo) | **~5–10 s** (morceaux de 3 à 5,5 min, 1 cœur) | fenêtres de 3 s ; entraîné sur 1000 extraits étiquetés **par extrait** | **retenu, signal principal** |
+| **MusiCNN `voice_instrumental-musicnn-msd-2` converti en ONNX** (MTG) + `onnxruntime-node` CPU | poids d’origine et attribution MTG ; ONNX Runtime MIT | graphe 3,2 Mo ; runtime natif partagé avec les autres modèles | **8,19 s CPU / titre en moyenne** sur Jamendo SVD | fenêtres de 3 s ; entraîné sur 1000 extraits étiquetés **par extrait** | **retenu, runtime principal** |
+| Graphe MusiCNN TensorFlow.js d’origine + backend WebAssembly | mêmes poids ; tfjs Apache-2.0 | modèle 3,2 Mo + fichiers WASM | ~5–10 s (mesures historiques) | sortie équivalente | **repli local** si ONNX échoue ou manque |
 | Heuristique spectrale maison (fluctuation de hauteur cohérente, d'après le « fluctogram » de Lehner et al., ICASSP 2014) | code du projet | 0 | ~0,4–0,5 s | à la mesure | **retenue en complément** (bords à la mesure) et en **repli** si le modèle est absent |
 | Même modèle, backend TensorFlow.js « cpu » (pur JS) | idem | idem | ~300 s | — | écarté : 30× trop lent |
 | Même modèle, backend WebAssembly avec gros lots | idem | idem | — | — | plante (« memory access out of bounds ») : lots de 4 fenêtres |
@@ -162,8 +165,11 @@ grandeur documentaires, pas des mesures.
 1. **Modèle** (`vocalModel.ts`) : signal 44,1 kHz → 16 kHz (sinc fenêtré, 32 points) → log-mel MusiCNN
    (Hann 512, pas 256, 96 bandes Slaney, log10(1 + 10000·x)) recalculé en JS — **identique à Essentia**
    à 10⁻³ près (test unitaire), 5× plus rapide que l'appel WASM par trame → fenêtres de 187 trames (3 s)
-   **sans recouvrement** → P(voix) par fenêtre (backend WebAssembly, lots de 4). Modèle lu dans
-   `models/voice_instrumental-musicnn-msd-2/` ; jamais téléchargé pendant l'analyse.
+   **sans recouvrement** → P(voix) par fenêtre, par lots de 4. Le graphe
+   `models/neural/voice-musicnn.onnx` est exécuté en priorité dans le processus CPU isolé via
+   `onnxruntime-node`. En cas d’échec ou d’absence, le graphe d’origine dans
+   `models/voice_instrumental-musicnn-msd-2/` est exécuté par TensorFlow.js WebAssembly. Aucun modèle
+   n’est téléchargé pendant l’analyse.
 2. **Heuristique** (`vocals.ts`) : STFT 2048 / pas 512 à 22,05 kHz, log-magnitude en 25 cents de 400 Hz à
    4 kHz, 5 bandes d'une octave ; décalage de hauteur entre trames t−2 et t par corrélation (±100 cents).
    Une bande « bouge » si son décalage reste entre 5 et 90 cents / 46 ms pendant ≥ 2 trames ; trame
@@ -186,7 +192,15 @@ couvertes à ≥ 75 % par des passages **nets**, avec un écart d'énergie ≥ 0
 « Refrain », les autres « Couplet », confiance faible (pas d'analyse de répétition). Drops / breakdowns
 nommés par la structure ne sont jamais renommés. Sur les 13 échantillons réels : jamais déclenchée.
 
-### Mesures (2026-11-14, moteur 0.3.1)
+### Validation 0.6.0
+
+Sur le lot `test` réservé de Jamendo SVD, le réglage distribué `on=0,35/off=0,25` obtient une précision
+de **0,81**, un rappel de **0,73** et un F1 de **0,77**, avec 326,6 s de faux positifs cumulés. Le candidat
+`0,10/0,07` a été rejeté malgré son F1 de 0,80 : sa précision tombait à 0,71 et ses faux positifs montaient
+à 759,8 s. Les résultats, limites de corpus et coûts sont détaillés dans
+[ENGINE_VALIDATION_0.6.0.md](ENGINE_VALIDATION_0.6.0.md).
+
+### Mesures historiques (2026-11-14, moteur 0.3.1)
 Part des mesures marquées « voix » :
 
 | Morceau | Heuristique seule (0.3.0) | Modèle + heuristique (0.3.1) |
@@ -202,7 +216,8 @@ Part des mesures marquées « voix » :
 | Voix synthétique (test e2e) | passage exact 16–32 | passage exact 16–32 (repli testé aussi) |
 | Synthétiques sans voix | 0 | 0 |
 
-Temps d'analyse total : ~9–15 s par morceau avec le modèle, contre ~4 s sans (1 cœur par morceau ; la
+Ces mesures exploratoires précèdent la validation 0.6.0. Temps d'analyse total observé à l’époque :
+~9–15 s par morceau avec le modèle, contre ~4 s sans (1 cœur par morceau ; la
 file en lance plusieurs en parallèle). Les statuts « chanté » / « présumé instrumental » viennent des
 crédits et non d'une écoute vérifiée ; **aucune annotation horodatée** : précision et rappel ne sont
 pas mesurés, et les seuils ont été choisis sur ces mêmes morceaux (risque de sur-ajustement).
