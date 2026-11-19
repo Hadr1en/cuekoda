@@ -77,19 +77,25 @@
           </div>
           <table id="tracks" hidden>
             <caption class="sr-only">Morceaux de la bibliothèque</caption>
+            <colgroup>
+              <col><col>
+              <col data-column="title"><col data-column="artist"><col data-column="bpm">
+              <col data-column="key"><col data-column="energy"><col data-column="structure">
+              <col data-column="cues"><col data-column="conf"><col data-column="duration">
+            </colgroup>
             <thead>
               <tr>
                 <th scope="col" class="c-select"><input id="select-all" type="checkbox" aria-label="Sélectionner tous les morceaux affichés"></th>
                 <th scope="col" class="c-state"><span class="sr-only">État</span></th>
-                <th scope="col" data-sort="title">Titre</th>
-                <th scope="col" data-sort="artist">Artiste</th>
-                <th scope="col" class="c-num" data-sort="bpm">BPM</th>
-                <th scope="col" class="c-key" data-sort="key">Clé</th>
-                <th scope="col" class="c-energy" data-sort="energy">Énergie</th>
-                <th scope="col" class="c-cues">Structure</th>
-                <th scope="col" class="c-num" data-sort="cues">Cues</th>
-                <th scope="col" class="c-conf" data-sort="conf">Fiabilité</th>
-                <th scope="col" class="c-num" data-sort="duration">Durée</th>
+                <th scope="col" data-sort="title" data-column="title">Titre</th>
+                <th scope="col" data-sort="artist" data-column="artist">Artiste</th>
+                <th scope="col" class="c-num" data-sort="bpm" data-column="bpm">BPM</th>
+                <th scope="col" class="c-key" data-sort="key" data-column="key">Clé</th>
+                <th scope="col" class="c-energy" data-sort="energy" data-column="energy">Énergie</th>
+                <th scope="col" class="c-cues" data-column="structure">Structure</th>
+                <th scope="col" class="c-num" data-sort="cues" data-column="cues">Cues</th>
+                <th scope="col" class="c-conf" data-sort="conf" data-column="conf">Fiabilité</th>
+                <th scope="col" class="c-num" data-sort="duration" data-column="duration">Durée</th>
               </tr>
             </thead>
             <tbody id="rows"></tbody>
@@ -100,7 +106,7 @@
 
       <button type="button" id="workspace-splitter" class="workspace-splitter" aria-label="Replier la bibliothèque" aria-expanded="true" title="Glisser pour redimensionner · cliquer pour replier" hidden>
         <span class="splitter-grip" aria-hidden="true"></span>
-        <span id="splitter-chevron" class="splitter-chevron" aria-hidden="true">⌃</span>
+        <span class="splitter-chevron" aria-hidden="true"></span>
       </button>
 
       <section id="pending" class="pending" role="status" aria-live="polite" hidden></section>

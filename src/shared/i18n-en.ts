@@ -59,6 +59,7 @@ export const EN_EXACT: Record<string, string> = {
   'Afficher la bibliothèque': 'Show the library',
   'Cliquer pour afficher la bibliothèque': 'Click to show the library',
   'Glisser pour redimensionner · cliquer pour replier': 'Drag to resize · click to collapse',
+  'Glisser pour redimensionner · double-cliquer pour réinitialiser': 'Drag to resize · double-click to reset',
   'Préparation du morceau': 'Track preparation',
   'Actions principales': 'Main actions',
   'Marquer comme vérifié après écoute': 'Mark as checked after listening',
@@ -782,6 +783,7 @@ export const EN_EXACT: Record<string, string> = {
 };
 
 export const EN_PATTERNS: [RegExp, Rep][] = [
+  [/^Redimensionner la colonne (.+)$/, (_, column) => `Resize the ${tl(column)} column`],
   [/^Utiliser ([\d.,]+) BPM$/, (_, bpm) => `Use ${bpm} BPM`],
   [/^Tempo ([\d.]+) remplacé par ([\d.]+) \(pulsation plus rapide mieux alignée\)$/, (_, a, b) => `Tempo ${a} replaced by ${b} (faster pulse better aligned)`],
   [/^Tempo ([\d.]+) remplacé par ([\d.]+) \(motif rythmique récurrent\)$/, (_, a, b) => `Tempo ${a} replaced by ${b} (recurring rhythmic pattern)`],
