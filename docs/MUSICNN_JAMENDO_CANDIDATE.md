@@ -30,4 +30,4 @@ CPU moyen : 8190 ms · temps mur moyen : 12661 ms · variation RSS moyenne : 6.6
 ## Calibration MusiCNN
 
 Seuil du score fusionné choisi uniquement sur le lot validation : **0.1**. F1 sur validation : 0.79; F1 obtenu une seule fois sur le lot test : 0.81.
-Ce candidat a été retenu après comparaison A/B ; la décision et le coût en faux positifs sont détaillés dans `ENGINE_VALIDATION_0.6.0.md`.
+Ce candidat a été rejeté après comparaison A/B : la baisse de précision et le doublement des faux positifs ne justifient pas le gain de rappel. La décision est détaillée dans `ENGINE_VALIDATION_0.6.0.md`.

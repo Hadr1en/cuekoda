@@ -868,6 +868,10 @@ function tone(sec: number, f0: (t: number) => number): Float32Array {
 }
 const barScores = (x: Float32Array) => vocalBarFeatures(vocalFrames(x, 22050), 0, 2, Math.floor(x.length / 22050 / 2));
 
+test('vocal model keeps the precision-first production thresholds', () => {
+  assert.deepEqual(FUSED_THRESHOLDS, { on: 0.35, off: 0.25, strong: 0.55 });
+});
+
 test('vocal frames: steady tone still, vibrato moves, one-way sweep penalised', () => {
   const steady = barScores(tone(8, () => 330));
   assert.ok(steady.score.every((v) => v < 0.05), `steady ${steady.score}`);
