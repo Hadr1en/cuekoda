@@ -55,6 +55,11 @@ const MIX_VOCALS: Record<string, string> = {
 
 export const EN_EXACT: Record<string, string> = {
   // ================================================================ header, library (index.html)
+  'Replier la bibliothèque': 'Collapse the library',
+  'Afficher la bibliothèque': 'Show the library',
+  'Cliquer pour afficher la bibliothèque': 'Click to show the library',
+  'Glisser pour redimensionner · cliquer pour replier': 'Drag to resize · click to collapse',
+  'Préparation du morceau': 'Track preparation',
   'Actions principales': 'Main actions',
   'Marquer comme vérifié après écoute': 'Mark as checked after listening',
   'Placer le premier temps ici': 'Set the downbeat here',

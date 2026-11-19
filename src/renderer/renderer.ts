@@ -40,10 +40,93 @@ let markedPaths = new Set<string>();
 let selectionAnchor: string | null = null;
 const selectAll = $<HTMLInputElement>('select-all');
 const trackActions = $('track-actions');
+const mainWorkspace = document.querySelector<HTMLElement>('main')!;
+const workspaceSplitter = $<HTMLButtonElement>('workspace-splitter');
+const splitterChevron = $('splitter-chevron');
 const searchText = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 let activeTab = 'cues';
 let loopPlay: Loop | null = null;
 let batchTotal = 0;
+
+const LIBRARY_SIZE_KEY = 'cuekoda.librarySize';
+const LIBRARY_COLLAPSED_KEY = 'cuekoda.libraryCollapsed';
+let libraryCollapsed = localStorage.getItem(LIBRARY_COLLAPSED_KEY) === '1';
+const savedLibrarySize = Number(localStorage.getItem(LIBRARY_SIZE_KEY));
+if (Number.isFinite(savedLibrarySize) && savedLibrarySize >= 150) {
+  mainWorkspace.style.setProperty('--library-size', `${savedLibrarySize}px`);
+}
+
+function setLibraryCollapsed(collapsed: boolean, persist = true) {
+  libraryCollapsed = collapsed;
+  mainWorkspace.classList.toggle('library-collapsed', collapsed && !$('detail').hidden);
+  workspaceSplitter.setAttribute('aria-expanded', String(!collapsed));
+  workspaceSplitter.setAttribute('aria-label', tr(collapsed ? 'Afficher la bibliothèque' : 'Replier la bibliothèque'));
+  workspaceSplitter.title = collapsed
+    ? tr('Cliquer pour afficher la bibliothèque')
+    : tr('Glisser pour redimensionner · cliquer pour replier');
+  splitterChevron.textContent = collapsed ? '⌄' : '⌃';
+  if (persist) localStorage.setItem(LIBRARY_COLLAPSED_KEY, collapsed ? '1' : '0');
+}
+
+function syncWorkspaceSplitter(hasDetail: boolean) {
+  workspaceSplitter.hidden = !hasDetail;
+  mainWorkspace.classList.toggle('library-collapsed', hasDetail && libraryCollapsed);
+}
+
+let splitterPointer = -1;
+let splitterMoved = false;
+
+workspaceSplitter.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0) return;
+  splitterPointer = event.pointerId;
+  splitterMoved = false;
+  mainWorkspace.classList.add('resizing');
+  workspaceSplitter.setPointerCapture(event.pointerId);
+});
+
+workspaceSplitter.addEventListener('pointermove', (event) => {
+  if (event.pointerId !== splitterPointer) return;
+  const rect = mainWorkspace.getBoundingClientRect();
+  const requested = event.clientY - rect.top;
+  if (!splitterMoved && Math.abs(requested - $('library').getBoundingClientRect().height) < 4) return;
+  splitterMoved = true;
+  if (libraryCollapsed) setLibraryCollapsed(false);
+  const max = Math.max(150, rect.height - Math.max(330, rect.height * .35));
+  const size = Math.round(Math.max(150, Math.min(max, requested)));
+  mainWorkspace.style.setProperty('--library-size', `${size}px`);
+});
+
+const finishSplitterDrag = (event: PointerEvent) => {
+  if (event.pointerId !== splitterPointer) return;
+  if (workspaceSplitter.hasPointerCapture(event.pointerId)) workspaceSplitter.releasePointerCapture(event.pointerId);
+  splitterPointer = -1;
+  mainWorkspace.classList.remove('resizing');
+  if (splitterMoved) {
+    const size = Math.round($('library').getBoundingClientRect().height);
+    if (size >= 150) localStorage.setItem(LIBRARY_SIZE_KEY, String(size));
+  }
+};
+workspaceSplitter.addEventListener('pointerup', finishSplitterDrag);
+workspaceSplitter.addEventListener('pointercancel', finishSplitterDrag);
+workspaceSplitter.addEventListener('click', (event) => {
+  if (splitterMoved) {
+    event.preventDefault();
+    splitterMoved = false;
+    return;
+  }
+  setLibraryCollapsed(!libraryCollapsed);
+});
+workspaceSplitter.addEventListener('keydown', (event) => {
+  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+  event.preventDefault();
+  if (libraryCollapsed) setLibraryCollapsed(false);
+  const rect = mainWorkspace.getBoundingClientRect();
+  const current = $('library').getBoundingClientRect().height;
+  const max = Math.max(150, rect.height - Math.max(330, rect.height * .35));
+  const size = Math.round(Math.max(150, Math.min(max, current + (event.key === 'ArrowDown' ? 24 : -24))));
+  mainWorkspace.style.setProperty('--library-size', `${size}px`);
+  localStorage.setItem(LIBRARY_SIZE_KEY, String(size));
+});
 
 const current = (): AnalysisResult | null => {
   const r = state.selected ? state.tracks.get(state.selected) : null;
@@ -579,6 +662,7 @@ function renderDetail() {
   const rec = state.selected ? state.tracks.get(state.selected) : undefined;
   renderBusy(rec);
   $('detail').hidden = !r;
+  syncWorkspaceSplitter(!!r);
   if (!r) return;
   if (wave.track !== r) wave.set(r, true);
   $('d-title').textContent = r.title;
