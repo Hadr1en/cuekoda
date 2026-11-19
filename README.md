@@ -44,7 +44,7 @@ CueKoda est une application **de préparation musicale pour DJ** sur macOS et Wi
   modifiés, déplacés ni supprimés.
 
 ## Télécharger et installer
-Les installeurs sont reconstruits à chaque mise à jour du code et publiés dans les
+Les installeurs sont reconstruits pour chaque modification applicative fusionnée sur `main` et publiés dans les
 [**Releases**](https://github.com/Hadr1en/cuekoda/releases/latest).
 
 | Système | Fichier |
@@ -85,6 +85,9 @@ Les installeurs sont reconstruits à chaque mise à jour du code et publiés dan
 | **Structure** | Intro, build-up, drop, breakdown, outro, phrases de 8 / 16 / 32 mesures (seulement si elles sont régulières). Les **drops** sont repérés par palier d'énergie et placés sur l'entrée de la basse. |
 | **Voix** | Détection locale (modèle MusiCNN + heuristique) : passages vocaux nets ou faibles. |
 | **Empreinte** | Empreinte chromatique par mesure, pour repérer doublons et versions d'un même morceau. |
+
+Les mesures reproductibles du moteur 0.6.0, dont l’évaluation A/B du détecteur vocal et les faux positifs,
+sont détaillées dans le [rapport de validation 0.6.0](docs/ENGINE_VALIDATION_0.6.0.md).
 
 La file d'analyse se met en pause, s'annule, relance les échecs et respecte une limite CPU. Un fichier
 défectueux ne bloque jamais les autres. Un morceau déjà analysé et inchangé revient instantanément du cache.
@@ -286,8 +289,10 @@ src/test/       unitaires, bout en bout, non-régression, diagnostics
 ```
 
 **Stack et licences tierces** : Electron 45, TypeScript, esbuild, electron-builder ; Essentia.js
-(AGPL-3.0), ffmpeg-static (binaire GPL), music-metadata, TensorFlow.js (Apache-2.0) et le modèle
-`voice_instrumental-musicnn-msd-2` du Music Technology Group (UPF). Voir la [licence](#licence).
+(AGPL-3.0), ffmpeg-static (binaire GPL), music-metadata, ONNX Runtime (MIT), TensorFlow.js
+(Apache-2.0, repli) et le modèle `voice_instrumental-musicnn-msd-2` du Music Technology Group (UPF).
+L’inférence distribuée utilise en priorité `onnxruntime-node` sur CPU ; le graphe TensorFlow.js d’origine
+reste disponible comme solution de repli locale. Voir la [licence](#licence).
 
 **Documentation** : [guide utilisateur](docs/GUIDE_UTILISATEUR.md) · [algorithmes et limites](docs/ALGORITHMES.md) ·
 [matrice d'export](docs/MATRICE_EXPORT.md) · [audit et état des fonctionnalités](docs/AUDIT_ET_PLAN.md)
@@ -296,7 +301,7 @@ src/test/       unitaires, bout en bout, non-régression, diagnostics
 CueKoda est un logiciel libre sous **GNU AGPL v3 ou ultérieure** ([LICENSE](LICENSE)). La licence encadre l’utilisation, la modification et la redistribution. Elle prévoit des obligations de mise à disposition du code source pour les versions modifiées proposées comme service en ligne. Copyright © 2026 Hadr1en.
 
 Composants tiers, chacun sous sa propre licence : Essentia.js (AGPL-3.0), ffmpeg-static (binaire GPL),
-TensorFlow.js (Apache-2.0), music-metadata (MIT) et Electron (MIT). Le modèle vocal `voice_instrumental-musicnn-msd-2` du
+ONNX Runtime (MIT), TensorFlow.js (Apache-2.0), music-metadata (MIT) et Electron (MIT). Le modèle vocal `voice_instrumental-musicnn-msd-2` du
 Music Technology Group (UPF) est soumis à des conditions propres, dont une clause non commerciale.
 Voir [la note sur la licence du modèle](docs/DISTRIBUTION.md#décisions-avant-diffusion).
 

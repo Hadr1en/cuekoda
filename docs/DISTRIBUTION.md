@@ -32,13 +32,13 @@ donc l'application dépend de GitHub pour l'authenticité des deux.
 | Visibilité du dépôt | Le canal actuel repose sur les releases publiques. Si la visibilité change, revoir l'accès aux mises à jour, les logs Actions, les artefacts et la disponibilité du code source correspondant. `samples/` contient des morceaux d'artistes et doit rester local. |
 | macOS | Prévoir un certificat **Developer ID Application**, activer Hardened Runtime avec les entitlements adaptés à Electron, puis notariser et agrafer le ticket au DMG. Tester Gatekeeper sur un Mac propre avant la diffusion. |
 | Windows | Choisir une identité de signature Authenticode, signer l'application et l'installeur NSIS en SHA-256 avec horodatage RFC 3161, puis vérifier les signatures et tester l'installation sur une machine propre. |
-| Licences | Le code CueKoda déclare GNU AGPL v3 ou ultérieure et intègre Essentia.js sous AGPL. Vérifier les obligations de redistribution et de fourniture du code source correspondant. Confirmer auprès du MTG les conditions exactes de redistribution de l'archive TensorFlow.js du modèle vocal, ou choisir de retirer ou remplacer le modèle pour la diffusion. |
+| Licences | Le code CueKoda déclare GNU AGPL v3 ou ultérieure et intègre Essentia.js sous AGPL. Vérifier les obligations de redistribution et de fourniture du code source correspondant. ONNX Runtime est sous licence MIT. Confirmer auprès du MTG les conditions exactes de redistribution du graphe TensorFlow.js d’origine **et de sa conversion ONNX**, ou choisir de retirer ou remplacer le modèle pour la diffusion. |
 
 Le site Essentia annonce CC BY-NC-SA 4.0 pour les modèles du MTG. Le fichier `LICENSE` embarqué avec
 `voice_instrumental-musicnn-msd-2` mentionne « NoDerivatives » dans son résumé et renvoie à
-« ShareAlike » dans le lien qui suit. Ces indications divergent sur le droit de partager une adaptation.
-Les deux variantes comportent une clause non commerciale. Demander au MTG une confirmation écrite
-pour la version embarquée et les usages prévus.
+« ShareAlike » dans le lien qui suit. Ces indications divergent sur le droit de partager une adaptation,
+ce qui concerne directement le graphe ONNX dérivé des mêmes poids. Les deux variantes comportent une clause
+non commerciale. Demander au MTG une confirmation écrite pour les deux graphes embarqués et les usages prévus.
 
 [Visibilité GitHub](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility) ·
 [Apple Developer ID](https://developer.apple.com/developer-id/) ·

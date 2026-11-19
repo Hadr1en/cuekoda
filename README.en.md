@@ -45,7 +45,7 @@ CueKoda is a **track-preparation application for DJs** on macOS and Windows. It 
   or deleted.
 
 ## Download and install
-Installers are rebuilt on every code update and published in the
+Installers are rebuilt for every application change merged into `main` and published in the
 [**Releases**](https://github.com/Hadr1en/cuekoda/releases/latest).
 
 | System | File |
@@ -86,6 +86,9 @@ Installers are rebuilt on every code update and published in the
 | **Structure** | Intro, build-up, drop, breakdown, outro, 8 / 16 / 32-bar phrases (only when they are regular). **Drops** are found from energy tiers and placed on the bass entry. |
 | **Vocals** | Local detection (MusiCNN model + heuristic): clear or faint vocal parts. |
 | **Fingerprint** | Per-bar chroma fingerprint, used to spot duplicates and versions of the same track. |
+
+Reproducible 0.6.0 engine measurements, including the vocal detector A/B evaluation and false positives,
+are documented in the [0.6.0 validation report](docs/ENGINE_VALIDATION_0.6.0.md) (French).
 
 The analysis queue can be paused, cancelled and retried, and respects a CPU limit. A broken file never
 blocks the others. A track that was already analysed and has not changed comes back instantly from the cache.
@@ -290,14 +293,16 @@ src/test/       unit, end-to-end, regression, diagnostics
 ```
 
 **Stack and third-party licences**: Electron 45, TypeScript, esbuild, electron-builder; Essentia.js
-(AGPL-3.0), ffmpeg-static (GPL binary), music-metadata, TensorFlow.js (Apache-2.0) and the
-`voice_instrumental-musicnn-msd-2` model from the Music Technology Group (UPF). See the [licence](#licence).
+(AGPL-3.0), ffmpeg-static (GPL binary), music-metadata, ONNX Runtime (MIT), TensorFlow.js
+(Apache-2.0, fallback) and the `voice_instrumental-musicnn-msd-2` model from the Music Technology Group
+(UPF). Distributed inference uses `onnxruntime-node` on CPU first; the original TensorFlow.js graph remains
+available as a local fallback. See the [licence](#licence).
 
 ## Licence
 CueKoda is free software under the **GNU AGPL v3 or later** ([LICENSE](LICENSE)). The licence governs use, modification and distribution, including source availability for modified versions offered as a network service. Copyright © 2026 Hadr1en.
 
 Third-party components, each under its own licence: Essentia.js (AGPL-3.0), ffmpeg-static (GPL binary),
-TensorFlow.js (Apache-2.0), music-metadata (MIT) and Electron (MIT). The `voice_instrumental-musicnn-msd-2` vocal model from
+ONNX Runtime (MIT), TensorFlow.js (Apache-2.0), music-metadata (MIT) and Electron (MIT). The `voice_instrumental-musicnn-msd-2` vocal model from
 the Music Technology Group (UPF) has its own terms, including a noncommercial clause.
 See the [note on the model licence](docs/DISTRIBUTION.md#décisions-avant-diffusion) (French).
 
