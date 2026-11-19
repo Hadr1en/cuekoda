@@ -122,6 +122,18 @@ function keyBadge(key: AnalysisResult['key'], showAmbiguity = false) {
     code + (showAmbiguity && key.ambiguous ? '?' : ''));
 }
 
+function energyMeter(score: number, showValue = true) {
+  const value = Math.max(0, Math.min(10, score));
+  const ratio = value / 10;
+  // Cool colours mean low energy; the hue moves continuously through green and amber to red/pink.
+  // Length carries the exact magnitude, while colour makes neighbouring energy bands scannable.
+  const color = `hsl(${Math.round(210 - ratio * 250)} 82% 60%)`;
+  return h('span', { class: `meter${showValue ? '' : ' compact'}`, title: `Énergie estimée ${value.toFixed(1)}/10` },
+    h('span', { class: 'meter-track', 'aria-hidden': 'true' },
+      h('span', { class: 'meter-fill', style: { inlineSize: `${ratio * 100}%`, background: color } })),
+    showValue ? h('b', {}, value.toFixed(1)) : '');
+}
+
 function sortValue(rec: TrackRecord): string | number {
   const r = rec.result;
   switch (sortKey) {
@@ -344,9 +356,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
       td(r.artist, 'muted'),
       td(h('span', {}, fmtBpm(r.bpm), r.tempo ? confBadge(r.tempo.confidence, true) : ''), 'c-num'),
       td(keyBadge(r.key, true), 'c-key'),
-      td(r.energy
-        ? h('span', { class: 'meter', title: `Énergie estimée ${r.energy.score}/10` }, h('span', { style: { inlineSize: `${r.energy.score * 10}%` } }), h('b', {}, r.energy.score.toFixed(1)))
-        : '—', 'c-energy'),
+      td(r.energy ? energyMeter(r.energy.score) : '—', 'c-energy'),
       td(h('div', { class: 'strip' }, ...r.cues.map((c) =>
         h('i', { style: { insetInlineStart: `${Math.min(99, (c.timeSec / r.durationSec) * 100)}%`, background: rgb(c.color) }, title: `${LETTERS[c.slot] ?? ''} · ${c.name} · ${fmtTime(c.timeSec)}` }))), 'c-cues'),
       td(String(r.cues.length), 'c-num'),
@@ -1024,7 +1034,7 @@ function renderSections(r: AnalysisResult) {
             h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Écouter', onclick: () => { jump(sec.startSec); void audio.play(); } }, '▶'),
           ),
           h('td', { class: 'muted' }, `${sec.endBar - sec.startBar} mes.`),
-          h('td', {}, h('span', { class: 'meter' }, h('span', { style: { inlineSize: `${Math.round(sec.energy * 100)}%` } }))),
+          h('td', {}, energyMeter(sec.energy * 10, false)),
           h('td', {}, confBadge(sec.confidence)),
           h('td', {}, i > 0 ? h('button', { type: 'button', class: 'btn small ghost', 'aria-label': 'Supprimer (fusionner avec la section précédente)', onclick: () => sectionEdit(r, (list) => { list.splice(list.indexOf(sec), 1); }) }, '✕') : ''),
         ))),
