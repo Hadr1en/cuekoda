@@ -98,8 +98,14 @@
         <div id="track-actions" class="action-popover" popover="auto" role="group" aria-label="Actions sur la sélection"></div>
       </section>
 
+      <button type="button" id="workspace-splitter" class="workspace-splitter" aria-label="Replier la bibliothèque" aria-expanded="true" title="Glisser pour redimensionner · cliquer pour replier" hidden>
+        <span class="splitter-grip" aria-hidden="true"></span>
+        <span id="splitter-chevron" class="splitter-chevron" aria-hidden="true">⌃</span>
+      </button>
+
       <section id="pending" class="pending" role="status" aria-live="polite" hidden></section>
       <section id="detail" aria-label="Analyse du morceau" hidden>
+        <div class="detail-fixed">
         <div class="detail-head">
           <div class="d-titles">
             <h2 id="d-title" class="d-title"></h2>
@@ -214,7 +220,9 @@
           <canvas id="overview" aria-hidden="true"></canvas>
           <div id="overview-playhead" class="playhead" aria-hidden="true" hidden></div>
         </div>
+        </div>
 
+        <section class="detail-inspector" aria-label="Préparation du morceau">
         <div class="tabs" role="tablist" aria-label="Préparation">
           <button type="button" role="tab" aria-selected="true" aria-controls="tab-cues" id="t-cues">Hot cues</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="tab-loops" id="t-loops">Boucles</button>
@@ -227,6 +235,7 @@
         <div id="tab-sections" role="tabpanel" aria-labelledby="t-sections" class="tabpanel" hidden></div>
         <div id="tab-mix" role="tabpanel" aria-labelledby="t-mix" class="tabpanel" hidden></div>
         <div id="tab-info" role="tabpanel" aria-labelledby="t-info" class="tabpanel" hidden></div>
+        </section>
       </section>
     </main>
 

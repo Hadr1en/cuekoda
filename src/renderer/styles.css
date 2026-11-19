@@ -137,6 +137,11 @@
 
     :is(button, select, input, a, label) { app-region: no-drag; }
   }
+  [data-macos] .bar {
+    /* hiddenInset keeps the traffic lights but folds the native title bar into CueKoda's toolbar. */
+    min-block-size: 42px; padding-inline-start: 82px; app-region: drag;
+    :is(button, select, input, a, label) { app-region: no-drag; }
+  }
   .spacer { flex: 1; }
   .toolbar-separator { inline-size: 1px; block-size: 26px; flex: none; background: var(--color-line); margin-inline: 2px; }
   .field { color: var(--color-muted); display: flex; align-items: center; gap: 6px; }
@@ -193,9 +198,10 @@
   progress::-webkit-progress-value { background: var(--color-accent); border-radius: 1e5px; transition: inline-size .3s; }
   progress::-moz-progress-bar { background: var(--color-accent); border-radius: 1e5px; }
 
-  main { flex: 1; min-block-size: 0; display: flex; flex-direction: column; }
+  main { --library-size: 34%; flex: 1; min-block-size: 0; display: flex; flex-direction: column; }
   #library { flex: 1 1 35%; min-block-size: 150px; display: flex; flex-direction: column; }
-  main:has(#detail:not([hidden])) #library { flex: 0 1 auto; max-block-size: 38%; }
+  main:has(#detail:not([hidden])) #library { flex: 0 0 var(--library-size); max-block-size: 65%; }
+  main.library-collapsed:has(#detail:not([hidden])) #library { display: none; }
   .lib-tools {
     display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-block-end: var(--ui-border);
     background: var(--color-panel);
@@ -205,6 +211,29 @@
     @media (max-width: 1080px) { &:has(#selection-count:not([hidden])) #lib-count { display: none; } }
   }
   #list-wrap { flex: 1 1 auto; overflow: auto; position: relative; overscroll-behavior: contain; }
+
+  .workspace-splitter {
+    position: relative; z-index: 4; flex: 0 0 13px; inline-size: 100%; padding: 0; border: 0;
+    border-block: 1px solid var(--color-line); background: var(--color-panel); color: var(--color-muted);
+    cursor: row-resize; touch-action: none;
+    &::before { content: ''; position: absolute; inset: 3px 0; background: transparent; }
+    .splitter-grip {
+      position: absolute; inset-block-start: 50%; inset-inline-start: 50%; translate: -50% -50%;
+      inline-size: 48px; block-size: 15px; border: var(--ui-border); border-radius: 9px;
+      background: var(--color-raised); box-shadow: 0 1px 4px color-mix(in oklab, #000 45%, transparent);
+    }
+    .splitter-grip::before {
+      content: ''; position: absolute; inset: 5px 13px; border-block: 1px solid currentColor;
+    }
+    .splitter-chevron {
+      position: absolute; inset-block-start: 50%; inset-inline-start: calc(50% + 17px); translate: -50% -54%;
+      font-size: 10px; line-height: 1; pointer-events: none;
+    }
+    &:hover, &:focus-visible { color: var(--color-accent); border-color: color-mix(in oklab, var(--color-accent) 50%, var(--color-line)); }
+    &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+  }
+  main.library-collapsed .workspace-splitter { cursor: pointer; }
+  main.resizing, main.resizing * { cursor: row-resize !important; user-select: none !important; }
 
   .empty {
     position: absolute; inset: 0; margin: 18px; border: 2px dashed var(--color-line); border-radius: 14px;
@@ -295,8 +324,14 @@
   /* -------- detail */
   #detail {
     container: detail / inline-size;
-    flex: 1 1 65%; min-block-size: 0; overflow: auto;
+    flex: 1 1 65%; min-block-size: 0; overflow: hidden; display: flex; flex-direction: column;
     background: var(--color-panel); border-block-start: var(--ui-border); padding: 10px 14px 14px;
+  }
+  .detail-fixed { flex: none; min-block-size: 0; }
+  .detail-inspector {
+    flex: 1 1 150px; min-block-size: 118px; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
+    margin-block-start: 10px; padding: 0 12px 12px; border: var(--ui-border); border-radius: var(--ui-radius);
+    box-shadow: inset 0 12px 16px -18px #000, inset 0 -12px 16px -18px #000;
   }
   .detail-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
   .d-titles { min-inline-size: 0; }
@@ -458,7 +493,8 @@
   }
 
   .tabs {
-    display: flex; gap: 2px; margin-block: 10px 8px; border-block-end: var(--ui-border);
+    position: sticky; inset-block-start: 0; z-index: 2; display: flex; gap: 2px; margin-block: 0 8px;
+    padding-block-start: 8px; border-block-end: var(--ui-border); background: var(--color-panel);
     [role='tab'] {
       background: none; border: 0; border-block-end: 2px solid transparent; padding: 6px 12px; cursor: pointer; color: var(--color-muted);
       &[aria-selected='true'] { color: var(--color-text); border-block-end-color: var(--color-accent); font-weight: 600; }

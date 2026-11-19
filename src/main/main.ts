@@ -264,7 +264,11 @@ function createWindow() {
     // Matches the --color-bg token (dark by default, see styles.css)
     backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
     title: 'CueKoda',
-    ...(process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() } : {}),
+    ...(process.platform === 'win32'
+      ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() }
+      : process.platform === 'darwin'
+        ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 15 } }
+        : {}),
     show: !SMOKE_DIR,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -793,6 +797,15 @@ const SMOKE_UI_SCRIPT = `(async () => {
   search.blur();
   await wait(400);
   out.detailVisible = !$('detail').hidden;
+  const splitter = $('workspace-splitter');
+  out.splitterVisible = !splitter.hidden;
+  out.inspectorScroll = getComputedStyle(document.querySelector('.detail-inspector')).overflowY === 'auto';
+  splitter.click();
+  await wait(30);
+  out.libraryCollapsed = getComputedStyle($('library')).display === 'none' && splitter.getAttribute('aria-expanded') === 'false';
+  splitter.click();
+  await wait(30);
+  out.libraryRestored = getComputedStyle($('library')).display !== 'none' && splitter.getAttribute('aria-expanded') === 'true';
   out.pads = pads().length;
   out.padColorApplied = !!pads()[0]?.style.getPropertyValue('--pad-color');
   const t0 = pads()[0].querySelector('.tm').textContent;
@@ -1168,12 +1181,12 @@ function runSmoke() {
       };
       if (captureOnly) {
         await shot('detail');
-        const toTabs = `const d = document.getElementById('detail'); d.scrollTop += document.querySelector('.tabs').getBoundingClientRect().top - d.getBoundingClientRect().top - 8;`;
+        const toTabs = `const d = document.querySelector('.detail-inspector'); d.scrollTop = 0;`;
         await js(`document.getElementById('t-sections').click(); await wait(100); ${toTabs} return true;`);
         await shot('structure');
         await js(`document.getElementById('t-mix').click(); await wait(100); ${toTabs} return true;`);
         await shot('mix');
-        await js(`document.getElementById('detail').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300);
+        await js(`document.querySelector('.detail-inspector').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300);
           const d = document.getElementById('dlg-settings'); const h = [...d.querySelectorAll('h3')].find((x) => /Mises à jour|Updates/.test(x.textContent));
           if (h) h.scrollIntoView({ block: 'start' }); return true;`);
         await shot('settings');
