@@ -131,7 +131,7 @@ const COLUMN_WIDTHS_KEY = 'cuekoda.columnWidths';
 const tracksTable = $<HTMLTableElement>('tracks');
 const columnHeaders = Array.from(tracksTable.querySelectorAll<HTMLElement>('th[data-column]'));
 const columnMin: Record<string, number> = {
-  title: 140, artist: 110, bpm: 64, key: 60, energy: 100, structure: 120, cues: 56, conf: 86, duration: 64,
+  title: 140, artist: 110, bpm: 64, key: 60, energy: 120, structure: 120, cues: 56, conf: 86, duration: 64,
 };
 let columnWidths: Record<string, number> = {};
 let columnLayoutFrozen = false;
@@ -574,7 +574,7 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
     onclick: (e: MouseEvent) => chooseTrack(rec.path, e, true),
   }), 'c-select'));
   if (checkboxFocused) tr.querySelector('input')?.focus({ preventScroll: true });
-  const showState = rec.status !== 'done' || warn;
+  const showState = rec.status !== 'done' || rec.missing;
   const stateSymbol = rec.status === 'analyzing' ? '…' : rec.status === 'queued' ? '·' : rec.status === 'cancelled' ? '×' : '!';
   tr.append(td(h('span', {},
     showState ? h('span', { class: `state-indicator ${warn ? 'warn' : rec.status}`, title: stateText }, stateSymbol) : '',
@@ -789,9 +789,16 @@ function renderDetail() {
   );
   $('time-total').textContent = `/ ${fmtDur(r.durationSec)}`;
   waveCanvas.setAttribute('aria-valuemax', String(Math.round(r.durationSec)));
-  $('d-warn').textContent = [...(rec?.missing ? ['Fichier introuvable à cet emplacement (déplacé, renommé ou disque débranché)'] : []), ...r.warnings].map(tr).join(' · ');
   const reviewed = !!rec?.reviewedAt;
-  const reasons = rec ? reviewReasons({ ...rec, reviewedAt: undefined }) : [];
+  const reasons = rec ? reviewReasons(rec) : [];
+  const warningParts = [
+    ...(rec?.missing ? ['Fichier introuvable à cet emplacement (déplacé, renommé ou disque débranché)'] : []),
+    ...(!reviewed ? r.warnings : []),
+    ...(!reviewed && reasons.length ? [`À vérifier : ${reasons.join(' ; ')}`] : []),
+  ].map(tr);
+  const detailWarning = $('d-warn');
+  detailWarning.textContent = warningParts.join(' · ');
+  detailWarning.hidden = warningParts.length === 0;
   const reviewButton = $('btn-reviewed');
   setText(reviewButton, reviewed ? '✓ Vérifié' : 'Marquer comme vérifié');
   reviewButton.title = tr(reviewed ? 'Retirer la vérification'

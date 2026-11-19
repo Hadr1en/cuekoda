@@ -247,7 +247,7 @@
 
   table { inline-size: 100%; }
   th {
-    position: sticky; inset-block-start: 0; background: var(--color-panel); text-align: start; font-weight: 600;
+    position: sticky; z-index: 3; inset-block-start: 0; background: var(--color-panel); text-align: start; font-weight: 600;
     color: var(--color-muted); padding: 6px 10px; border-block-end: var(--ui-border);
     font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
     &[data-sort] { cursor: pointer; }
@@ -277,7 +277,7 @@
   }
   .c-state { inline-size: 28px; }
   .c-num { inline-size: 64px; text-align: end; font-variant-numeric: tabular-nums; }
-  th.c-num { text-align: end; }
+  th.c-num { text-align: center; }
   .c-key { inline-size: 70px; }
   .c-energy { inline-size: 110px; }
   .c-cues { inline-size: 200px; }
@@ -301,9 +301,9 @@
     i { position: absolute; inset-block: 0; inline-size: 3px; border-radius: 2px; }
   }
   .meter {
-    display: inline-flex; align-items: center; gap: 7px; inline-size: 90px;
+    display: inline-flex; align-items: center; gap: 7px; inline-size: 100%; min-inline-size: 90px;
     .meter-track {
-      display: block; flex: 0 0 60px; block-size: 7px; overflow: hidden; border-radius: 4px;
+      display: block; flex: 1 1 60px; min-inline-size: 60px; block-size: 7px; overflow: hidden; border-radius: 4px;
       background: color-mix(in oklab, var(--color-line) 42%, transparent);
       box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-line) 35%, transparent);
     }
@@ -314,7 +314,7 @@
       background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in oklab, var(--color-line) 55%, transparent) 4px 6px);
     }
     b { min-inline-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; text-align: end; }
-    &.compact { inline-size: 60px; .meter-track { flex-basis: 60px; } }
+    &.compact { inline-size: 60px; min-inline-size: 60px; .meter-track { flex: 0 0 60px; } }
   }
   .conf {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-muted);
@@ -497,7 +497,7 @@
   }
   #wave-playhead { inset-block-start: 18px; }
   #overview-playhead { inset-inline: 1px; }
-  @media (max-height: 760px) {
+  @media (max-height: 850px) {
     #detail { display: block; overflow: auto; }
     .detail-inspector { min-block-size: 0; overflow: visible; }
     .tabs { inset-block-start: -10px; }

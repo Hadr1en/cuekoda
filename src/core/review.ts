@@ -24,6 +24,5 @@ export function reviewReasons(track: ReviewableTrack): string[] {
   if (result.cues.some((cue) => cue.origin === 'auto' && cue.confidence === 'low')) reasons.push('cues incertains');
   if (result.vocals?.level === 'low') reasons.push('voix incertaine');
   if (duplicateCueIds(result.cues).size) reasons.push('pads en double');
-  if (result.warnings.length) reasons.push('avertissement d’analyse');
   return reasons;
 }
