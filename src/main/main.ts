@@ -806,6 +806,14 @@ const SMOKE_UI_SCRIPT = `(async () => {
   splitter.click();
   await wait(30);
   out.libraryRestored = getComputedStyle($('library')).display !== 'none' && splitter.getAttribute('aria-expanded') === 'true';
+  const resizers = [...document.querySelectorAll('.column-resizer')];
+  const titleHeader = document.querySelector('th[data-column="title"]');
+  const titleWidth = titleHeader.getBoundingClientRect().width;
+  resizers[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  await wait(30);
+  out.columnResizers = resizers.length;
+  out.columnResized = titleHeader.getBoundingClientRect().width > titleWidth;
+  resizers[0].dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
   out.pads = pads().length;
   out.padColorApplied = !!pads()[0]?.style.getPropertyValue('--pad-color');
   const t0 = pads()[0].querySelector('.tm').textContent;

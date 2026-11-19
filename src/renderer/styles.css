@@ -213,26 +213,28 @@
   #list-wrap { flex: 1 1 auto; overflow: auto; position: relative; overscroll-behavior: contain; }
 
   .workspace-splitter {
-    position: relative; z-index: 4; flex: 0 0 13px; inline-size: 100%; padding: 0; border: 0;
+    position: relative; z-index: 4; flex: 0 0 16px; inline-size: 100%; padding: 0; border: 0;
     border-block: 1px solid var(--color-line); background: var(--color-panel); color: var(--color-muted);
     cursor: row-resize; touch-action: none;
     &::before { content: ''; position: absolute; inset: 3px 0; background: transparent; }
     .splitter-grip {
       position: absolute; inset-block-start: 50%; inset-inline-start: 50%; translate: -50% -50%;
-      inline-size: 48px; block-size: 15px; border: var(--ui-border); border-radius: 9px;
+      inline-size: 60px; block-size: 20px; border: var(--ui-border); border-radius: 11px;
       background: var(--color-raised); box-shadow: 0 1px 4px color-mix(in oklab, #000 45%, transparent);
     }
-    .splitter-grip::before {
-      content: ''; position: absolute; inset: 5px 13px; border-block: 1px solid currentColor;
-    }
+    .splitter-grip::before, .splitter-grip::after { content: ''; position: absolute; inset-block-start: 9px; inline-size: 15px; border-block-start: 1px solid currentColor; }
+    .splitter-grip::before { inset-inline-start: 8px; }
+    .splitter-grip::after { inset-inline-end: 8px; }
     .splitter-chevron {
-      position: absolute; inset-block-start: 50%; inset-inline-start: calc(50% + 17px); translate: -50% -54%;
-      font-size: 10px; line-height: 1; pointer-events: none;
+      position: absolute; inset-block-start: 50%; inset-inline-start: 50%; translate: -50% -64%;
+      inline-size: 8px; block-size: 8px; border-inline-end: 2px solid currentColor; border-block-end: 2px solid currentColor;
+      rotate: 225deg; pointer-events: none;
     }
     &:hover, &:focus-visible { color: var(--color-accent); border-color: color-mix(in oklab, var(--color-accent) 50%, var(--color-line)); }
     &:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
   }
   main.library-collapsed .workspace-splitter { cursor: pointer; }
+  main.library-collapsed .splitter-chevron { translate: -50% -36%; rotate: 45deg; }
   main.resizing, main.resizing * { cursor: row-resize !important; user-select: none !important; }
 
   .empty {
@@ -252,6 +254,15 @@
     &[aria-sort='ascending']::after { content: ' ▲'; }
     &[aria-sort='descending']::after { content: ' ▼'; }
   }
+  th[data-column] { padding-inline-end: 14px; }
+  .column-resizer {
+    position: absolute; z-index: 4; inset-block: 0; inset-inline-end: 0; inline-size: 9px;
+    cursor: col-resize; touch-action: none;
+    &::after { content: ''; position: absolute; inset-block: 4px; inset-inline-start: 4px; inline-size: 1px; background: transparent; }
+    &:hover::after, &:focus-visible::after { background: var(--color-accent); }
+    &:focus-visible { outline: none; }
+  }
+  body.column-resizing, body.column-resizing * { cursor: col-resize !important; user-select: none !important; }
   td {
     padding: 5px 10px; border-block-end: 1px solid color-mix(in oklab, var(--color-line) 60%, transparent);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-inline-size: 300px;
@@ -272,10 +283,11 @@
   .c-cues { inline-size: 200px; }
   .c-conf { inline-size: 90px; }
 
-  .dot {
-    display: inline-block; inline-size: 9px; block-size: 9px; border-radius: 50%; background: var(--color-line);
-    &.analyzing { background: var(--color-accent); }
-    &.done { background: var(--color-ok); }
+  .state-indicator {
+    display: inline-grid; place-items: center; inline-size: 16px; block-size: 16px; border-radius: 50%;
+    font-size: 11px; font-weight: 800; color: var(--color-bg); background: var(--color-muted);
+    &.analyzing { color: var(--color-accent-contrast); background: var(--color-accent); }
+    &.queued { color: var(--color-text); background: var(--color-line); }
     &.error { background: var(--color-err); }
     &.warn { background: var(--color-warn); }
     &.cancelled { background: var(--color-muted); }
@@ -485,8 +497,10 @@
   }
   #wave-playhead { inset-block-start: 18px; }
   #overview-playhead { inset-inline: 1px; }
-  @media (max-width: 980px) {
-    #tracks .c-cues { display: none; }
+  @media (max-height: 760px) {
+    #detail { display: block; overflow: auto; }
+    .detail-inspector { min-block-size: 0; overflow: visible; }
+    .tabs { inset-block-start: -10px; }
   }
   @media (max-width: 620px) {
     .targets { grid-template-columns: repeat(2, minmax(0, 1fr)); }

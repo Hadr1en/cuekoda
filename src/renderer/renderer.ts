@@ -43,7 +43,6 @@ const selectAll = $<HTMLInputElement>('select-all');
 const trackActions = $('track-actions');
 const mainWorkspace = document.querySelector<HTMLElement>('main')!;
 const workspaceSplitter = $<HTMLButtonElement>('workspace-splitter');
-const splitterChevron = $('splitter-chevron');
 const searchText = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 let activeTab = 'cues';
 let loopPlay: Loop | null = null;
@@ -65,7 +64,6 @@ function setLibraryCollapsed(collapsed: boolean, persist = true) {
   workspaceSplitter.title = collapsed
     ? tr('Cliquer pour afficher la bibliothèque')
     : tr('Glisser pour redimensionner · cliquer pour replier');
-  splitterChevron.textContent = collapsed ? '⌄' : '⌃';
   if (persist) localStorage.setItem(LIBRARY_COLLAPSED_KEY, collapsed ? '1' : '0');
 }
 
@@ -128,6 +126,115 @@ workspaceSplitter.addEventListener('keydown', (event) => {
   mainWorkspace.style.setProperty('--library-size', `${size}px`);
   localStorage.setItem(LIBRARY_SIZE_KEY, String(size));
 });
+
+const COLUMN_WIDTHS_KEY = 'cuekoda.columnWidths';
+const tracksTable = $<HTMLTableElement>('tracks');
+const columnHeaders = Array.from(tracksTable.querySelectorAll<HTMLElement>('th[data-column]'));
+const columnMin: Record<string, number> = {
+  title: 140, artist: 110, bpm: 64, key: 60, energy: 100, structure: 120, cues: 56, conf: 86, duration: 64,
+};
+let columnWidths: Record<string, number> = {};
+let columnLayoutFrozen = false;
+try {
+  columnWidths = JSON.parse(localStorage.getItem(COLUMN_WIDTHS_KEY) ?? '{}') as Record<string, number>;
+} catch { /* ignore an invalid local preference */ }
+
+function columnElement(name: string) {
+  return tracksTable.querySelector<HTMLTableColElement>(`col[data-column="${name}"]`)!;
+}
+
+function syncTracksWidth() {
+  if (!columnLayoutFrozen) return;
+  const columns = Object.values(columnWidths).reduce((sum, width) => sum + width, 0);
+  tracksTable.style.inlineSize = `max(100%, ${Math.round(columns + 58)}px)`;
+  tracksTable.style.tableLayout = 'fixed';
+}
+
+function setColumnWidth(name: string, width: number) {
+  const value = Math.round(Math.max(columnMin[name] ?? 56, Math.min(600, width)));
+  columnWidths[name] = value;
+  columnElement(name).style.inlineSize = `${value}px`;
+  syncTracksWidth();
+}
+
+function freezeColumnWidths() {
+  if (columnLayoutFrozen) return;
+  for (const header of columnHeaders) {
+    const name = header.dataset.column!;
+    columnWidths[name] = Math.round(header.getBoundingClientRect().width);
+    columnElement(name).style.inlineSize = `${columnWidths[name]}px`;
+  }
+  columnLayoutFrozen = true;
+  syncTracksWidth();
+}
+
+function saveColumnWidths() {
+  localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(columnWidths));
+}
+
+function resetColumnWidths() {
+  columnLayoutFrozen = false;
+  columnWidths = {};
+  for (const col of Array.from(tracksTable.querySelectorAll<HTMLTableColElement>('col[data-column]'))) col.style.inlineSize = '';
+  tracksTable.style.inlineSize = '';
+  tracksTable.style.tableLayout = '';
+  localStorage.removeItem(COLUMN_WIDTHS_KEY);
+}
+
+if (Object.keys(columnWidths).length === columnHeaders.length) {
+  columnLayoutFrozen = true;
+  for (const [name, width] of Object.entries(columnWidths)) setColumnWidth(name, width);
+  requestAnimationFrame(syncTracksWidth);
+}
+
+for (const header of columnHeaders) {
+  const name = header.dataset.column!;
+  const label = header.textContent?.trim() ?? name;
+  const handle = h('span', {
+    class: 'column-resizer', tabIndex: 0, role: 'separator', 'aria-orientation': 'vertical',
+    'aria-label': `Redimensionner la colonne ${label}`,
+    title: 'Glisser pour redimensionner · double-cliquer pour réinitialiser',
+  });
+  let pointer = -1;
+  let startX = 0;
+  let startWidth = 0;
+  handle.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    freezeColumnWidths();
+    pointer = event.pointerId;
+    startX = event.clientX;
+    startWidth = columnWidths[name];
+    document.body.classList.add('column-resizing');
+    handle.setPointerCapture(event.pointerId);
+  });
+  handle.addEventListener('pointermove', (event) => {
+    if (event.pointerId === pointer) setColumnWidth(name, startWidth + event.clientX - startX);
+  });
+  const finish = (event: PointerEvent) => {
+    if (event.pointerId !== pointer) return;
+    if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    pointer = -1;
+    document.body.classList.remove('column-resizing');
+    saveColumnWidths();
+  };
+  handle.addEventListener('pointerup', finish);
+  handle.addEventListener('pointercancel', finish);
+  handle.addEventListener('click', (event) => event.stopPropagation());
+  handle.addEventListener('dblclick', (event) => { event.preventDefault(); event.stopPropagation(); resetColumnWidths(); });
+  handle.addEventListener('keydown', (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    event.stopPropagation();
+    freezeColumnWidths();
+    setColumnWidth(name, columnWidths[name] + (event.key === 'ArrowRight' ? 12 : -12));
+    saveColumnWidths();
+  });
+  header.append(handle);
+}
+
+new ResizeObserver(syncTracksWidth).observe($('list-wrap'));
 
 const current = (): AnalysisResult | null => {
   const r = state.selected ? state.tracks.get(state.selected) : null;
@@ -467,14 +574,18 @@ function renderRow(rec: TrackRecord, tr = rowEls.get(rec.path)) {
     onclick: (e: MouseEvent) => chooseTrack(rec.path, e, true),
   }), 'c-select'));
   if (checkboxFocused) tr.querySelector('input')?.focus({ preventScroll: true });
-  tr.append(td(h('span', {}, h('span', { class: `dot ${warn ? 'warn' : rec.status}`, title: stateText }), h('span', { class: 'sr-only' }, stateText)), 'c-state'));
+  const showState = rec.status !== 'done' || warn;
+  const stateSymbol = rec.status === 'analyzing' ? '…' : rec.status === 'queued' ? '·' : rec.status === 'cancelled' ? '×' : '!';
+  tr.append(td(h('span', {},
+    showState ? h('span', { class: `state-indicator ${warn ? 'warn' : rec.status}`, title: stateText }, stateSymbol) : '',
+    h('span', { class: 'sr-only' }, stateText)), 'c-state'));
 
   if (r && rec.status !== 'error') {
     const reanalysing = rec.status !== 'done';
     tr.append(
       td(h('span', {}, r.title, reanalysing && isBusy(rec) ? busyLine(rec, true) : '')),
       td(r.artist, 'muted'),
-      td(h('span', {}, fmtBpm(r.bpm), r.tempo ? confBadge(r.tempo.confidence, true) : ''), 'c-num'),
+      td(fmtBpm(r.bpm), 'c-num'),
       td(keyBadge(r.key, true), 'c-key'),
       td(r.energy ? energyMeter(r.energy) : '—', 'c-energy'),
       td(h('div', { class: 'strip' }, ...r.cues.map((c) =>
