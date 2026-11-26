@@ -1,0 +1,33 @@
+body.experiment {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+.experiment header, .experiment .controls {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.experiment header { padding: 1rem; border-bottom: 1px solid var(--color-line); }
+.experiment .wordmark { font-size: 1.25rem; margin-right: 0.75rem; }
+.experiment main { display: grid; grid-template-columns: minmax(240px, 34%) minmax(0, 1fr); }
+#library { position: relative; overflow: auto; border-right: 1px solid var(--color-line); }
+.experiment #rows { position: relative; }
+.track-option {
+  position: absolute;
+  width: 100%;
+  height: 36px;
+  padding: 0.45rem 1rem;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.track-option[aria-selected="true"] { background: var(--color-raised, rgba(130, 110, 250, .22)); }
+.experiment .preview { padding: 1.25rem; min-width: 0; overflow: auto; }
+.experiment #wave { width: 100%; height: 240px; display: block; margin: 1rem 0; background: var(--color-panel); }
+.experiment audio { display: block; margin-top: 1rem; width: 100%; }
+.experiment button:disabled { opacity: .45; }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CueKoda · Tauri</title>
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="style.css">
+    <script defer src="renderer.js"></script>
+  </head>
+  <body class="experiment shell">
+    <header>
+      <strong class="wordmark">CueKoda</strong>
+      <button id="files">Add files</button>
+      <button id="folder">Add folder</button>
+      <input id="search" type="search" aria-label="Search" placeholder="Search">
+      <button id="sort">Title ↑</button>
+      <button id="theme">Light theme</button>
+    </header>
+    <main>
+      <div id="library" role="listbox" tabindex="0" aria-label="Music library"><div id="rows"></div></div>
+      <section class="preview">
+        <h1 id="title">Music library</h1>
+        <p id="metadata"></p>
+        <div class="controls">
+          <button id="analyze" disabled>Analyze waveform</button>
+          <button id="cancel" disabled>Cancel</button>
+          <output id="status" role="status"></output>
+        </div>
+        <canvas id="wave" aria-label="Waveform"></canvas>
+        <div class="controls">
+          <label>Zoom <input id="zoom" type="range" min="1" max="16" value="1"></label>
+          <label>Position <input id="position" type="range" min="0" max="1000" value="0"></label>
+        </div>
+        <audio id="player" controls preload="metadata"></audio>
+      </section>
+    </main>
+  </body>
+</html>
