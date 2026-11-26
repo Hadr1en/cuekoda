@@ -13,7 +13,7 @@ body.experiment {
 .experiment header { padding: 1rem; border-bottom: 1px solid var(--color-line); }
 .experiment .wordmark { font-size: 1.25rem; margin-right: 0.75rem; }
 .experiment main { display: grid; grid-template-columns: minmax(240px, 34%) minmax(0, 1fr); }
-#library { position: relative; overflow: auto; border-right: 1px solid var(--color-line); }
+.experiment #library { display: block; position: relative; overflow: auto; border-right: 1px solid var(--color-line); }
 .experiment #rows { position: relative; }
 .track-option {
   position: absolute;

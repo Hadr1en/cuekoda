@@ -153,6 +153,24 @@ fn cancel(library: State<Mutex<Library>>) {
     }
 }
 
+#[tauri::command]
+fn library_benchmark_enabled() -> bool {
+    cfg!(debug_assertions)
+        && std::env::args_os()
+            .nth(1)
+            .is_some_and(|value| value == "--library-benchmark")
+}
+
+#[tauri::command]
+fn finish_library_benchmark(app: AppHandle, result: String) -> Result<(), String> {
+    if !library_benchmark_enabled() || result.len() > 64 * 1024 {
+        return Err("Library benchmark is unavailable".into());
+    }
+    println!("{result}");
+    app.exit(0);
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(Mutex::new(Library::default()))
@@ -164,6 +182,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             initial_tracks,
+            library_benchmark_enabled,
+            finish_library_benchmark,
             import_tracks,
             analyze,
             cancel

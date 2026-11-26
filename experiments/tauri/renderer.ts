@@ -52,9 +52,13 @@ let selection: Track | undefined;
 let descending = false;
 
 function renderRows() {
+  paintRows(true);
+}
+
+function paintRows(virtualize: boolean) {
   rows.style.height = `${visible.length * rowHeight}px`;
-  const start = Math.max(0, Math.floor(library.scrollTop / rowHeight) - 2);
-  const end = Math.min(visible.length, start + Math.ceil(library.clientHeight / rowHeight) + 5);
+  const start = virtualize ? Math.max(0, Math.floor(library.scrollTop / rowHeight) - 2) : 0;
+  const end = virtualize ? Math.min(visible.length, start + Math.ceil(library.clientHeight / rowHeight) + 5) : visible.length;
   const fragment = document.createDocumentFragment();
   for (let index = start; index < end; index++) {
     const track = visible[index];
@@ -162,9 +166,11 @@ library.onkeydown = (key) => {
   }
   select(visible[target]);
 };
+const sortLabel = () => copy('Titre', 'Title') + (descending ? ' ↓' : ' ↑');
+get('sort').textContent = sortLabel();
 get('sort').onclick = () => {
   descending = !descending;
-  get('sort').textContent = `Title ${descending ? '↓' : '↑'}`;
+  get('sort').textContent = sortLabel();
   filter();
 };
 theme.onclick = () => {
@@ -212,3 +218,44 @@ canvas.onclick = (click) => {
 };
 new ResizeObserver(draw).observe(canvas);
 new ResizeObserver(renderRows).observe(library);
+
+
+async function measureLibrary() {
+  if (!await core.invoke<boolean>('library_benchmark_enabled')) return;
+  const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  const samples = [];
+  for (const count of [10, 100, 1000, 10000]) {
+    visible = Array.from({ length: count }, (_, index) => ({
+      path: String(index), title: `Synthetic track ${index + 1}`,
+    }));
+    for (let trial = 0; trial < 10; trial++) {
+      for (const virtualize of trial % 2 === 0 ? [false, true] : [true, false]) {
+        rows.replaceChildren();
+        await nextFrame();
+        await nextFrame();
+        const start = performance.now();
+        paintRows(virtualize);
+        // Force layout so that DOM and layout costs are measured at the call site.
+        const height = rows.getBoundingClientRect().height;
+        const layoutMs = performance.now() - start;
+        const mounted = rows.childElementCount;
+        if (height !== count * rowHeight || mounted === 0 || (!virtualize && mounted !== count)) {
+          throw new Error(`Invalid benchmark layout for ${count} tracks (${height}px, ${mounted} nodes)`);
+        }
+        await nextFrame();
+        await nextFrame();
+        samples.push({ count, trial, virtualize, mounted, contentHeight: height, layoutMs, twoFramesMs: performance.now() - start });
+      }
+    }
+    library.scrollTop = rows.scrollHeight;
+    paintRows(true);
+    if (rows.lastElementChild?.textContent !== visible[count - 1].title) {
+      throw new Error(`The last track is unreachable with ${count} rows`);
+    }
+    library.scrollTop = 0;
+  }
+  await core.invoke('finish_library_benchmark', {
+    result: JSON.stringify({ schemaVersion: 1, userAgent: navigator.userAgent, syntheticAudioFiles: 0, samples }),
+  });
+}
+void measureLibrary().catch((error) => { status.textContent = String(error); });

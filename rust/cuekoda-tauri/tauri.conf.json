@@ -13,5 +13,5 @@
       "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; media-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
     }
   },
-  "bundle": { "active": false, "icon": ["../../build/icon.png"] }
+  "bundle": { "active": false, "icon": ["../../build/icon.png", "icons/icon.ico"] }
 }
