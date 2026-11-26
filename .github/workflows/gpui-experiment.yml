@@ -1,0 +1,32 @@
+name: CueKoda GPUI experiment
+on:
+  push:
+    branches: [experiment/gpui]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-dev libasound2-dev libfontconfig1-dev libfreetype6-dev libwayland-dev libxkbcommon-x11-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb1-dev
+      - run: rustup update stable
+      - run: cargo +stable fmt --manifest-path rust/cuekoda-gpui/Cargo.toml --check
+      - run: cargo +stable build --release --locked --manifest-path rust/cuekoda-gpui/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cuekoda-gpui-${{ matrix.os }}
+          path: |
+            rust/cuekoda-gpui/target/release/cuekoda-gpui
+            rust/cuekoda-gpui/target/release/cuekoda-gpui.exe
+          if-no-files-found: error

@@ -1,0 +1,10 @@
+[package]
+name = "cuekoda-gpui"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+
+[dependencies]
+cuekoda-core = { path = "../cuekoda-core" }
+gpui = { version = "=0.2.2", features = ["runtime_shaders"] }
+rodio = "0.22"
