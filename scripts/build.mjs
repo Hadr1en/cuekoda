@@ -19,6 +19,7 @@ await Promise.all([
       'main/worker': 'src/main/worker.ts',
       'main/neural-runner': 'src/main/neuralRunner.ts',
       'cli/cli': 'src/cli/cli.ts',
+      'cli/experiment-worker': 'src/cli/experimentWorker.ts',
       'test/run': 'src/test/run.ts',
       'test/diag': 'src/test/diag.ts',
       'test/regression': 'src/test/regression.ts',

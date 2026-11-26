@@ -1,0 +1,56 @@
+name: CueKoda Rust core
+on:
+  push:
+    branches: [feature/rust-core]
+  pull_request:
+    paths:
+      - 'rust/cuekoda-core/**'
+      - 'src/core/decode.ts'
+      - 'src/cli/experimentWorker.ts'
+      - 'scripts/test-experiment-music.mjs'
+      - '.github/workflows/rust-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: |
+          rustup update stable
+          rustup default stable
+          rustup component add clippy rustfmt
+      - run: cargo fmt --manifest-path rust/cuekoda-core/Cargo.toml --check
+      - run: cargo clippy --locked --manifest-path rust/cuekoda-core/Cargo.toml --all-targets -- -D warnings
+      - run: |
+          export CUEKODA_TEST_FFMPEG="$(node -p 'require("ffmpeg-static")')"
+          cargo test --locked --manifest-path rust/cuekoda-core/Cargo.toml
+      - run: cargo build --locked --release --manifest-path rust/cuekoda-core/Cargo.toml
+      - run: npm run offset-test
+      - name: Compare musical results and DJ interchange with the original decoder
+        run: |
+          core=rust/cuekoda-core/target/release/cuekoda-core
+          if [[ "${{ runner.os }}" == "Windows" ]]; then core="$core.exe"; fi
+          node scripts/test-experiment-music.mjs "$core" cuekoda-offset-test/*.wav cuekoda-offset-test/*.mp3 cuekoda-offset-test/*.m4a
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cuekoda-core-${{ matrix.os }}
+          path: |
+            rust/cuekoda-core/target/release/cuekoda-core
+            rust/cuekoda-core/target/release/cuekoda-core.exe
+          if-no-files-found: error
