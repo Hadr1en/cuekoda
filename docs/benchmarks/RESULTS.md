@@ -53,3 +53,25 @@ The same synthetic WAV was added in each desktop application and passed through 
 [Forty raw observations](raw/desktop-prepare-macos-arm64.json). The largest median difference was 172 ms in this short workload. Treat this as a result for the specific implementations and workload. It does not establish whole-app speed, resource use or musical parity across a full library.
 
 The paired codec check compared all musical analysis fields (excluding generated IDs and runtime), and serialized XML, NML and M3U8 outputs (excluding Traktor's playlist timestamp), on WAV, LAME MP3, non-gapless MP3 and AAC. It also checked that manual cues survived reanalysis and locked XML/NML round trips. On three local DJ references, the two decoders yielded identical evaluation summaries: 100% BPM within 1%, 2.1 ms median grid phase where annotated and 67% cue recall at ±40 ms. [Paired aggregate](raw/paired-decoder-local-evaluation.json).
+
+The same four-way test repeated on AAC. All forty runs agreed on 120 BPM, 11A, one cue and four sections.
+
+| Desktop mode | AAC median, ms | AAC P95, ms |
+|---|---:|---:|
+| Electron, original decoder | 2,036 | 2,339 |
+| Electron, Rust decoder | 2,082 | 2,263 |
+| Tauri, Rust decoder | 2,109 | 2,291 |
+| GPUI, Rust decoder | 1,955 | 2,095 |
+
+[Forty AAC raw observations](raw/desktop-prepare-aac-macos-arm64.json).
+
+## Electron list virtualization
+
+The experiment's opt-in virtualizer was tested in the existing Electron renderer with the same 10,000 synthetic missing audio records. Ten independent launches per mode used isolated application profiles.
+
+| Renderer mode | Ready med/P95, ms | Idle aggregate RSS med/P95, MiB |
+|---|---:|---:|
+| Full table | 987 / 1,086 | 1,003 / 1,004 |
+| Virtualized | 455 / 470 | 497 / 498 |
+
+The median idle RSS sum fell 50.5% and renderer readiness fell 53.9% in this workload. An additional check mounted 31 rows at the top and bottom, verified the last row's accessibility index (10,000 tracks), and selected the preceding row using Arrow Up. Adoption requires testing screen readers, real results and multi-selection at scale. [Full-table samples](raw/electron-library-full-macos-arm64.json) · [Virtualized samples](raw/electron-library-virtual-macos-arm64.json).

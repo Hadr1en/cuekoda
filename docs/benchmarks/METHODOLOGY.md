@@ -41,3 +41,5 @@ node scripts/prepare-desktop-benchmark.mjs /path/to/fixture.wav /tmp/prepare.jso
 ```
 
 The benchmark rotates application order and uses a fresh experiment data directory per run. A result is usable when the renderer has analyzed an imported track, loaded the detailed peaks and requested the next frame. All four apps report BPM, key, cue count and section count. A mismatch or missing signal fails the workload. GPU presentation, input latency, full process-tree CPU/RAM and application stability need separate probes. A platform build includes no claim about physical desktop performance.
+
+To measure the existing Electron renderer's opt-in virtualizer, use `CUEKODA_VIRTUAL_LIBRARY=1 node scripts/electron-desktop-benchmark.mjs /tmp/virtual.json 10 10000` after building. Use `CUEKODA_VIRTUAL_LIBRARY=0` for the same fixture with all rows mounted. With virtualization on, an additional run using `CUEKODA_VIRTUAL_CHECK=1` verifies the last row and keyboard selection at the lower viewport boundary. Keep it separate from timing runs.
