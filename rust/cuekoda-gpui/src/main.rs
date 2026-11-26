@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use cuekoda_core::music::{self, Backend, Summary};
 use cuekoda_core::{Cancellation, Options, Stage, TrackPreview, analyze_preview, supported_file};
 use gpui::{
     App, Application, Bounds, Context, Div, ExternalPaths, FocusHandle, MouseButton,
@@ -28,6 +29,7 @@ struct Library {
     visible: Vec<PathBuf>,
     selected: Option<PathBuf>,
     previews: HashMap<PathBuf, Arc<TrackPreview>>,
+    music: HashMap<PathBuf, Summary>,
     job: Option<Cancellation>,
     status: String,
     query: String,
@@ -79,6 +81,14 @@ fn scan(mut pending: Vec<PathBuf>) -> Vec<PathBuf> {
     tracks
 }
 
+const PROJECT_NAME: &str = "CueKoda GPUI Experiment";
+
+enum MusicAction {
+    Cue { slot: u8, time: f64 },
+    Import(PathBuf),
+    Export { format: &'static str, path: PathBuf },
+}
+
 impl Library {
     fn add(&mut self, paths: Vec<PathBuf>, cx: &mut Context<Self>) {
         cx.spawn(async move |entity, cx| {
@@ -90,7 +100,10 @@ impl Library {
                 library.sources.extend(tracks);
                 library.filter();
                 if library.selected.is_none() {
-                    library.selected = library.visible.first().cloned();
+                    if let Some(path) = library.visible.first().cloned() {
+                        library.load_music(&path);
+                        library.selected = Some(path);
+                    }
                 }
                 if library.smoke {
                     if library.selected.is_some() {
@@ -145,6 +158,7 @@ impl Library {
     fn select(&mut self, path: PathBuf, cx: &mut Context<Self>) {
         if self.selected.as_ref() != Some(&path) {
             self.audio = None;
+            self.load_music(&path);
             self.selected = Some(path);
             self.zoom = 1.0;
             self.offset = 0.0;
@@ -172,9 +186,29 @@ impl Library {
                     .into(),
                 ..Options::default()
             };
-            analyze_preview(&source, &options, &job, |stage| {
+            let waveform = analyze_preview(&source, &options, &job, |stage| {
                 *background_stage.lock().expect("stage lock poisoned") = stage;
             })
+            .map_err(|error| error.to_string())?;
+            let analysis = if let Ok(backend) = Backend::from_environment() {
+                let root = music::storage_root(PROJECT_NAME).map_err(|error| error.to_string())?;
+                let previous =
+                    music::saved_track(&root, &source).map_err(|error| error.to_string())?;
+                let analysis = backend
+                    .analyze_with_previous(
+                        &source,
+                        previous.as_ref().map(|track| &track.value),
+                        &job,
+                    )
+                    .and_then(music::Track::try_from)
+                    .map_err(|error| error.to_string())?;
+                music::write_track(&music::track_path(&root, &source), &analysis)
+                    .map_err(|error| error.to_string())?;
+                Some(analysis.summary)
+            } else {
+                None
+            };
+            Ok::<_, String>((waveform, analysis))
         });
         cx.spawn(async move |entity, cx| {
             let outcome = task.await;
@@ -184,11 +218,17 @@ impl Library {
                     library.smoke_result = Some(
                         outcome
                             .as_ref()
-                            .is_ok_and(|preview| !preview.waveform.peak.is_empty()),
+                            .is_ok_and(|(preview, _)| !preview.waveform.peak.is_empty()),
                     );
                 }
                 library.status = match outcome {
-                    Ok(preview) => {
+                    Ok((preview, analysis)) => {
+                        let ready = if let Some(analysis) = analysis {
+                            library.music.insert(path.clone(), analysis);
+                            "Analyse musicale terminée"
+                        } else {
+                            "Forme d’onde prête"
+                        };
                         if library.previews.len() >= 12
                             && !library.previews.contains_key(&path)
                             && let Some(old) = library.previews.keys().next().cloned()
@@ -196,9 +236,9 @@ impl Library {
                             library.previews.remove(&old);
                         }
                         library.previews.insert(path, Arc::new(preview));
-                        "Forme d’onde prête".into()
+                        ready.into()
                     }
-                    Err(error) => error.to_string(),
+                    Err(error) => error,
                 };
                 cx.notify();
             });
@@ -218,6 +258,13 @@ impl Library {
                         library.status = "Calcul de la forme d’onde…".into();
                         cx.notify();
                     }
+                    if library.job.is_some()
+                        && matches!(current, Stage::Complete)
+                        && library.status != "Analyse musicale…"
+                    {
+                        library.status = "Analyse musicale…".into();
+                        cx.notify();
+                    }
                     library.job.is_some() && !matches!(current, Stage::Complete)
                 });
                 if !running.unwrap_or(false) {
@@ -227,6 +274,119 @@ impl Library {
         })
         .detach();
         cx.notify();
+    }
+
+    fn load_music(&mut self, path: &std::path::Path) {
+        if let Ok(root) = music::storage_root(PROJECT_NAME)
+            && let Ok(Some(track)) = music::saved_track(&root, path)
+        {
+            self.music.insert(path.to_owned(), track.summary);
+        }
+    }
+
+    fn edit_music(&mut self, source: PathBuf, action: MusicAction, cx: &mut Context<Self>) {
+        if self.job.is_some() {
+            return;
+        }
+        let cancel = Cancellation::default();
+        self.job = Some(cancel.clone());
+        let path = source.clone();
+        let task = cx.background_executor().spawn(async move {
+            let root = music::storage_root(PROJECT_NAME).map_err(|error| error.to_string())?;
+            let backend = Backend::from_environment().map_err(|error| error.to_string())?;
+            let track = music::saved_track(&root, &path)
+                .map_err(|error| error.to_string())?
+                .ok_or("Analysez le morceau d’abord")?;
+            let value = match action {
+                MusicAction::Cue { slot, time } => {
+                    backend.set_cue(&track.value, slot, time, &cancel)
+                }
+                MusicAction::Import(file) => {
+                    let format = file
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .unwrap_or_default()
+                        .to_ascii_lowercase();
+                    if !["xml", "nml"].contains(&format.as_str()) {
+                        return Err("Format de collection non pris en charge".into());
+                    }
+                    backend.import(&format, &file, &track.value, &cancel)
+                }
+                MusicAction::Export { format, path } => {
+                    let data = backend
+                        .export(format, &track.value, &cancel)
+                        .map_err(|error| error.to_string())?;
+                    use std::io::Write;
+                    fs::OpenOptions::new()
+                        .create_new(true)
+                        .write(true)
+                        .open(path)
+                        .and_then(|mut output| output.write_all(data.as_bytes()))
+                        .map_err(|error| error.to_string())?;
+                    return Ok(track.summary);
+                }
+            }
+            .and_then(music::Track::try_from)
+            .map_err(|error| error.to_string())?;
+            music::write_track(&music::track_path(&root, &path), &value)
+                .map_err(|error| error.to_string())?;
+            Ok::<_, String>(value.summary)
+        });
+        cx.spawn(async move |entity, cx| {
+            let result = task.await;
+            let _ = entity.update(cx, |library, cx| {
+                library.job = None;
+                library.status = match result {
+                    Ok(summary) => {
+                        library.music.insert(source, summary);
+                        "Opération terminée".into()
+                    }
+                    Err(error) => error,
+                };
+                cx.notify();
+            });
+        })
+        .detach();
+        cx.notify();
+    }
+
+    fn import_music(&mut self, cx: &mut Context<Self>) {
+        let Some(source) = self.selected.clone() else {
+            return;
+        };
+        let selection = cx.prompt_for_paths(PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: false,
+            prompt: Some("Importer XML/NML".into()),
+        });
+        cx.spawn(async move |entity, cx| {
+            if let Ok(Ok(Some(paths))) = selection.await
+                && let Some(file) = paths.into_iter().next()
+            {
+                let _ = entity.update(cx, |library, cx| {
+                    library.edit_music(source, MusicAction::Import(file), cx)
+                });
+            }
+        })
+        .detach();
+    }
+
+    fn export_music(&mut self, format: &'static str, cx: &mut Context<Self>) {
+        let Some(source) = self.selected.clone() else {
+            return;
+        };
+        let folder = source.parent().unwrap_or(std::path::Path::new("."));
+        let name = format!("CueKoda.{format}");
+        let selection = cx.prompt_for_new_path(folder, Some(&name));
+        cx.spawn(async move |entity, cx| {
+            if let Ok(Ok(Some(path))) = selection.await {
+                let _ = entity.update(cx, |library, cx| {
+                    library.edit_music(source, MusicAction::Export { format, path }, cx)
+                });
+            }
+        })
+        .detach();
     }
 
     fn playback(&mut self, cx: &mut Context<Self>) {
@@ -273,6 +433,30 @@ impl Library {
         let (Some(track), Some(audio)) = (self.selected.as_ref(), &self.audio) else {
             return;
         };
+        if let Some(summary) = self.music.get(track) {
+            let time = audio.player.get_pos().as_secs_f64();
+            if let Some(cue) = summary
+                .cues
+                .iter()
+                .find(|cue| cue.slot == slot as i32)
+                .filter(|_| !set)
+            {
+                if let Err(error) = audio.player.try_seek(Duration::from_secs_f64(cue.time_sec)) {
+                    self.status = error.to_string();
+                }
+                cx.notify();
+            } else {
+                self.edit_music(
+                    track.clone(),
+                    MusicAction::Cue {
+                        slot: slot as u8,
+                        time,
+                    },
+                    cx,
+                );
+            }
+            return;
+        }
         let cues = self.cues.entry(track.clone()).or_default();
         if let Some(time) = cues[slot].filter(|_| !set) {
             if let Err(error) = audio.player.try_seek(Duration::from_secs_f64(time)) {
@@ -320,6 +504,11 @@ impl Library {
             .and_then(|track| self.cues.get(track))
             .copied()
             .unwrap_or_default();
+        let analysis = self
+            .selected
+            .as_ref()
+            .and_then(|track| self.music.get(track))
+            .cloned();
         let hit_bounds = Rc::new(Cell::new(None));
         let prepaint_bounds = hit_bounds.clone();
         div()
@@ -371,7 +560,42 @@ impl Library {
                                     ));
                                 }
                             }
-                            for cue in cues.into_iter().flatten() {
+                            if let Some(summary) = &analysis {
+                                let x = |time: f64| width * ((time - start) / span) as f32;
+                                for (index, section) in summary.sections.iter().enumerate() {
+                                    let left = x(section.start_sec).clamp(0.0, width);
+                                    let right = x(section.end_sec).clamp(0.0, width);
+                                    let color = if index % 2 == 0 { 0x795eff } else { 0x34c7b6 };
+                                    if right > left {
+                                        window.paint_quad(fill(
+                                            Bounds {
+                                                origin: bounds.origin + point(px(left), px(0.0)),
+                                                size: size(px(right - left), px(4.0)),
+                                            },
+                                            rgb(color),
+                                        ));
+                                    }
+                                }
+                                let bar = 240.0 / summary.grid.bpm;
+                                if bar > 0.0 && span / bar < 1000.0 {
+                                    let first = summary.grid.first_downbeat_sec;
+                                    let mut time = first + ((start - first) / bar).ceil() * bar;
+                                    while time < start + span {
+                                        window.paint_quad(fill(
+                                            Bounds {
+                                                origin: bounds.origin + point(px(x(time)), px(0.0)),
+                                                size: size(px(1.0), bounds.size.height),
+                                            },
+                                            rgb(0x494b58),
+                                        ));
+                                        time += bar;
+                                    }
+                                }
+                            }
+                            let music_cues = analysis
+                                .iter()
+                                .flat_map(|summary| summary.cues.iter().map(|cue| cue.time_sec));
+                            for cue in cues.into_iter().flatten().chain(music_cues) {
                                 let position = ((cue - start) / span) as f32;
                                 if (0.0..=1.0).contains(&position) {
                                     let origin =
@@ -443,8 +667,14 @@ impl Render for Library {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(ok) = self.smoke_result.take() {
             let status = self.status.clone();
+            let report = self.selected.as_ref().and_then(|path| self.music.get(path)).map(|track| serde_json::json!({
+                "bpm": track.bpm, "key": track.key.camelot, "cues": track.cues.len(), "sections": track.sections.len(),
+            }));
             window.on_next_frame(move |_, cx| {
                 if ok {
+                    if let Some(report) = report {
+                        println!("CUEKODA_PREPARED {report}");
+                    }
                     println!("CueKoda GPUI smoke: {status}");
                     cx.quit();
                 } else {
@@ -474,6 +704,16 @@ impl Render for Library {
             .map(|preview| preview.metadata.title.clone())
             .or_else(|| self.selected.as_deref().map(title))
             .unwrap_or_else(|| "Bibliothèque musicale".into());
+        let analysis = self
+            .selected
+            .as_ref()
+            .and_then(|track| self.music.get(track));
+        let music_label = analysis.map(|data| {
+            format!(
+                "{:.2} BPM · {} {}",
+                data.bpm, data.key.camelot, data.key.musical
+            )
+        });
         let tags = preview
             .map(|preview| {
                 [
@@ -647,9 +887,15 @@ impl Render for Library {
                                     .flex()
                                     .gap_2()
                                     .child(
-                                        button("analyze", "Analyser la forme d’onde").on_click(
-                                            cx.listener(|this, _, _, cx| this.analyze(cx)),
-                                        ),
+                                        button(
+                                            "analyze",
+                                            if Backend::from_environment().is_ok() {
+                                                "Analyser le morceau"
+                                            } else {
+                                                "Analyser la forme d’onde"
+                                            },
+                                        )
+                                        .on_click(cx.listener(|this, _, _, cx| this.analyze(cx))),
                                     )
                                     .when(self.job.is_some(), |row| {
                                         row.child(button("cancel", "Annuler").on_click(
@@ -698,6 +944,32 @@ impl Render for Library {
                                         },
                                     ))),
                             )
+                            .when_some(music_label, |detail, label| {
+                                detail.child(label).child(
+                                    div()
+                                        .flex()
+                                        .gap_2()
+                                        .child(button("import", "Importer XML/NML").on_click(
+                                            cx.listener(|this, _, _, cx| this.import_music(cx)),
+                                        ))
+                                        .children(
+                                            [
+                                                ("xml", "Rekordbox XML"),
+                                                ("nml", "Traktor NML"),
+                                                ("m3u8", "M3U8"),
+                                            ]
+                                            .map(
+                                                |(format, title)| {
+                                                    button(format, title).on_click(cx.listener(
+                                                        move |this, _, _, cx| {
+                                                            this.export_music(format, cx)
+                                                        },
+                                                    ))
+                                                },
+                                            ),
+                                        ),
+                                )
+                            })
                             .child("Pads 1–8 · Maj pour déplacer")
                             .child(self.status.clone()),
                     ),
