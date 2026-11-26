@@ -14,3 +14,6 @@ samples/
 .claude/settings.local.json
 # Binaires ffmpeg téléchargés par scripts/fetch-ffmpeg.mjs
 vendor/
+
+# Rust compiler output
+target/
