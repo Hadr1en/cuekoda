@@ -240,7 +240,7 @@ impl Library {
                 audio.player.pause();
             }
         } else if let Some(path) = self.selected.clone() {
-            match Self::open_audio(path) {
+            match Self::open_audio(path, 1.0) {
                 Ok(audio) => {
                     self.audio = Some(audio);
                     self.refresh_playhead(cx);
@@ -251,10 +251,11 @@ impl Library {
         cx.notify();
     }
 
-    fn open_audio(path: PathBuf) -> Result<Playback, Box<dyn std::error::Error>> {
+    fn open_audio(path: PathBuf, volume: f32) -> Result<Playback, Box<dyn std::error::Error>> {
         let source = Decoder::try_from(File::open(path)?)?;
         let device = rodio::DeviceSinkBuilder::open_default_sink()?;
         let player = Player::connect_new(device.mixer());
+        player.set_volume(volume);
         player.append(source);
         Ok(Playback {
             player,
@@ -734,4 +735,29 @@ fn main() {
         .expect("open CueKoda GPUI window");
         cx.activate(true);
     });
+}
+
+#[cfg(test)]
+mod playback_tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "requires an audio output device and a local synthetic WAV fixture"]
+    fn native_output_advances_and_seeks() {
+        let path = std::env::var_os("CUEKODA_TEST_AUDIO")
+            .expect("set CUEKODA_TEST_AUDIO to a WAV fixture");
+        let audio = Library::open_audio(path.into(), 0.0).expect("open muted output");
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while audio.player.get_pos().is_zero() && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(audio.player.get_pos() > Duration::ZERO);
+        audio
+            .player
+            .try_seek(Duration::from_secs(2))
+            .expect("seek inside WAV fixture");
+        assert!(audio.player.get_pos() >= Duration::from_secs(2));
+        audio.player.pause();
+        assert!(audio.player.is_paused());
+    }
 }

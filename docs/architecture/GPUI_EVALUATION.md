@@ -15,3 +15,11 @@ The local macOS ARM64 build launched successfully and the graphical smoke produc
 The library and cue edits are session-only. Engine features such as BPM, beatgrids, sections, automatic cues and interoperability are not ported. French UI strings need proper i18n integration. Zed continues to evolve GPUI before 1.0, with platform composition differing between the published crate and upstream main. Linux and Windows CI artifacts are useful for build validation. Updater integration, installers, OS code signing and notarization remain open. No WebView or HTML is used by the GPUI prototype.
 
 The initial Linux CI build failed in the published GPUI dependency graph. Its `zed-async-tar` pulls `xattr` 0.2.3, which uses a libc alias removed in the latest Linux release. The experiment lockfile holds libc at 0.2.189 and Mio at 1.2.4 while GPUI 0.2.2 is pinned. This does not require a GPUI fork. Recheck the pin before upgrading. [Upstream libc issue](https://github.com/rust-lang/libc/issues/1356)
+
+A muted Apple Silicon hardware smoke also passed: the native Rodio output advanced the playhead, sought to two seconds in the synthetic WAV, and paused. Reproduce on a machine with audio output:
+
+```sh
+CUEKODA_TEST_AUDIO=/absolute/path/to/synthetic.wav \
+  cargo test --locked --manifest-path rust/cuekoda-gpui/Cargo.toml \
+  native_output_advances_and_seeks -- --ignored
+```
