@@ -24,6 +24,7 @@ import { referenceFrom, type Reference } from '../core/evaluate';
 import { computePeaks, type Peaks } from '../core/peaks';
 import { checkNeuralModels } from '../core/neuralModels';
 import { Updater } from './updater';
+import { rustWaveform } from './rustWaveform';
 import { resolveLang, translate } from '../shared/i18n';
 import { automaticWorkerLimit, normalizeWorkerLimit, restoreWorkerLimit } from '../shared/parallelism';
 
@@ -263,7 +264,7 @@ function createWindow() {
     minHeight: 660,
     // Matches the --color-bg token (dark by default, see styles.css)
     backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
-    title: 'CueKoda',
+    title: WAVEFORM_EXPERIMENT ? 'CueKoda · Waveform Experiment' : 'CueKoda',
     ...(process.platform === 'win32'
       ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() }
       : process.platform === 'darwin'
@@ -334,8 +335,8 @@ function registerIpc() {
     appBuild: updater.currentBuild,
     update: updater.status,
   }));
-  ipcMain.handle('update-check', () => updater.check());
-  ipcMain.handle('update-install', () => updater.install());
+  ipcMain.handle('update-check', () => WAVEFORM_EXPERIMENT ? updater.status : updater.check());
+  ipcMain.handle('update-install', () => WAVEFORM_EXPERIMENT ? undefined : updater.install());
   // Only CueKoda's own public pages and the author's support page can be opened from the UI.
   ipcMain.on('open-external', (_e, url: string) => {
     if (typeof url !== 'string') return;
@@ -697,14 +698,18 @@ function registerIpc() {
   // High-resolution waveform for the opened track (small in-memory LRU, nothing persisted)
   const peaksCache = new Map<string, Peaks>();
   ipcMain.handle('peaks', async (_e, p: string): Promise<Peaks | null> => {
+    if (WAVEFORM_EXPERIMENT && !Object.hasOwn(records(), p)) return null;
     const hit = peaksCache.get(p);
     if (hit) return hit;
     try {
-      const pk = await computePeaks(p);
+      const pk = WAVEFORM_EXPERIMENT?.binary
+        ? await rustWaveform(WAVEFORM_EXPERIMENT.binary, p)
+        : await computePeaks(p);
       peaksCache.set(p, pk);
       if (peaksCache.size > 12) peaksCache.delete(peaksCache.keys().next().value!);
       return pk;
-    } catch {
+    } catch (error) {
+      if (WAVEFORM_EXPERIMENT?.binary) console.error('[Rust waveform]', error);
       return null;
     }
   });
@@ -716,6 +721,24 @@ function registerIpc() {
  * Adds the folder, waits for the batch, re-adds it (must come from the cache), collects renderer
  * console errors and writes a JSON report, then quits.
  */
+const bundledCore = path.join(process.resourcesPath, process.platform === 'win32' ? 'cuekoda-core.exe' : 'cuekoda-core');
+const packagedExperiment = app.isPackaged && fs.existsSync(bundledCore);
+const experimentBackend = packagedExperiment
+  ? process.env.CUEKODA_WAVEFORM_ENGINE ?? 'rust'
+  : !app.isPackaged ? process.env.CUEKODA_WAVEFORM_ENGINE : undefined;
+const WAVEFORM_EXPERIMENT = experimentBackend ? {
+  binary: experimentBackend === 'rust' ? (packagedExperiment ? bundledCore : process.env.CUEKODA_RUST_CORE) : undefined,
+} : undefined;
+if (WAVEFORM_EXPERIMENT) {
+  if (!['legacy', 'rust'].includes(experimentBackend!)
+    || (experimentBackend === 'rust' && !path.isAbsolute(WAVEFORM_EXPERIMENT.binary ?? ''))) {
+    throw new Error('Choose legacy or rust with CUEKODA_WAVEFORM_ENGINE and supply an absolute CUEKODA_RUST_CORE path for Rust.');
+  }
+  const experimentData = path.join(app.getPath('appData'), 'CueKoda Waveform Experiment');
+  fs.mkdirSync(experimentData, { recursive: true });
+  app.setPath('userData', experimentData);
+}
+
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
 const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
@@ -1338,7 +1361,7 @@ app.whenReady().then(async () => {
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
   } else if (SMOKE_DIR) runSmoke();
   // update check: packaged builds only, never during the smoke test, and only if the DJ allows it
-  else if (app.isPackaged && settingsStore.data.autoUpdateCheck !== false) {
+  else if (app.isPackaged && !WAVEFORM_EXPERIMENT && settingsStore.data.autoUpdateCheck !== false) {
     setTimeout(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 8000);
     setInterval(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 6 * 3600 * 1000);
   }
