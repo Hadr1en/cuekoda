@@ -38,3 +38,18 @@ A paired waveform run (10 trials per file per implementation) observed identical
 The current local DJ references matched three files. All three BPM estimates were within 1% (zero octave errors), with a median grid phase error of 2.1 ms on the two labelled tracks and cue recall of 67% within ±40 ms and matching type. The labelled set contains no keys, beat sequences, sections or vocal intervals. Per-track audio and paths stayed local. [Aggregate JSON](raw/electron-macos-arm64-local-evaluation.json)
 
 The [Tauri virtualization trial](https://github.com/Hadr1en/cuekoda/blob/experiment/tauri/docs/architecture/TAURI_EVALUATION.md#virtualized-library-measurement) directly compares the same DOM path with and without virtualization. At 10,000 synthetic rows, median DOM and forced layout work fell from 58 ms to 0.5 ms, with 28 mounted rows. This isolates virtualization within that prototype. A same-feature Electron-versus-Tauri comparison needs its own paired benchmark.
+
+## Four-way musical preparation on macOS
+
+The same synthetic WAV was added in each desktop application and passed through the musical analyzer and detailed waveform path. Forty independent launches completed. Every run reported 120 BPM, Camelot 11A, two cues and four sections. The measurement starts at process launch and ends when the UI reports both results and submits a frame. All runs used fresh application data and an uncontrolled OS cache. Electron used its development runtime; native shells used debug wrappers and a release Rust decoder with the same worker/models. The samples do not isolate a framework, model warm-up, disk cache or GPU factor.
+
+| Desktop mode | Median, ms | P95, ms |
+|---|---:|---:|
+| Electron, original decoder | 2,033 | 2,239 |
+| Electron, Rust decoder | 2,045 | 2,298 |
+| Tauri, Rust decoder | 2,101 | 2,299 |
+| GPUI, Rust decoder | 1,929 | 1,976 |
+
+[Forty raw observations](raw/desktop-prepare-macos-arm64.json). The largest median difference was 172 ms in this short workload. Treat this as a result for the specific implementations and workload. It does not establish whole-app speed, resource use or musical parity across a full library.
+
+The paired codec check compared all musical analysis fields (excluding generated IDs and runtime), and serialized XML, NML and M3U8 outputs (excluding Traktor's playlist timestamp), on WAV, LAME MP3, non-gapless MP3 and AAC. It also checked that manual cues survived reanalysis and locked XML/NML round trips. On three local DJ references, the two decoders yielded identical evaluation summaries: 100% BPM within 1%, 2.1 ms median grid phase where annotated and 67% cue recall at ±40 ms. [Paired aggregate](raw/paired-decoder-local-evaluation.json).

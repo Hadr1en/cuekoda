@@ -31,3 +31,13 @@ The renderer probe emits Electron's registered process IDs, CPU time and utiliza
 - Compare installed and compressed installer bytes separately, including whether a system runtime is shared. Linux/Windows CI is suitable for compilation and deterministic tests. GPU and interactive experience need representative physical systems.
 
 The generic `scripts/architecture-benchmark.mjs` records command wall time only. The experiment/Electron branch adds a paired waveform harness with identical FFmpeg input and alternating order. See [decision gates](../architecture/DECISION.md) for musical equivalence.
+
+## Four-way desktop preparation workload
+
+Build the original Electron app in the benchmark checkout. Build the Electron/Rust JS bundles in the Electron experiment checkout, the Tauri frontend and debug app, and the GPUI debug app in their own checkouts. Build the shared worker with `npm run build` and the shared decoder with `cargo build --release --locked --manifest-path rust/cuekoda-core/Cargo.toml` in the core checkout. On macOS, run from the benchmark checkout:
+
+```sh
+node scripts/prepare-desktop-benchmark.mjs /path/to/fixture.wav /tmp/prepare.json 10 /path/to/core /path/to/electron-rust /path/to/tauri /path/to/gpui
+```
+
+The benchmark rotates application order and uses a fresh experiment data directory per run. A result is usable when the renderer has analyzed an imported track, loaded the detailed peaks and requested the next frame. All four apps report BPM, key, cue count and section count. A mismatch or missing signal fails the workload. GPU presentation, input latency, full process-tree CPU/RAM and application stability need separate probes. A platform build includes no claim about physical desktop performance.

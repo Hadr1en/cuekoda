@@ -27,3 +27,5 @@ The observed cost of the 10,000-row Electron baseline justifies profiling and te
 | GPUI and Rust preview | Native macOS build, virtualized list and GPU waveform. Accessibility gap observed. | Verify accessible widgets, playback and offsets, platform/GPU behavior, and finish missing native workflows. |
 
 Prioritize equivalent list virtualization experiments in the existing application. The waveform trials justify retaining the Rust path as an experiment pending a wider workload. Revisit the architecture decision once the musical and interchange gates and comparable desktop workloads are available.
+
+The four-way musical preparation trial now covers the same synthetic input through all four desktop shells with the existing algorithms. GPUI was about 5% faster than production Electron at the median on this input, with limited evidence on GPU, accessibility and bulk workloads. Electron with the Rust decoder was approximately level with the original decoder. This evidence does not qualify for a new architecture score or production migration. The isolated Tauri virtualized-list trial remains the clearest optimization result.
