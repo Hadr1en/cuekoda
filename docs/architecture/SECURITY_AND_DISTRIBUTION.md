@@ -12,3 +12,5 @@ The local npm audit flagged eight entries, including high severity entries for O
 The baseline updater checks the SHA-256 digest supplied by the GitHub release API. Artifact signing, trust-root rotation and reproducible build verification remain distinct controls. Validate npm and Cargo advisories at release time, lock toolchains and packages, verify FFmpeg and model provenance, and test malformed audio and bounded decoding.
 
 Windows ARM64, Linux installers, MSI/MSIX, Microsoft Store, Apple Developer ID and notarization are unverified. Validating operating-system signing requires the corresponding credentials. Native or WebView packaging does not determine SmartScreen reputation.
+
+The lockfile-derived production npm CycloneDX 1.5 SBOM contained 59 components. The production-only npm audit reported two high severity entries (`adm-zip` and `onnxruntime-node`). Reproduce with `npm sbom --omit=dev --sbom-format=cyclonedx` and `npm audit --omit=dev --json`.

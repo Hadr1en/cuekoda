@@ -34,3 +34,7 @@ Local unpublished DMGs measured 238,574,810 bytes (arm64) and 254,647,229 bytes 
 | GPUI + Rust | macOS native shell and waveform prototype | Equivalent workload pending |
 
 A paired waveform run (10 trials per file per implementation) observed identical bins for WAV, two MP3 encodings and AAC. The child-process Rust path took about 101–103 ms at the median versus 94–100 ms on the TypeScript path. This slice includes the same FFmpeg workload and extra process/JSON overhead. It is insufficient to infer whole-app or whole-engine performance.
+
+The current local DJ references matched three files. All three BPM estimates were within 1% (zero octave errors), with a median grid phase error of 2.1 ms on the two labelled tracks and cue recall of 67% within ±40 ms and matching type. The labelled set contains no keys, beat sequences, sections or vocal intervals. Per-track audio and paths stayed local. [Aggregate JSON](raw/electron-macos-arm64-local-evaluation.json)
+
+The [Tauri virtualization trial](https://github.com/Hadr1en/cuekoda/blob/experiment/tauri/docs/architecture/TAURI_EVALUATION.md#virtualized-library-measurement) directly compares the same DOM path with and without virtualization. At 10,000 synthetic rows, median DOM and forced layout work fell from 58 ms to 0.5 ms, with 28 mounted rows. This isolates virtualization within that prototype. A same-feature Electron-versus-Tauri comparison needs its own paired benchmark.
