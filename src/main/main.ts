@@ -1046,21 +1046,92 @@ async function smokeSettingsActions(window: BrowserWindow) {
   } finally {
     dialog.showOpenDialog = pick;
   }
+  await contents.executeJavaScript("document.getElementById('dlg-settings').close()");
+  await click('btn-about');
+  const initialAutoCheck = settingsStore.data.autoUpdateCheck !== false;
+  await click('about-auto-update-check');
+  if (!await waitForSmoke(() => settingsStore.data.autoUpdateCheck === !initialAutoCheck)) {
+    throw new Error('The startup check preference was not saved from About');
+  }
+  await contents.executeJavaScript("document.getElementById('dlg-about').close()");
+  await click('btn-about');
+  if (await contents.executeJavaScript("document.getElementById('about-auto-update-check').checked") === initialAutoCheck) {
+    throw new Error('The startup check preference was not restored when reopening About');
+  }
+  await click('about-auto-update-check');
+  if (!await waitForSmoke(() => settingsStore.data.autoUpdateCheck === initialAutoCheck)) {
+    throw new Error('The startup check preference was not restored');
+  }
   const updateState = () => contents.executeJavaScript(`({
-    status: document.getElementById('set-update-status').textContent,
-    checking: document.getElementById('set-update-check').disabled,
-    canInstall: !document.getElementById('set-update-install').hidden,
+    status: document.getElementById('about-update-status').textContent,
+    checking: document.getElementById('about-update-check').disabled,
+    canInstall: !document.getElementById('about-update-install').hidden,
+    badgeVisible: !document.getElementById('update-badge').hidden,
   })`);
   send('update', { state: 'checking' });
-  if (!await waitForSmoke(async () => (await updateState()).checking)) throw new Error('Settings did not show the update check');
+  if (!await waitForSmoke(async () => (await updateState()).checking)) throw new Error('About did not show the update check');
   send('update', { state: 'available', info: { build: 999, version: '0.0.0' } });
-  if (!await waitForSmoke(async () => (await updateState()).canInstall)) throw new Error('Install action did not appear');
+  if (!await waitForSmoke(async () => {
+    const state = await updateState();
+    return state.canInstall && state.badgeVisible;
+  })) throw new Error('The install action or update badge did not appear');
   send('update', { state: 'error', message: 'Smoke update failed' });
   if (!await waitForSmoke(async () => {
     const state = await updateState();
     return state.status === 'Smoke update failed' && !state.checking && !state.canInstall;
-  })) throw new Error('Settings did not show the error or reset its update controls');
-  console.log('Watched folders and update settings verified');
+  })) throw new Error('About did not show the error or reset its update controls');
+  console.log('Watched folders and About update controls verified');
+  await contents.executeJavaScript("document.getElementById('dlg-about').close()");
+  await click('btn-settings');
+  await smokeLanguageSettings(window);
+}
+
+async function smokeLanguageSettings(window: BrowserWindow) {
+  const contents = window.webContents;
+  const active = await contents.executeJavaScript('document.documentElement.lang');
+  const target = active === 'fr' ? 'en' : 'fr';
+  const choose = (language: string) => contents.executeJavaScript(`(() => {
+    const input = document.getElementById('set-language');
+    input.value = ${JSON.stringify(language)};
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  const status = () => contents.executeJavaScript("document.getElementById('set-language-status').textContent");
+  const expected = active === 'fr'
+    ? 'Langue enregistrée. Quittez puis relancez CueKoda pour l’appliquer.'
+    : 'Language saved. Quit and reopen CueKoda to apply it.';
+  await choose(target);
+  if (!await waitForSmoke(async () => settingsStore.data.language === target && await status() === expected)) {
+    throw new Error('Language setting did not persist or show the restart notice');
+  }
+  await contents.executeJavaScript(`document.getElementById('dlg-settings').close();
+    document.getElementById('btn-settings').click();`);
+  if (await status() !== expected || await contents.executeJavaScript('document.documentElement.lang') !== active) {
+    throw new Error('The pending language was not visible when reopening settings');
+  }
+  await choose(active);
+  if (!await waitForSmoke(async () => settingsStore.data.language === active && await status() === '')) {
+    throw new Error('Restart notice did not clear when selecting the current language');
+  }
+  await choose(target);
+  if (!await waitForSmoke(async () => settingsStore.data.language === target && await status() === expected)) {
+    throw new Error('Final language setting was not saved');
+  }
+  const reload = new Promise<void>((resolve) => contents.once('did-finish-load', () => resolve()));
+  contents.reload();
+  await reload;
+  if (!await waitForSmoke(() => contents.executeJavaScript(`document.documentElement.lang === ${JSON.stringify(target)}`))) {
+    throw new Error('Saved language was not applied after reloading the application window');
+  }
+  await contents.executeJavaScript("document.getElementById('btn-settings').click()");
+  if (await status() !== '') throw new Error('Restart notice stayed visible after the language was applied');
+  await choose(active);
+  const reverseNotice = target === 'fr'
+    ? 'Langue enregistrée. Quittez puis relancez CueKoda pour l’appliquer.'
+    : 'Language saved. Quit and reopen CueKoda to apply it.';
+  if (!await waitForSmoke(async () => settingsStore.data.language === active && await status() === reverseNotice)) {
+    throw new Error('Restart notice was not translated into the active language');
+  }
+  console.log('Bilingual language restart notice and saved language verified');
 }
 
 async function smokeExportSettings(window: BrowserWindow) {
@@ -1207,9 +1278,7 @@ function runSmoke() {
         await shot('structure');
         await js(`document.getElementById('t-mix').click(); await wait(100); ${toTabs} return true;`);
         await shot('mix');
-        await js(`document.querySelector('.detail-inspector').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300);
-          const d = document.getElementById('dlg-settings'); const h = [...d.querySelectorAll('h3')].find((x) => /Mises à jour|Updates/.test(x.textContent));
-          if (h) h.scrollIntoView({ block: 'start' }); return true;`);
+        await js(`document.querySelector('.detail-inspector').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300); return true;`);
         await shot('settings');
         await js(`document.getElementById('dlg-settings').close(); document.getElementById('btn-about').click(); await wait(200); return true;`);
         await shot('about');

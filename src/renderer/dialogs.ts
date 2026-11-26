@@ -9,7 +9,7 @@ import { findDuplicates } from '../core/duplicates';
 import type { AdapterInfo, Settings } from '../shared/api';
 import { allProfiles, api, applyTheme, doneResults, keyLabel, state } from './state';
 import { $, camelotColor, fmtTime, h, hexOf, rgbOf, toast } from './util';
-import { tr } from '../shared/i18n';
+import { getLang, resolveLang, tr } from '../shared/i18n';
 
 const closeBtn = (dlg: HTMLDialogElement) =>
   h('button', { type: 'button', class: 'btn ghost', onclick: () => dlg.close() }, 'Fermer');
@@ -263,6 +263,17 @@ export function openAbout() {
   const dlg = $<HTMLDialogElement>('dlg-about');
   const external = (url: string) => () => api.openExternal(url);
   const version = `Version ${state.appVersion}${state.appBuild ? ` (build ${state.appBuild})` : ' (build de développement : pas de mise à jour automatique)'}`;
+  const autoCheck = h('input', {
+    id: 'about-auto-update-check', type: 'checkbox', checked: state.settings.autoUpdateCheck !== false,
+    onchange: async () => {
+      try {
+        state.settings = await api.setSettings({ autoUpdateCheck: autoCheck.checked });
+      } catch {
+        autoCheck.checked = state.settings.autoUpdateCheck !== false;
+        toast('Impossible d’enregistrer le réglage des mises à jour.');
+      }
+    },
+  });
   dlg.replaceChildren(
     h('div', { class: 'about-head' },
       h('img', { src: 'cuekoda-icon.png', alt: '' }),
@@ -271,6 +282,16 @@ export function openAbout() {
         h('p', { class: 'about-tagline' }, 'Analyze. Cue. Mix.'),
         h('p', { class: 'muted' }, version),
       ),
+    ),
+    h('section', { class: 'set' },
+      h('h3', {}, 'Mises à jour'),
+      h('div', { class: 'hrow' },
+        h('button', { id: 'about-update-check', type: 'button', class: 'btn small', disabled: updateBusy(state.update), onclick: () => void api.checkUpdate() }, 'Vérifier maintenant'),
+        h('span', { id: 'about-update-status', role: 'status' }, updateText(state.update)),
+        h('button', { id: 'about-update-install', type: 'button', class: 'btn small primary', hidden: state.update.state !== 'available', onclick: () => void api.installUpdate() }, 'Installer et redémarrer'),
+      ),
+      h('label', {}, autoCheck, ' Vérifier au démarrage s’il existe une nouvelle version'),
+      h('p', { class: 'muted' }, 'La vérification des mises à jour contacte GitHub sans transmettre les données de la bibliothèque. L’installation requiert une confirmation et vérifie la taille et l’empreinte SHA-256. Sur macOS, l’ancienne version est placée dans la Corbeille.'),
     ),
     h('p', {}, 'Application de préparation musicale pour DJ : analyse locale, repères modifiables et exports vers rekordbox, Traktor et M3U8.'),
     h('p', {}, 'Conçu et développé par Hadrien.'),
@@ -341,6 +362,31 @@ export function openSettings(onChanged: (patch: Partial<Settings>) => void) {
       },
     });
     refreshParallelLimit();
+
+    const restartLanguage = () => resolveLang(state.settings.language, navigator.language) !== getLang()
+      ? tr('Langue enregistrée. Quittez puis relancez CueKoda pour l’appliquer.')
+      : '';
+    const languageStatus = h('p', { id: 'set-language-status', role: 'status', class: 'muted' });
+    languageStatus.textContent = restartLanguage();
+    const languageSelect = h('select', {
+      id: 'set-language', 'aria-describedby': 'set-language-help set-language-status',
+      onchange: async () => {
+        const language = languageSelect.value as Settings['language'];
+        languageSelect.disabled = true;
+        try {
+          state.settings = await api.setSettings({ language });
+          languageStatus.textContent = restartLanguage();
+        } catch {
+          languageSelect.value = state.settings.language ?? 'system';
+          languageStatus.textContent = tr('Impossible d’enregistrer la langue.');
+        } finally {
+          languageSelect.disabled = false;
+        }
+      },
+    },
+    h('option', { value: 'system', selected: (s.language ?? 'system') === 'system' }, 'Système'),
+    h('option', { value: 'fr', selected: s.language === 'fr' }, 'Français'),
+    h('option', { value: 'en', selected: s.language === 'en' }, 'English'));
 
     dlg.replaceChildren(
       h('h2', { id: 'dlg-settings-title' }, 'Réglages'),
@@ -462,26 +508,10 @@ export function openSettings(onChanged: (patch: Partial<Settings>) => void) {
       ),
 
       h('section', { class: 'set' },
-        h('h3', {}, 'Mises à jour'),
-        h('p', {}, `Version ${state.appVersion}${state.appBuild ? ` (build ${state.appBuild})` : ' (build de développement : pas de mise à jour automatique)'}`),
-        h('label', {}, h('input', { type: 'checkbox', checked: s.autoUpdateCheck !== false, onchange: (e: Event) => void save({ autoUpdateCheck: (e.target as HTMLInputElement).checked }).then(render) }),
-          ' Vérifier au démarrage s’il existe une nouvelle version'),
-        h('p', { class: 'muted' }, 'La vérification des mises à jour contacte GitHub sans transmettre les données de la bibliothèque. L’installation requiert une confirmation et vérifie la taille et l’empreinte SHA-256. Sur macOS, l’ancienne version est placée dans la Corbeille.'),
-        h('div', { class: 'hrow' },
-          h('button', { id: 'set-update-check', type: 'button', class: 'btn small', disabled: updateBusy(state.update), onclick: () => void api.checkUpdate() }, 'Vérifier maintenant'),
-          h('span', { id: 'set-update-status', role: 'status' }, updateText(state.update)),
-          h('button', { id: 'set-update-install', type: 'button', class: 'btn small primary', hidden: state.update.state !== 'available', onclick: () => void api.installUpdate() }, 'Installer et redémarrer'),
-        ),
-      ),
-
-      h('section', { class: 'set' },
         h('h3', {}, 'Langue / Language'),
-        h('label', { class: 'pf' }, 'Langue de l’interface',
-          h('select', { onchange: (e: Event) => { const language = (e.target as HTMLSelectElement).value as typeof s.language; void save({ language }).then(() => location.reload()); } },
-            h('option', { value: 'system', selected: (s.language ?? 'system') === 'system' }, 'Système'),
-            h('option', { value: 'fr', selected: s.language === 'fr' }, 'Français'),
-            h('option', { value: 'en', selected: s.language === 'en' }, 'English'))),
-        h('p', { class: 'muted' }, 'L’export conserve les noms des cues dans leur langue de saisie.'),
+        h('label', { class: 'pf' }, 'Langue de l’interface', languageSelect),
+        h('p', { id: 'set-language-help', class: 'muted' }, 'La langue change au prochain lancement de CueKoda.'),
+        languageStatus,
       ),
 
       h('section', { class: 'set' },
@@ -516,15 +546,15 @@ export function updateText(u: UpdateStatus): string {
 const updateBusy = (u: UpdateStatus) =>
   u.state === 'checking' || u.state === 'downloading' || u.state === 'installing';
 
-/** Keep the settings controls and the optional header badge in sync. */
+/** Keep the About controls and the optional header badge in sync. */
 export function renderUpdateBadge() {
   const el = $('update-badge');
   const u = state.update;
-  const status = document.getElementById('set-update-status');
+  const status = document.getElementById('about-update-status');
   if (status) status.textContent = tr(updateText(u));
-  const check = $<HTMLButtonElement>('set-update-check');
+  const check = $<HTMLButtonElement>('about-update-check');
   if (check) check.disabled = updateBusy(u);
-  const install = $('set-update-install');
+  const install = $('about-update-install');
   if (install) install.hidden = u.state !== 'available';
   const show = u.state === 'available' || u.state === 'downloading' || u.state === 'installing' || u.state === 'manual';
   el.hidden = !show;
