@@ -1,5 +1,7 @@
 # CueKoda architecture experiment status
 
+The Tauri and GPUI experiments were retired. Their draft PRs are closed and their active branches were removed. The source, CI records and measurements are historical references, recoverable through [the Tauri archive tag](https://github.com/Hadr1en/cuekoda/tree/archive/tauri-experiment) and [the GPUI archive tag](https://github.com/Hadr1en/cuekoda/tree/archive/gpui-experiment). The production Electron library change is tracked in [PR #45](https://github.com/Hadr1en/cuekoda/pull/45).
+
 Production source reference `a31211a41b5c016b5191eaccc4046183f25a55ad`, CueKoda 0.6.0. The three Rust integrations are based on **`148a5aa`**, with identical core source across the experiments. Each raw benchmark records its own revision. The original checkout remains on its Beatport branch with its original untracked files.
 
 | Phase | Delivered | Outstanding |
@@ -49,7 +51,7 @@ CUEKODA_TEST_FFMPEG=/absolute/path/to/ffmpeg \
 
 The native prototypes and CLI require an FFmpeg executable. Platform builds do not validate interactive GPU or audio behavior on their host OS.
 
-The three integration PRs are stacked on #41. The new Tauri and GPUI artifacts include the native app, Rust core, bundled worker and models. On macOS and Linux, restore the executable bits after extracting the artifact with `chmod +x bin/*`. Inside the extracted artifact, run `npm ci --omit=dev` with Node installed and start the app with `node scripts/launch-native-experiment.mjs bin/cuekoda-tauri` or `node scripts/launch-native-experiment.mjs bin/cuekoda-gpui`. Add the `.exe` suffix on Windows. Music, imports and exports use the existing algorithms through the local worker. See the build and test instructions in the [Electron/Rust evaluation](https://github.com/Hadr1en/cuekoda/blob/experiment/electron-rust/docs/architecture/ELECTRON_RUST_EVALUATION.md), [Tauri evaluation](https://github.com/Hadr1en/cuekoda/blob/experiment/tauri/docs/architecture/TAURI_EVALUATION.md) and [GPUI evaluation](https://github.com/Hadr1en/cuekoda/blob/experiment/gpui/docs/architecture/GPUI_EVALUATION.md).
+The three integration PRs are stacked on #41. The new Tauri and GPUI artifacts include the native app, Rust core, bundled worker and models. On macOS and Linux, restore the executable bits after extracting the artifact with `chmod +x bin/*`. Inside the extracted artifact, run `npm ci --omit=dev` with Node installed and start the app with `node scripts/launch-native-experiment.mjs bin/cuekoda-tauri` or `node scripts/launch-native-experiment.mjs bin/cuekoda-gpui`. Add the `.exe` suffix on Windows. Music, imports and exports use the existing algorithms through the local worker. See the build and test instructions in the [Electron/Rust evaluation](https://github.com/Hadr1en/cuekoda/blob/experiment/electron-rust/docs/architecture/ELECTRON_RUST_EVALUATION.md), [Tauri evaluation](https://github.com/Hadr1en/cuekoda/blob/archive/tauri-experiment/docs/architecture/TAURI_EVALUATION.md) and [GPUI evaluation](https://github.com/Hadr1en/cuekoda/blob/archive/gpui-experiment/docs/architecture/GPUI_EVALUATION.md).
 
 ## Final local acceptance of the shared workload
 
