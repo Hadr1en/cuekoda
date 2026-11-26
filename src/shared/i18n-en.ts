@@ -667,6 +667,9 @@ export const EN_EXACT: Record<string, string> = {
   'Installer et redémarrer': 'Install and restart',
   'Langue / Language': 'Language',
   'Langue de l’interface': 'Interface language',
+  'La langue change au prochain lancement de CueKoda.': 'The language changes the next time you open CueKoda.',
+  'Langue enregistrée. Quittez puis relancez CueKoda pour l’appliquer.': 'Language saved. Quit and reopen CueKoda to apply it.',
+  'Impossible d’enregistrer la langue.': 'Could not save the language.',
   Système: 'System',
   'L’export conserve les noms des cues dans leur langue de saisie.':
     'Export preserves cue names in their original language.',

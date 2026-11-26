@@ -1061,6 +1061,55 @@ async function smokeSettingsActions(window: BrowserWindow) {
     return state.status === 'Smoke update failed' && !state.checking && !state.canInstall;
   })) throw new Error('Settings did not show the error or reset its update controls');
   console.log('Watched folders and update settings verified');
+  await smokeLanguageSettings(window);
+}
+
+async function smokeLanguageSettings(window: BrowserWindow) {
+  const contents = window.webContents;
+  const active = await contents.executeJavaScript('document.documentElement.lang');
+  const target = active === 'fr' ? 'en' : 'fr';
+  const choose = (language: string) => contents.executeJavaScript(`(() => {
+    const input = document.getElementById('set-language');
+    input.value = ${JSON.stringify(language)};
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  const status = () => contents.executeJavaScript("document.getElementById('set-language-status').textContent");
+  const expected = active === 'fr'
+    ? 'Langue enregistrée. Quittez puis relancez CueKoda pour l’appliquer.'
+    : 'Language saved. Quit and reopen CueKoda to apply it.';
+  await choose(target);
+  if (!await waitForSmoke(async () => settingsStore.data.language === target && await status() === expected)) {
+    throw new Error('Language setting did not persist or show the restart notice');
+  }
+  await contents.executeJavaScript(`document.getElementById('dlg-settings').close();
+    document.getElementById('btn-settings').click();`);
+  if (await status() !== expected || await contents.executeJavaScript('document.documentElement.lang') !== active) {
+    throw new Error('The pending language was not visible when reopening settings');
+  }
+  await choose(active);
+  if (!await waitForSmoke(async () => settingsStore.data.language === active && await status() === '')) {
+    throw new Error('Restart notice did not clear when selecting the current language');
+  }
+  await choose(target);
+  if (!await waitForSmoke(async () => settingsStore.data.language === target && await status() === expected)) {
+    throw new Error('Final language setting was not saved');
+  }
+  const reload = new Promise<void>((resolve) => contents.once('did-finish-load', () => resolve()));
+  contents.reload();
+  await reload;
+  if (!await waitForSmoke(() => contents.executeJavaScript(`document.documentElement.lang === ${JSON.stringify(target)}`))) {
+    throw new Error('Saved language was not applied after reloading the application window');
+  }
+  await contents.executeJavaScript("document.getElementById('btn-settings').click()");
+  if (await status() !== '') throw new Error('Restart notice stayed visible after the language was applied');
+  await choose(active);
+  const reverseNotice = target === 'fr'
+    ? 'Langue enregistrée. Quittez puis relancez CueKoda pour l’appliquer.'
+    : 'Language saved. Quit and reopen CueKoda to apply it.';
+  if (!await waitForSmoke(async () => settingsStore.data.language === active && await status() === reverseNotice)) {
+    throw new Error('Restart notice was not translated into the active language');
+  }
+  console.log('Bilingual language restart notice and saved language verified');
 }
 
 async function smokeExportSettings(window: BrowserWindow) {
