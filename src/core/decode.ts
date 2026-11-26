@@ -71,7 +71,12 @@ export function decodeAudio(file: string, sampleRate = ANALYSIS_SAMPLE_RATE, opt
       '-af', 'ebur128=peak=true:framelog=quiet' + (channel === 'left' ? ',pan=mono|c0=c0' : ''),
       '-ac', '1', '-ar', String(sampleRate), '-f', 'f32le', 'pipe:1',
     ];
-    const proc = spawn(ffmpegPath(), args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    const ffmpeg = ffmpegPath();
+    const candidate = process.env.CUEKODA_EXPERIMENT_PCM;
+    const proc = candidate
+      ? spawn(candidate, ['--ffmpeg', ffmpeg, 'pcm', '--sample-rate', String(sampleRate),
+        ...(channel === 'left' ? ['--left'] : []), '--', file], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
+      : spawn(ffmpeg, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     const chunks: Buffer[] = [];
     let decodedBytes = 0;
     let log = '';
