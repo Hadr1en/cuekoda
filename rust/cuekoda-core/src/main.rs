@@ -44,12 +44,37 @@ enum Operation {
         #[arg(long, default_value_t = 10, value_parser = clap::value_parser!(u8).range(1..=100))]
         runs: u8,
     },
+    /// Run the existing musical algorithms through the local compatibility worker.
+    Music { file: PathBuf },
+    /// Stream mono f32le PCM and FFmpeg loudness diagnostics for the compatibility worker.
+    Pcm {
+        file: PathBuf,
+        #[arg(long)]
+        sample_rate: usize,
+        #[arg(long)]
+        left: bool,
+    },
     /// Compare a legacy bare Peaks JSON file to a core Analyze response.
     Compare { legacy: PathBuf, rust: PathBuf },
 }
 
 fn main() -> std::process::ExitCode {
-    match run(Cli::parse()) {
+    let cli = Cli::parse();
+    if let Operation::Pcm {
+        file,
+        sample_rate,
+        left,
+    } = &cli.operation
+    {
+        return match cuekoda_core::stream_pcm(&cli.ffmpeg, file, *sample_rate, *left) {
+            Ok(status) => std::process::ExitCode::from(u8::try_from(status).unwrap_or(1)),
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::ExitCode::FAILURE
+            }
+        };
+    }
+    match run(cli) {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("{error}");
@@ -70,6 +95,12 @@ fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     };
     let mut output = io::BufWriter::new(io::stdout().lock());
     match cli.operation {
+        Operation::Pcm { .. } => unreachable!("PCM is handled before buffered JSON output"),
+        Operation::Music { file } => {
+            let analysis =
+                cuekoda_core::music::Backend::from_environment()?.analyze(&file, &cancellation)?;
+            write_json(&mut output, &analysis)?;
+        }
         Operation::Analyze { file } => {
             let analysis = analyze_preview(&file, &options, &cancellation, |_| {})?;
             write_json(&mut output, &analysis)?;
