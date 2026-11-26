@@ -16,6 +16,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
       - if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -23,10 +27,12 @@ jobs:
       - run: rustup update stable
       - run: cargo +stable fmt --manifest-path rust/cuekoda-gpui/Cargo.toml --check
       - run: cargo +stable build --release --locked --manifest-path rust/cuekoda-gpui/Cargo.toml
+      - run: npm ci
+      - run: npm run build
+      - run: cargo +stable build --release --locked --manifest-path rust/cuekoda-core/Cargo.toml
+      - run: node scripts/stage-native-experiment.mjs cuekoda-gpui release/gpui-experiment
       - uses: actions/upload-artifact@v4
         with:
           name: cuekoda-gpui-${{ matrix.os }}
-          path: |
-            rust/cuekoda-gpui/target/release/cuekoda-gpui
-            rust/cuekoda-gpui/target/release/cuekoda-gpui.exe
+          path: release/gpui-experiment/
           if-no-files-found: error

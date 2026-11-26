@@ -316,13 +316,7 @@ impl Library {
                     let data = backend
                         .export(format, &track.value, &cancel)
                         .map_err(|error| error.to_string())?;
-                    use std::io::Write;
-                    fs::OpenOptions::new()
-                        .create_new(true)
-                        .write(true)
-                        .open(path)
-                        .and_then(|mut output| output.write_all(data.as_bytes()))
-                        .map_err(|error| error.to_string())?;
+                    music::write_export(&path, &data).map_err(|error| error.to_string())?;
                     return Ok(track.summary);
                 }
             }
@@ -366,6 +360,33 @@ impl Library {
             {
                 let _ = entity.update(cx, |library, cx| {
                     library.edit_music(source, MusicAction::Import(file), cx)
+                });
+            }
+        })
+        .detach();
+    }
+
+    fn import_playlist(&mut self, cx: &mut Context<Self>) {
+        let selection = cx.prompt_for_paths(PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: false,
+            prompt: Some("Importer M3U8".into()),
+        });
+        cx.spawn(async move |entity, cx| {
+            if let Ok(Ok(Some(paths))) = selection.await
+                && let Some(file) = paths.into_iter().next()
+            {
+                let tracks = cx
+                    .background_executor()
+                    .spawn(async move { music::read_playlist(&file) })
+                    .await;
+                let _ = entity.update(cx, |library, cx| match tracks {
+                    Ok(paths) => library.add(paths, cx),
+                    Err(error) => {
+                        library.status = error.to_string();
+                        cx.notify();
+                    }
                 });
             }
         })
@@ -576,20 +597,26 @@ impl Library {
                                         ));
                                     }
                                 }
-                                let bar = 240.0 / summary.grid.bpm;
-                                if bar > 0.0 && span / bar < 1000.0 {
-                                    let first = summary.grid.first_downbeat_sec;
-                                    let mut time = first + ((start - first) / bar).ceil() * bar;
-                                    while time < start + span {
-                                        window.paint_quad(fill(
-                                            Bounds {
-                                                origin: bounds.origin + point(px(x(time)), px(0.0)),
-                                                size: size(px(1.0), bounds.size.height),
-                                            },
-                                            rgb(0x494b58),
-                                        ));
-                                        time += bar;
+                                let first =
+                                    summary.beats.partition_point(|beat| beat.time_sec < start);
+                                let mut previous = f32::NEG_INFINITY;
+                                for beat in &summary.beats[first..] {
+                                    if beat.time_sec >= start + span {
+                                        break;
                                     }
+                                    let position = x(beat.time_sec);
+                                    if !beat.downbeat && position - previous < 10.0 {
+                                        continue;
+                                    }
+                                    let color = if beat.downbeat { 0x737784 } else { 0x494b58 };
+                                    window.paint_quad(fill(
+                                        Bounds {
+                                            origin: bounds.origin + point(px(position), px(0.0)),
+                                            size: size(px(1.0), bounds.size.height),
+                                        },
+                                        rgb(color),
+                                    ));
+                                    previous = position;
                                 }
                             }
                             let music_cues = analysis
@@ -792,6 +819,10 @@ impl Render for Library {
                             .on_click(cx.listener(|this, _, _, cx| this.pick(true, cx))),
                     )
                     .child(
+                        button("playlist", "Importer M3U8")
+                            .on_click(cx.listener(|this, _, _, cx| this.import_playlist(cx))),
+                    )
+                    .child(
                         button(
                             "search",
                             format!(
@@ -985,7 +1016,10 @@ fn main() {
     if smoke {
         arguments.next();
     }
-    let files = arguments.map(PathBuf::from).collect();
+    let mut files: Vec<_> = arguments.map(PathBuf::from).collect();
+    if !smoke && let Ok(root) = music::storage_root(PROJECT_NAME) {
+        files.extend(music::saved_sources(&root));
+    }
     Application::new().run(move |cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(1280.0), px(800.0)), cx);
         cx.open_window(

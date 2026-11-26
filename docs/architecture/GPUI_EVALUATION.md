@@ -23,3 +23,9 @@ CUEKODA_TEST_AUDIO=/absolute/path/to/synthetic.wav \
   cargo test --locked --manifest-path rust/cuekoda-gpui/Cargo.toml \
   native_output_advances_and_seeks -- --ignored
 ```
+
+## Musical preparation
+
+The native GPUI window now displays BPM, key, a variable beatgrid, section boundaries and cue markers. Number keys recall or place cues, and Shift plus a number updates the corresponding unlocked cue. Musical edits are stored in the GPUI experiment profile and applied on reanalysis. It reads local M3U8 paths, imports the selected track's XML/NML cue data and exports Rekordbox XML, Traktor NML and M3U8 for the selected track.
+
+The GPUI artifact includes the separate shared Rust decoder, local compatibility worker and models. With Node installed, run `npm ci --omit=dev` in the artifact directory, then `node scripts/launch-native-experiment.mjs bin/cuekoda-gpui` (use `bin/cuekoda-gpui.exe` on Windows). The benchmark uses the native UI and Rodio path with the existing musical algorithms supplied by the companion process. The GPUI application itself uses a native renderer. Bulk workflows, accessibility, physical platform checks and the updater remain open.
