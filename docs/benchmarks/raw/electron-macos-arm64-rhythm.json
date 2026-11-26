@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-11-26T08:28:54.634Z",
+  "results": [
+    {
+      "id": "dnb-174",
+      "profileId": "drumandbass",
+      "referenceBpm": 174,
+      "detectedBpm": 174,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 1.5044178590974955,
+      "downbeatOk": true,
+      "analysisMs": 1147,
+      "cpuMs": 568.641,
+      "rssDeltaMb": 58.55060577392578,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    },
+    {
+      "id": "trap-half-time-140",
+      "profileId": "bass",
+      "referenceBpm": 140,
+      "detectedBpm": 140,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 3.356009070294366,
+      "downbeatOk": false,
+      "analysisMs": 820,
+      "cpuMs": 403.772,
+      "rssDeltaMb": 2.2812957763671875,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    },
+    {
+      "id": "uk-garage-break-edit-132",
+      "profileId": "bass",
+      "referenceBpm": 132,
+      "detectedBpm": 132,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 1.6079158936301852,
+      "downbeatOk": true,
+      "analysisMs": 1623,
+      "cpuMs": 1253.585,
+      "rssDeltaMb": 47.859649658203125,
+      "falseDropCues": 0,
+      "dropErrorBeats": 0.0035374149659883614
+    },
+    {
+      "id": "afro-latin-no-drop-live-120",
+      "profileId": "global",
+      "referenceBpm": 120,
+      "detectedBpm": 120,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 3.356009070294874,
+      "downbeatOk": true,
+      "analysisMs": 858,
+      "cpuMs": 426.924,
+      "rssDeltaMb": 6.7822113037109375,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    },
+    {
+      "id": "hard-techno-200",
+      "profileId": "harddance",
+      "referenceBpm": 200,
+      "detectedBpm": 200,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 3.356009070295185,
+      "downbeatOk": false,
+      "analysisMs": 1438,
+      "cpuMs": 1032.771,
+      "rssDeltaMb": 0.3125,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-11-26T08:31:16.811Z",
+  "results": [
+    {
+      "id": "dnb-174",
+      "profileId": "drumandbass",
+      "referenceBpm": 174,
+      "detectedBpm": 174,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 1.5044178590974955,
+      "downbeatOk": true,
+      "analysisMs": 874,
+      "cpuMs": 464.191,
+      "rssDeltaMb": 55.80067443847656,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    },
+    {
+      "id": "trap-half-time-140",
+      "profileId": "bass",
+      "referenceBpm": 140,
+      "detectedBpm": 140,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 3.356009070294366,
+      "downbeatOk": false,
+      "analysisMs": 633,
+      "cpuMs": 309.884,
+      "rssDeltaMb": -0.734375,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    },
+    {
+      "id": "uk-garage-break-edit-132",
+      "profileId": "bass",
+      "referenceBpm": 132,
+      "detectedBpm": 132,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 1.6079158936299631,
+      "downbeatOk": true,
+      "analysisMs": 1150,
+      "cpuMs": 884.976,
+      "rssDeltaMb": 34.82844543457031,
+      "falseDropCues": 0,
+      "dropErrorBeats": 0.0035374149659844535
+    },
+    {
+      "id": "afro-latin-no-drop-live-120",
+      "profileId": "global",
+      "referenceBpm": 120,
+      "detectedBpm": 120,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 3.356009070294874,
+      "downbeatOk": true,
+      "analysisMs": 612,
+      "cpuMs": 309.743,
+      "rssDeltaMb": 2.5625,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    },
+    {
+      "id": "hard-techno-200",
+      "profileId": "harddance",
+      "referenceBpm": 200,
+      "detectedBpm": 200,
+      "errorPct": 0,
+      "octaveError": false,
+      "phaseErrorMs": 3.356009070295185,
+      "downbeatOk": false,
+      "analysisMs": 1084,
+      "cpuMs": 768.249,
+      "rssDeltaMb": -5.609375,
+      "falseDropCues": 0,
+      "dropErrorBeats": null
+    }
+  ]
+}
