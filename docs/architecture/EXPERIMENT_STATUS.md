@@ -45,7 +45,7 @@ CUEKODA_TEST_FFMPEG=/absolute/path/to/ffmpeg \
 - [Rust core executables for macOS, Windows and Linux](https://github.com/Hadr1en/cuekoda/actions/runs/45783088574).
 - [Electron Rust experiment DMG and Windows installer](https://github.com/Hadr1en/cuekoda/actions/runs/45785166496).
 - [Tauri experiment executables](https://github.com/Hadr1en/cuekoda/actions/runs/45785434164).
-- [GPUI macOS and Windows artifacts from the first build](https://github.com/Hadr1en/cuekoda/actions/runs/45784929589). That build failed on Linux because of an upstream dependency incompatibility. The [lockfile fix build](https://github.com/Hadr1en/cuekoda/actions/runs/45786096774) and [latest playback-test build](https://github.com/Hadr1en/cuekoda/actions/runs/45786302866) track the recovery.
+- [GPUI executables for macOS, Windows and Linux](https://github.com/Hadr1en/cuekoda/actions/runs/45786096774). The first Linux build failed because of a transitive `xattr` / libc incompatibility. All three platforms compiled after pinning the affected dependencies. The [playback-test build](https://github.com/Hadr1en/cuekoda/actions/runs/45786302866) includes the added local audio test.
 
 The native prototypes and CLI require an FFmpeg executable. Platform builds do not validate interactive GPU or audio behavior on their host OS.
 
