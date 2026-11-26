@@ -246,6 +246,14 @@
   }
 
   table { inline-size: 100%; }
+  #tracks.virtual-library {
+    overflow-anchor: none;
+    table-layout: fixed;
+    min-inline-size: 960px;
+    th.c-cues { inline-size: 120px; }
+    tbody tr.row > td { block-size: 38px; padding-block: 0; }
+    .library-spacer > td { border: 0; padding: 0; }
+  }
   th {
     position: sticky; z-index: 3; inset-block-start: 0; background: var(--color-panel); text-align: start; font-weight: 600;
     color: var(--color-muted); padding: 6px 10px; border-block-end: var(--ui-border);

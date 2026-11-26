@@ -28,7 +28,8 @@
     "benchmark:rhythm": "npm run build && node dist/test/rhythm-benchmark.js",
     "corpora:verify": "node scripts/verify-evaluation-corpus.mjs",
     "eval:dj": "npm run build && node dist/test/evaluate.js --refs tests/ground-truth --audio samples",
-    "offset-test": "npm run build && node dist/test/offset-test.js"
+    "offset-test": "npm run build && node dist/test/offset-test.js",
+    "smoke:library": "npm run build && node scripts/smoke-library.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.8.15",

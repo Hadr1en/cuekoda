@@ -30,3 +30,19 @@ jobs:
       - run: npm run test:unit
       - name: Analyse de bout en bout (morceaux synthétiques)
         run: npm test
+
+  library:
+    name: Bibliothèque Electron (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke:library

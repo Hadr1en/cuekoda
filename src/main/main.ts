@@ -716,11 +716,13 @@ function registerIpc() {
  * Adds the folder, waits for the batch, re-adds it (must come from the cache), collects renderer
  * console errors and writes a JSON report, then quits.
  */
+const SMOKE_LIBRARY_PROFILE = !app.isPackaged ? process.env.CUEKODA_SMOKE_LIBRARY_PROFILE : undefined;
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
 const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
 const SMOKE_MODELS = process.env.CUEKODA_SMOKE_MODELS === '1';
-if (SMOKE_DIR || SMOKE_WINDOW || SMOKE_SETTINGS || SMOKE_MODELS) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
+if (SMOKE_LIBRARY_PROFILE) app.setPath('userData', SMOKE_LIBRARY_PROFILE);
+else if (SMOKE_DIR || SMOKE_WINDOW || SMOKE_SETTINGS || SMOKE_MODELS) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'cuekoda-smoke-')));
 
 /** Renderer-side script of the smoke test (runs in the real UI). */
 const SMOKE_UI_SCRIPT = `(async () => {
@@ -1325,7 +1327,17 @@ app.whenReady().then(async () => {
   registerIpc();
   createWindow();
   nativeTheme.on('updated', updateWindowsTitleBar);
-  if (SMOKE_WINDOW) {
+  if (SMOKE_LIBRARY_PROFILE && process.env.CUEKODA_SMOKE_LIBRARY_INSPECT !== '1') {
+    const smokeWindow = win!;
+    smokeWindow.webContents.once('did-finish-load', () => {
+      void import('./virtualLibrarySmoke').then(({ smokeVirtualLibrary }) => smokeVirtualLibrary(smokeWindow))
+        .then(() => app.exit(0), (error) => {
+          console.error(error);
+          app.exit(1);
+        });
+    });
+    smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
+  } else if (SMOKE_WINDOW) {
     const smokeWindow = win!;
     smokeWindow.webContents.once('did-finish-load', () => void smokeWindowsTitleBar(smokeWindow));
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
