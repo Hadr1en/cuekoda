@@ -31,6 +31,7 @@ function request(input, extraEnv = {}) {
   }
 }
 
+const canonicalExport = (text) => text.replace(/UUID="cuekoda-\d+"/g, 'UUID="cuekoda-test"');
 const canonical = (track) => JSON.parse(JSON.stringify(track, (key, value) =>
   key === 'id' || key === 'analysisMs' ? undefined : value));
 for (const input of files) {
@@ -43,7 +44,7 @@ for (const input of files) {
   for (const [format, marker] of [['xml', '<DJ_PLAYLISTS'], ['nml', '<NML'], ['m3u8', '#EXTM3U']]) {
     const collection = request({ operation: 'export', format, track: rust });
     assert(collection.includes(marker));
-    assert.equal(collection, request({ operation: 'export', format, track: legacy }));
+    assert.equal(canonicalExport(collection), canonicalExport(request({ operation: 'export', format, track: legacy })));
     if (format !== 'm3u8') {
       const imported = request({ operation: 'import', format, collection, track: rust });
       assert.equal(imported.path, legacy.path);
