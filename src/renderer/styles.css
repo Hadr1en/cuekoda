@@ -593,6 +593,18 @@
     .about-head h2 { margin: 0; font-size: 24px; }
     .about-tagline { margin: 2px 0; color: var(--color-accent); font-weight: 650; letter-spacing: .3px; }
     .about-head .muted { margin: 0; }
+    .about-intro { display: grid; gap: 4px; margin-block-end: 16px; }
+    .about-intro p { margin: 0; }
+    .about-updates {
+      border: var(--ui-border); border-radius: 10px; padding: 12px 14px; margin-block-end: 16px;
+      background: var(--ui-row-hover-bg);
+    }
+    .about-update-row, .about-update-actions, .about-update-option { display: flex; align-items: center; gap: 8px; }
+    .about-update-row { justify-content: space-between; flex-wrap: wrap; }
+    .about-update-actions { flex-wrap: wrap; }
+    .about-update-row h3, #about-update-status, .about-update-option input { margin: 0; }
+    #about-update-status:not(:empty) { margin-block-start: 3px; }
+    .about-update-option { inline-size: fit-content; margin-block-start: 10px; cursor: pointer; }
     .about-links { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-block-start: 10px; }
     .about-support { margin-block: 6px 0; }
   }

@@ -660,9 +660,7 @@ export const EN_EXACT: Record<string, string> = {
   'Apprentissage réinitialisé': 'Learning reset',
   'Réinitialiser l’apprentissage': 'Reset learning',
   'Mises à jour': 'Updates',
-  'Vérifier au démarrage s’il existe une nouvelle version': 'Check for a new version at startup',
-  'La vérification des mises à jour contacte GitHub sans transmettre les données de la bibliothèque. L’installation requiert une confirmation et vérifie la taille et l’empreinte SHA-256. Sur macOS, l’ancienne version est placée dans la Corbeille.':
-    'Update checks contact GitHub without sending library data. Installation requires confirmation and checks file size and the SHA-256 digest. On macOS, the previous version is moved to the Trash.',
+  'Vérifier les mises à jour au démarrage': 'Check for updates at startup',
   'Vérifier maintenant': 'Check now',
   'Impossible d’enregistrer le réglage des mises à jour.': 'Could not save the update setting.',
   'Installer et redémarrer': 'Install and restart',
