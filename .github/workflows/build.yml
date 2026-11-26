@@ -76,7 +76,7 @@ jobs:
             echo "- Windows : SmartScreen › **Informations complémentaires** › **Exécuter quand même**."
             echo
             echo "## Mises à jour"
-            echo "À partir de cette version, CueKoda signale lui-même les nouvelles versions (Réglages › Mises à jour) et les installe sur un clic."
+            echo "Ouvrez **À propos › Mises à jour** pour vérifier si une nouvelle version est disponible et l’installer."
           } > notes.md
           gh release create "$TAG" --draft --target "$GITHUB_SHA" \
             --title "CueKoda ${VERSION} — build ${GITHUB_RUN_NUMBER} (${SHORT})" --notes-file notes.md
