@@ -75,8 +75,8 @@ Chaque enchaînement reçoit un score et une justification. Les transitions diff
 cet ordre, en playlist nommée (le nom est modifiable).
 
 ## Mises à jour et langue
-Réglages › Mises à jour : vérification au démarrage (désactivable), installation sur un clic. Réglages ›
-Langue : français ou anglais.
+Dans **À propos › Mises à jour**, vous pouvez vérifier la version disponible, lancer l’installation et choisir si CueKoda vérifie les mises à jour au démarrage.
+Dans **Réglages › Langue**, choisissez le français ou l’anglais, puis quittez et relancez CueKoda pour appliquer votre choix.
 
 ## Autres outils
 - **Doublons** : doublons exacts, même morceau dans un autre format, versions liées (remix / edit) —

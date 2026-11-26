@@ -214,14 +214,13 @@ Export safety: CueKoda writes a **new collection file** and leaves the DJ softwa
 (`master.db`, `collection.nml`). An existing file is backed up first.
 
 ### 9. Settings, updates and language
-<img src="docs/screenshots/en/settings.png" alt="Settings: automatic updates and interface language" width="100%">
 
-- **Updates** — The optional start-up check and “Check now” use public GitHub releases without sending
+- **About › Updates** — The optional start-up check and “Check now” use public GitHub releases without sending
   library data. Installation requires a click and a file matching both the expected size and a valid
   SHA-256 digest. The digest checks download integrity. See [distribution decisions](docs/DISTRIBUTION.md) (French).
   - **Windows**: silent install, then restart.
   - **macOS**: the old version goes to the Trash, the new one takes its place and restarts.
-- **Language**: French or English. Cue names are preserved in their original language.
+- **Language**: French or English, applied the next time you open CueKoda. Cue names are preserved in their original language.
 - **Theme**: dark (default), light or system. Also: number of parallel analyses, watched folders, learning,
   profiles.
 - **About** presents the author, technologies, licence and credits, with links to the source code, issue

@@ -1046,21 +1046,43 @@ async function smokeSettingsActions(window: BrowserWindow) {
   } finally {
     dialog.showOpenDialog = pick;
   }
+  await contents.executeJavaScript("document.getElementById('dlg-settings').close()");
+  await click('btn-about');
+  const initialAutoCheck = settingsStore.data.autoUpdateCheck !== false;
+  await click('about-auto-update-check');
+  if (!await waitForSmoke(() => settingsStore.data.autoUpdateCheck === !initialAutoCheck)) {
+    throw new Error('The startup check preference was not saved from About');
+  }
+  await contents.executeJavaScript("document.getElementById('dlg-about').close()");
+  await click('btn-about');
+  if (await contents.executeJavaScript("document.getElementById('about-auto-update-check').checked") === initialAutoCheck) {
+    throw new Error('The startup check preference was not restored when reopening About');
+  }
+  await click('about-auto-update-check');
+  if (!await waitForSmoke(() => settingsStore.data.autoUpdateCheck === initialAutoCheck)) {
+    throw new Error('The startup check preference was not restored');
+  }
   const updateState = () => contents.executeJavaScript(`({
-    status: document.getElementById('set-update-status').textContent,
-    checking: document.getElementById('set-update-check').disabled,
-    canInstall: !document.getElementById('set-update-install').hidden,
+    status: document.getElementById('about-update-status').textContent,
+    checking: document.getElementById('about-update-check').disabled,
+    canInstall: !document.getElementById('about-update-install').hidden,
+    badgeVisible: !document.getElementById('update-badge').hidden,
   })`);
   send('update', { state: 'checking' });
-  if (!await waitForSmoke(async () => (await updateState()).checking)) throw new Error('Settings did not show the update check');
+  if (!await waitForSmoke(async () => (await updateState()).checking)) throw new Error('About did not show the update check');
   send('update', { state: 'available', info: { build: 999, version: '0.0.0' } });
-  if (!await waitForSmoke(async () => (await updateState()).canInstall)) throw new Error('Install action did not appear');
+  if (!await waitForSmoke(async () => {
+    const state = await updateState();
+    return state.canInstall && state.badgeVisible;
+  })) throw new Error('The install action or update badge did not appear');
   send('update', { state: 'error', message: 'Smoke update failed' });
   if (!await waitForSmoke(async () => {
     const state = await updateState();
     return state.status === 'Smoke update failed' && !state.checking && !state.canInstall;
-  })) throw new Error('Settings did not show the error or reset its update controls');
-  console.log('Watched folders and update settings verified');
+  })) throw new Error('About did not show the error or reset its update controls');
+  console.log('Watched folders and About update controls verified');
+  await contents.executeJavaScript("document.getElementById('dlg-about').close()");
+  await click('btn-settings');
   await smokeLanguageSettings(window);
 }
 
@@ -1256,9 +1278,7 @@ function runSmoke() {
         await shot('structure');
         await js(`document.getElementById('t-mix').click(); await wait(100); ${toTabs} return true;`);
         await shot('mix');
-        await js(`document.querySelector('.detail-inspector').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300);
-          const d = document.getElementById('dlg-settings'); const h = [...d.querySelectorAll('h3')].find((x) => /Mises à jour|Updates/.test(x.textContent));
-          if (h) h.scrollIntoView({ block: 'start' }); return true;`);
+        await js(`document.querySelector('.detail-inspector').scrollTop = 0; document.getElementById('t-cues').click(); document.getElementById('btn-settings').click(); await wait(300); return true;`);
         await shot('settings');
         await js(`document.getElementById('dlg-settings').close(); document.getElementById('btn-about').click(); await wait(200); return true;`);
         await shot('about');

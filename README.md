@@ -208,14 +208,13 @@ des huit boutons et les repères mémorisés selon les options d’export. Par d
 Sécurité de l'export : CueKoda écrit un **nouveau fichier de collection**, sans modifier la base du logiciel DJ (`master.db`, `collection.nml`). Un fichier existant est d'abord sauvegardé à côté.
 
 ### 9. Réglages, mises à jour et langue
-<img src="docs/screenshots/fr/settings.png" alt="Réglages : mises à jour automatiques et langue de l'interface" width="100%">
 
-- **Mises à jour** — La vérification au démarrage (désactivable) et « Vérifier maintenant » utilisent les
+- **À propos › Mises à jour** — La vérification au démarrage (désactivable) et « Vérifier maintenant » utilisent les
   releases publiques GitHub, sans transmettre de données de bibliothèque. Quand une version est disponible,
   l’installation requiert une confirmation et un fichier conforme à la taille attendue et à l’empreinte SHA-256 publiée. Voir les [décisions de distribution](docs/DISTRIBUTION.md).
   - **Windows** : installation silencieuse puis redémarrage.
   - **macOS** : l'ancienne version part à la Corbeille, la nouvelle prend sa place et redémarre.
-- **Langue** : français ou anglais. Les noms des cues sont conservés dans la langue de saisie.
+- **Langue** : français ou anglais, appliqué au prochain lancement. Les noms des cues sont conservés dans la langue de saisie.
 - **Thème** sombre (par défaut), clair ou système ; nombre d'analyses en parallèle ; dossiers surveillés ;
   apprentissage ; profils.
 - **À propos** présente l'auteur, les technologies, la licence et les crédits, avec des liens vers le code
