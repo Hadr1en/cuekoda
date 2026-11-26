@@ -396,14 +396,74 @@ function renderLibrary() {
       markedPaths.delete(path);
     }
   }
-  const body = $('rows');
-  const focusedRow = document.activeElement?.closest('tr.row');
-  const shownRows = new Set(recs.map(({ path }) => rowEls.get(path)));
-  for (const row of Array.from(body.children)) {
-    if (!shownRows.has(row as HTMLTableRowElement)) row.remove();
+  const total = state.tracks.size;
+  $('empty').hidden = total > 0;
+  $('tracks').hidden = recs.length === 0;
+  const virtual = state.settings.virtualizeLibrary !== false && recs.length >= virtualLibraryMinimum;
+  if (virtual) {
+    tracksTable.classList.add('virtual-library');
+    tracksTable.setAttribute('aria-rowcount', String(recs.length + 1));
+    tracksTable.tHead?.rows[0]?.setAttribute('aria-rowindex', '1');
+  } else {
+    tracksTable.classList.remove('virtual-library');
+    tracksTable.removeAttribute('aria-rowcount');
+    tracksTable.tHead?.rows[0]?.removeAttribute('aria-rowindex');
   }
-  let next = body.firstElementChild;
-  for (const rec of recs) {
+  renderLibraryRows(virtual);
+  $('no-matches').hidden = total === 0 || recs.length > 0;
+  setText($('lib-count'), total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '');
+  document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
+    th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
+  });
+  syncTrackSelection();
+  updateGlobalButtons();
+  updateTransport();
+}
+
+// Keep search, sort and selection in the complete list. Only its DOM rows are windowed.
+const virtualLibraryMinimum = 250;
+const libraryRowHeight = 38;
+const libraryOverscan = 10;
+const tracksBody = $<HTMLTableSectionElement>('rows');
+const libraryViewport = $('list-wrap');
+let mountedRowsFrame = 0;
+
+function isVirtualLibrary() {
+  return tracksTable.classList.contains('virtual-library');
+}
+
+function scheduleMountedRows() {
+  if (!isVirtualLibrary() || mountedRowsFrame) return;
+  mountedRowsFrame = requestAnimationFrame(() => {
+    mountedRowsFrame = 0;
+    if (isVirtualLibrary()) renderLibraryRows(true);
+  });
+}
+
+libraryViewport.addEventListener('scroll', scheduleMountedRows, { passive: true });
+tracksBody.addEventListener('focusout', scheduleMountedRows);
+new ResizeObserver(scheduleMountedRows).observe(libraryViewport);
+
+function renderLibraryRows(virtual: boolean) {
+  const count = visibleRecords.length;
+  const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const focusedPath = focused?.closest<HTMLTableRowElement>('tr[data-track]')?.dataset.track;
+  const focusedIndex = focusedPath ? visibleIndex.get(focusedPath) : undefined;
+  let first = 0;
+  let end = count;
+  if (virtual) {
+    const height = Math.max(libraryRowHeight, libraryViewport.clientHeight - (tracksTable.tHead?.offsetHeight ?? 0));
+    const offset = Math.min(libraryViewport.scrollTop, Math.max(0, count * libraryRowHeight - height));
+    first = Math.max(0, Math.floor(offset / libraryRowHeight) - libraryOverscan);
+    end = Math.min(count, Math.ceil((offset + height) / libraryRowHeight) + libraryOverscan);
+  }
+  const rows: HTMLTableRowElement[] = [];
+  const mounted = new Set<string>();
+  let previousIndex = -1;
+  function appendRow(index: number) {
+    const rec = visibleRecords[index];
+    const gap = index - previousIndex - 1;
+    if (gap > 0) rows.push(librarySpacer(gap));
     let tr = rowEls.get(rec.path);
     if (!tr) {
       tr = h('tr', { class: 'row', tabIndex: 0, 'data-track': rec.path });
@@ -429,23 +489,53 @@ function renderLibrary() {
       rowEls.set(rec.path, tr);
       renderRow(rec, tr);
     }
-    if (tr === next) next = next.nextElementSibling;
-    else body.insertBefore(tr, next);
+    if (virtual) tr.setAttribute('aria-rowindex', String(index + 2));
+    else tr.removeAttribute('aria-rowindex');
+    rows.push(tr);
+    mounted.add(rec.path);
+    previousIndex = index;
   }
-  if (focusedRow instanceof HTMLElement && focusedRow.isConnected && document.activeElement !== focusedRow) {
-    focusedRow.focus({ preventScroll: true });
+  // A row containing the current focus stays mounted even when scrolled out of view.
+  if (focusedIndex !== undefined && focusedIndex < first) appendRow(focusedIndex);
+  for (let index = first; index < end; index++) appendRow(index);
+  if (focusedIndex !== undefined && focusedIndex >= end) appendRow(focusedIndex);
+  if (previousIndex < count - 1) rows.push(librarySpacer(count - previousIndex - 1));
+
+  const retained = new Set(rows);
+  for (const row of Array.from(tracksBody.rows)) if (!retained.has(row)) row.remove();
+  let next = tracksBody.firstElementChild;
+  for (const row of rows) {
+    if (next === row) next = row.nextElementSibling;
+    else tracksBody.insertBefore(row, next);
   }
-  const total = state.tracks.size;
-  $('empty').hidden = total > 0;
-  $('tracks').hidden = recs.length === 0;
-  $('no-matches').hidden = total === 0 || recs.length > 0;
-  setText($('lib-count'), total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '');
-  document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
-    th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
-  });
-  syncTrackSelection();
-  updateGlobalButtons();
-  updateTransport();
+  if (virtual) {
+    for (const path of rowEls.keys()) if (!mounted.has(path)) rowEls.delete(path);
+  }
+  if (focusedPath && focused && document.activeElement !== focused) {
+    if (focused.isConnected) focused.focus({ preventScroll: true });
+    else if (focusedIndex === undefined) search.focus({ preventScroll: true });
+  }
+}
+
+function librarySpacer(count: number) {
+  return h('tr', { class: 'library-spacer', 'aria-hidden': 'true' },
+    h('td', { colspan: tracksTable.tHead?.rows[0]?.cells.length ?? 1, style: { height: `${count * libraryRowHeight}px` } }));
+}
+
+function makeTrackVisible(path: string) {
+  if (!isVirtualLibrary()) {
+    rowEls.get(path)?.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  const index = visibleIndex.get(path);
+  if (index === undefined) return;
+  const top = index * libraryRowHeight;
+  const height = libraryViewport.clientHeight - (tracksTable.tHead?.offsetHeight ?? 0);
+  if (top < libraryViewport.scrollTop) libraryViewport.scrollTop = top;
+  else if (top + libraryRowHeight > libraryViewport.scrollTop + height) {
+    libraryViewport.scrollTop = top + libraryRowHeight - height;
+  }
+  if (!rowEls.has(path)) renderLibraryRows(true);
 }
 
 function markRow(path: string, marked: boolean) {
@@ -719,7 +809,7 @@ function select(path: string | null) {
   }
   renderDetail();
   updateTransport();
-  if (path) rowEls.get(path)?.scrollIntoView({ block: 'nearest' });
+  if (path) makeTrackVisible(path);
 }
 
 function jump(t: number) {
@@ -1771,6 +1861,19 @@ document.addEventListener('keydown', (e) => {
     search.select();
     return;
   }
+  if (e.key === 'Tab' && !mod && isVirtualLibrary()) {
+    const row = t.closest<HTMLTableRowElement>('tr[data-track]');
+    const index = row?.dataset.track ? visibleIndex.get(row.dataset.track) : undefined;
+    if (index !== undefined && (e.shiftKey ? t === row : t.matches('input[type=checkbox]'))) {
+      const next = visibleRecords[index + (e.shiftKey ? -1 : 1)];
+      if (next && !rowEls.has(next.path)) {
+        e.preventDefault();
+        makeTrackVisible(next.path);
+        const target = rowEls.get(next.path);
+        (e.shiftKey ? target?.querySelector<HTMLElement>('input[type=checkbox]') : target)?.focus({ preventScroll: true });
+      }
+    }
+  }
   if (typing || mod) return;
   const r = current();
   const selCue = r?.cues.find((c) => c.id === wave.selectedCueId);
@@ -1796,7 +1899,11 @@ document.addEventListener('keydown', (e) => {
     const index = path ? visibleIndex.get(path) : undefined;
     if (e.shiftKey && selectionAnchor === null) selectionAnchor = path;
     const next = visibleRecords[Math.max(0, (index ?? -1) + (e.key === 'ArrowDown' ? 1 : -1))]?.path;
-    if (next) { chooseTrack(next, e); rowEls.get(next)?.focus(); }
+    if (next) {
+      chooseTrack(next, e);
+      if (isVirtualLibrary()) makeTrackVisible(next);
+      rowEls.get(next)?.focus({ preventScroll: isVirtualLibrary() });
+    }
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && r && selCue) {
     e.preventDefault();
     deleteCue(r, selCue);
@@ -2056,7 +2163,11 @@ $('btn-retry').addEventListener('click', () => void api.retryErrors());
 $('btn-export').addEventListener('click', exportCurrentView);
 $('btn-crates').addEventListener('click', showCrates);
 $('btn-dupes').addEventListener('click', openDuplicates);
-$('btn-settings').addEventListener('click', () => openSettings(() => { fillProfiles(); renderDetail(); }));
+$('btn-settings').addEventListener('click', () => openSettings((patch) => {
+  fillProfiles();
+  if ('virtualizeLibrary' in patch) renderLibrary();
+  renderDetail();
+}));
 $('btn-about').addEventListener('click', openAbout);
 $('profile').addEventListener('change', async (e) => {
   state.settings = await api.setSettings({ profileId: (e.target as HTMLSelectElement).value });

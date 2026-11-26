@@ -640,6 +640,9 @@ export const EN_EXACT: Record<string, string> = {
   Monter: 'Move up',
   Descendre: 'Move down',
   Performances: 'Performance',
+  'Optimiser l’affichage des grandes bibliothèques': 'Optimize display for large libraries',
+  'Désactivez cette option si la navigation au clavier ou au lecteur d’écran vous pose problème.':
+    'Turn this option off if you have trouble navigating with the keyboard or a screen reader.',
   Automatique: 'Automatic',
   'Analyse locale uniquement (CPU) : aucun fichier n’est envoyé en ligne. Les résultats sont mis en cache : un fichier inchangé n’est pas ré-analysé.':
     'Local analysis only (CPU): no file is uploaded. Results are cached: an unchanged file is not re-analyzed.',

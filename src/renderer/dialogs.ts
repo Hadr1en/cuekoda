@@ -295,11 +295,11 @@ export function openAbout() {
 const KINDS = Object.keys(CUE_KIND_LABEL) as CueKind[];
 const LOOP_KINDS: [LoopKind, string][] = [['intro', 'Intro'], ['outro', 'Outro'], ['predrop', 'Avant le drop'], ['breakdown', 'Début de breakdown']];
 
-export function openSettings(onChanged: () => void) {
+export function openSettings(onChanged: (patch: Partial<Settings>) => void) {
   const dlg = $<HTMLDialogElement>('dlg-settings');
   const save = async (patch: Partial<Settings>) => {
     state.settings = await api.setSettings(patch);
-    onChanged();
+    onChanged(patch);
   };
 
   const render = () => {
@@ -428,6 +428,11 @@ export function openSettings(onChanged: () => void) {
 
       h('section', { class: 'set' },
         h('h3', {}, 'Performances'),
+        h('label', { class: 'hrow' }, h('input', {
+          type: 'checkbox', id: 'virtual-library', checked: s.virtualizeLibrary !== false,
+          onchange: (event: Event) => void save({ virtualizeLibrary: (event.target as HTMLInputElement).checked }),
+        }), 'Optimiser l’affichage des grandes bibliothèques'),
+        h('p', { class: 'muted' }, 'Désactivez cette option si la navigation au clavier ou au lecteur d’écran vous pose problème.'),
         h('label', { class: 'pf' }, parallelLabel, parallelSlider),
         h('label', { class: 'pf check' }, parallelAutomatic, 'Automatique'),
         h('p', { class: 'muted' }, 'L’analyse se fait sur cet ordinateur. CueKoda réutilise le résultat si le fichier est inchangé.'),

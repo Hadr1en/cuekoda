@@ -80,6 +80,8 @@ export interface Settings {
   customProfiles: Profile[];
   /** Manual limit, or null to select it from the available CPUs at startup. */
   maxWorkers: number | null;
+  /** Use a windowed table for large filtered libraries. */
+  virtualizeLibrary?: boolean;
   watchFolders: WatchFolder[];
   watchPaused: boolean;
   autoAnalyzeWatched: boolean;
