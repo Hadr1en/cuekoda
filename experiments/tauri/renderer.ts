@@ -1,7 +1,15 @@
 import { resolveLang, setLang } from '../../src/shared/i18n';
 
 interface Track { path: string; title: string }
+interface Music {
+  bpm: number;
+  key: { camelot: string; musical: string };
+  grid: { firstDownbeatSec: number; bpm: number };
+  cues: { slot: number; name: string; timeSec: number }[];
+  sections: { label: string; startSec: number; endSec: number }[];
+}
 interface Preview {
+  music?: Music;
   durationSec: number;
   metadata: { title: string; artist?: string; album?: string; genre?: string };
   waveform: { perSec: number; peak: number[]; low: number[]; mid: number[]; high: number[] };
@@ -46,6 +54,7 @@ search.setAttribute('aria-label', search.placeholder);
 library.setAttribute('aria-label', title.textContent!);
 const tracks = new Map<string, Track>();
 const previews = new Map<string, Preview>();
+const music = new Map<string, Music>();
 const rowHeight = 36;
 let visible: Track[] = [];
 let selection: Track | undefined;
@@ -93,6 +102,44 @@ function select(track: Track) {
   analyze.disabled = !cancel.disabled;
   showPreview();
   renderRows();
+  void core.invoke<Music | null>('saved_music', { path: track.path }).then((saved) => {
+    if (saved && !music.has(track.path)) {
+      music.set(track.path, saved);
+      if (selection?.path === track.path) showPreview();
+    }
+  }).catch((error) => { status.textContent = String(error); });
+}
+
+async function editMusic(action: object) {
+  if (!selection) return;
+  const track = selection;
+  try {
+    const saved = await core.invoke<Music | null>('edit_music', { path: track.path, action });
+    if (saved) {
+      music.set(track.path, saved);
+      if (selection?.path === track.path) showPreview();
+      status.textContent = copy('Opération terminée', 'Operation completed');
+    }
+  } catch (error) {
+    status.textContent = String(error);
+  }
+}
+
+function showMusic(track: Music | undefined) {
+  get('music').hidden = !track;
+  if (!track) return;
+  get('music-summary').textContent = `${track.bpm.toFixed(2)} BPM · ${track.key.camelot} ${track.key.musical} · ${track.sections.map((section) => section.label).join(' · ')}`;
+  get('cues').replaceChildren(...Array.from({ length: 8 }, (_, slot) => {
+    const cue = track.cues.find((current) => current.slot === slot);
+    const button = document.createElement('button');
+    button.textContent = `${'ABCDEFGH'[slot]} ${cue?.name ?? '＋'}`;
+    button.title = copy('Maj-clic pour déplacer le repère', 'Shift-click to move the cue');
+    button.onclick = (event) => {
+      if (cue && !event.shiftKey) player.currentTime = cue.timeSec;
+      else void editMusic({ kind: 'cue', slot, timeSec: player.currentTime });
+    };
+    return button;
+  }));
 }
 
 function showPreview() {
@@ -100,6 +147,7 @@ function showPreview() {
   title.textContent = preview?.metadata.title || selection?.title || '';
   metadata.textContent = preview ? [preview.metadata.artist, preview.metadata.album, preview.metadata.genre]
     .filter(Boolean).join(' · ') : '';
+  showMusic(selection && music.get(selection.path));
   draw();
 }
 
@@ -130,6 +178,22 @@ function draw() {
       for (let i = first; i < end && i < band.length; i++) peak = Math.max(peak, band[i]);
       context.fillRect(x, (1 - peak) * height / 2, stride, peak * height);
     }
+  }
+  const analysis = selection && music.get(selection.path);
+  if (analysis && span > 0) {
+    const x = (time: number) => (time - start) * width / span;
+    for (const [index, section] of analysis.sections.entries()) {
+      context.fillStyle = index % 2 ? '#34c7b6' : '#795eff';
+      context.fillRect(x(section.startSec), 0, x(section.endSec) - x(section.startSec), 4 * devicePixelRatio);
+    }
+    const bar = 240 / analysis.grid.bpm;
+    if (bar > 0 && span / bar < 1000) {
+      context.fillStyle = 'rgba(255,255,255,0.35)';
+      const first = analysis.grid.firstDownbeatSec + Math.ceil((start - analysis.grid.firstDownbeatSec) / bar) * bar;
+      for (let time = first; time < start + span; time += bar) context.fillRect(x(time), 0, 1, height);
+    }
+    context.fillStyle = '#7ee89b';
+    for (const cue of analysis.cues) context.fillRect(x(cue.timeSec), 0, 2, height);
   }
   const playhead = (player.currentTime - start) * width / span;
   context.fillStyle = '#fa6175';
@@ -193,8 +257,10 @@ analyze.onclick = async () => {
       if (oldest) previews.delete(oldest);
     }
     previews.set(track.path, preview);
+    if (preview.music) music.set(track.path, preview.music);
     if (selection?.path === track.path) showPreview();
-    status.textContent = copy('Forme d’onde prête', 'Waveform ready');
+    status.textContent = preview.music ? copy('Analyse musicale terminée', 'Musical analysis complete')
+      : copy('Forme d’onde prête', 'Waveform ready');
   } catch (error) {
     status.textContent = String(error);
   } finally {
@@ -202,11 +268,33 @@ analyze.onclick = async () => {
     cancel.disabled = true;
   }
 };
+get('import-music').onclick = () => void editMusic({ kind: 'import' });
+for (const format of ['xml', 'nml', 'm3u8']) {
+  get(`export-${format}`).onclick = () => void editMusic({ kind: 'export', format });
+}
+void core.invoke<boolean>('music_enabled').then((enabled) => {
+  if (enabled) analyze.textContent = copy('Analyser le morceau', 'Analyze track');
+});
 cancel.onclick = () => { void core.invoke('cancel').catch((error) => { status.textContent = String(error); }); };
 void event.listen<string>('analysis-stage', ({ payload }) => {
+  if (payload === 'music') status.textContent = copy('Analyse musicale…', 'Musical analysis…');
   if (payload === 'waveform') status.textContent = copy('Calcul de la forme d’onde…', 'Computing waveform…');
 }).catch(() => { /* The command response remains the source of completion state. */ });
-void core.invoke<Track[]>('initial_tracks').then(addImported).catch((error) => { status.textContent = String(error); });
+void core.invoke<Track[]>('initial_tracks').then(async (tracks) => {
+  addImported(tracks);
+  if (!await core.invoke<boolean>('prepare_benchmark_enabled')) return;
+  if (!selection) throw new Error('The benchmark track was not added');
+  const preview = await core.invoke<Preview>('analyze', { path: selection.path });
+  if (!preview.music || !preview.waveform.peak.length) throw new Error('Missing musical analysis or waveform');
+  previews.set(selection.path, preview);
+  music.set(selection.path, preview.music);
+  showPreview();
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  const { bpm, key, cues, sections } = preview.music;
+  await core.invoke('finish_prepare_benchmark', {
+    summary: JSON.stringify({ bpm, key: key.camelot, cues: cues.length, sections: sections.length }),
+  });
+}).catch((error) => { status.textContent = String(error); });
 void event.listen<Track[]>('tracks-imported', ({ payload }) => addImported(payload));
 void event.listen<string>('import-error', ({ payload }) => { status.textContent = payload; });
 player.ontimeupdate = draw;

@@ -1,8 +1,9 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use cuekoda_core::music::{self, Backend, Summary};
 use cuekoda_core::{Cancellation, Options, Stage, TrackPreview, analyze_preview, supported_file};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     fs,
@@ -102,14 +103,45 @@ impl From<PathBuf> for Track {
     }
 }
 
+const PROJECT_NAME: &str = "CueKoda Tauri Experiment";
+
+#[derive(Serialize)]
+struct Preview {
+    #[serde(flatten)]
+    waveform: TrackPreview,
+    music: Option<Summary>,
+}
+
 #[tauri::command]
-async fn analyze(app: AppHandle, path: PathBuf) -> Result<TrackPreview, String> {
+fn music_enabled() -> bool {
+    Backend::from_environment().is_ok()
+}
+
+fn approved(library: &Library, path: &Path) -> Result<(), String> {
+    if !library.paths.contains(path) || path.canonicalize().ok().as_deref() != Some(path) {
+        return Err("Track has not been approved".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn saved_music(library: State<Mutex<Library>>, path: PathBuf) -> Result<Option<Summary>, String> {
+    {
+        let library = library.lock().map_err(|error| error.to_string())?;
+        approved(&library, &path)?;
+    }
+    let root = music::storage_root(PROJECT_NAME).map_err(|error| error.to_string())?;
+    Ok(music::saved_track(&root, &path)
+        .map_err(|error| error.to_string())?
+        .map(|track| track.summary))
+}
+
+#[tauri::command]
+async fn analyze(app: AppHandle, path: PathBuf) -> Result<Preview, String> {
     let state = app.state::<Mutex<Library>>();
     let cancellation = {
         let mut library = state.lock().map_err(|error| error.to_string())?;
-        if !library.paths.contains(&path) || path.canonicalize().ok().as_ref() != Some(&path) {
-            return Err("Track has not been approved".into());
-        }
+        approved(&library, &path)?;
         if library.current.is_some() {
             return Err("Another analysis is running".into());
         }
@@ -125,7 +157,7 @@ async fn analyze(app: AppHandle, path: PathBuf) -> Result<TrackPreview, String> 
                 .into(),
             ..Options::default()
         };
-        analyze_preview(Path::new(&path), &options, &cancellation, |stage| {
+        let waveform = analyze_preview(&path, &options, &cancellation, |stage| {
             let stage = match stage {
                 Stage::Decoding => "decoding",
                 Stage::Waveform => "waveform",
@@ -133,15 +165,135 @@ async fn analyze(app: AppHandle, path: PathBuf) -> Result<TrackPreview, String> 
             };
             let _ = handle.emit("analysis-stage", stage);
         })
+        .map_err(|error| error.to_string())?;
+        let music = if let Ok(backend) = Backend::from_environment() {
+            let _ = handle.emit("analysis-stage", "music");
+            let root = music::storage_root(PROJECT_NAME).map_err(|error| error.to_string())?;
+            let previous = music::saved_track(&root, &path).map_err(|error| error.to_string())?;
+            let analysis = backend
+                .analyze_with_previous(
+                    &path,
+                    previous.as_ref().map(|track| &track.value),
+                    &cancellation,
+                )
+                .and_then(music::Track::try_from)
+                .map_err(|error| error.to_string())?;
+            music::write_track(&music::track_path(&root, &path), &analysis)
+                .map_err(|error| error.to_string())?;
+            Some(analysis.summary)
+        } else {
+            None
+        };
+        Ok::<_, String>(Preview { waveform, music })
     })
     .await;
     app.state::<Mutex<Library>>()
         .lock()
         .map_err(|error| error.to_string())?
         .current = None;
-    result
+    result.map_err(|error| error.to_string())?
+}
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "lowercase",
+    rename_all_fields = "camelCase"
+)]
+enum MusicAction {
+    Cue { slot: u8, time_sec: f64 },
+    Import,
+    Export { format: String },
+}
+
+#[tauri::command]
+async fn edit_music(
+    app: AppHandle,
+    path: PathBuf,
+    action: MusicAction,
+) -> Result<Option<Summary>, String> {
+    let cancellation = {
+        let state = app.state::<Mutex<Library>>();
+        let mut library = state.lock().map_err(|error| error.to_string())?;
+        approved(&library, &path)?;
+        if library.current.is_some() {
+            return Err("Another analysis or edit is running".into());
+        }
+        let cancellation = Cancellation::default();
+        library.current = Some(cancellation.clone());
+        cancellation
+    };
+    let handle = app.clone();
+    let outcome = async_runtime::spawn_blocking(move || -> Result<Option<Summary>, String> {
+        let backend = Backend::from_environment().map_err(|error| error.to_string())?;
+        let root = music::storage_root(PROJECT_NAME).map_err(|error| error.to_string())?;
+        let track = music::saved_track(&root, &path)
+            .map_err(|error| error.to_string())?
+            .ok_or("Analyze the track first")?;
+        let result = match action {
+            MusicAction::Cue { slot, time_sec } => {
+                backend.set_cue(&track.value, slot, time_sec, &cancellation)
+            }
+            MusicAction::Import => {
+                let Some(file) = handle
+                    .dialog()
+                    .file()
+                    .add_filter("DJ collection", &["xml", "nml"])
+                    .blocking_pick_file()
+                    .and_then(|path| path.into_path().ok())
+                else {
+                    return Ok(None);
+                };
+                let format = file
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .unwrap_or_default()
+                    .to_ascii_lowercase();
+                if !["xml", "nml"].contains(&format.as_str()) {
+                    return Err("Unsupported collection format".into());
+                }
+                backend.import(&format, &file, &track.value, &cancellation)
+            }
+            MusicAction::Export { format } => {
+                if !["xml", "nml", "m3u8"].contains(&format.as_str()) {
+                    return Err("Unsupported export format".into());
+                }
+                let Some(file) = handle
+                    .dialog()
+                    .file()
+                    .set_file_name(format!("CueKoda.{format}"))
+                    .add_filter("DJ collection", &[&format])
+                    .blocking_save_file()
+                    .and_then(|path| path.into_path().ok())
+                else {
+                    return Ok(None);
+                };
+                // Never overwrite the audio or another existing file.
+                let collection = backend
+                    .export(&format, &track.value, &cancellation)
+                    .map_err(|error| error.to_string())?;
+                use std::io::Write;
+                fs::OpenOptions::new()
+                    .create_new(true)
+                    .write(true)
+                    .open(file)
+                    .and_then(|mut output| output.write_all(collection.as_bytes()))
+                    .map_err(|error| error.to_string())?;
+                return Ok(Some(track.summary));
+            }
+        }
+        .and_then(music::Track::try_from)
+        .map_err(|error| error.to_string())?;
+        music::write_track(&music::track_path(&root, &path), &result)
+            .map_err(|error| error.to_string())?;
+        Ok(Some(result.summary))
+    })
+    .await;
+    app.state::<Mutex<Library>>()
+        .lock()
         .map_err(|error| error.to_string())?
-        .map_err(|error| error.to_string())
+        .current = None;
+    outcome.map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -151,6 +303,21 @@ fn cancel(library: State<Mutex<Library>>) {
     {
         job.cancel();
     }
+}
+
+#[tauri::command]
+fn prepare_benchmark_enabled() -> bool {
+    cfg!(debug_assertions) && std::env::var_os("CUEKODA_PREPARE_BENCHMARK").is_some()
+}
+
+#[tauri::command]
+fn finish_prepare_benchmark(app: AppHandle, summary: String) -> Result<(), String> {
+    if !prepare_benchmark_enabled() || summary.len() > 1024 {
+        return Err("Prepare benchmark is unavailable".into());
+    }
+    println!("CUEKODA_PREPARED {summary}");
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -182,6 +349,11 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             initial_tracks,
+            music_enabled,
+            prepare_benchmark_enabled,
+            finish_prepare_benchmark,
+            saved_music,
+            edit_music,
             library_benchmark_enabled,
             finish_library_benchmark,
             import_tracks,

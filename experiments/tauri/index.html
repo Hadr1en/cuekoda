@@ -32,6 +32,16 @@
           <label>Zoom <input id="zoom" type="range" min="1" max="16" value="1"></label>
           <label>Position <input id="position" type="range" min="0" max="1000" value="0"></label>
         </div>
+        <section id="music" hidden>
+          <p id="music-summary"></p>
+          <div id="cues" class="controls"></div>
+          <div class="controls">
+            <button id="import-music">Import XML/NML</button>
+            <button id="export-xml">Rekordbox XML</button>
+            <button id="export-nml">Traktor NML</button>
+            <button id="export-m3u8">M3U8</button>
+          </div>
+        </section>
         <audio id="player" controls preload="metadata"></audio>
       </section>
     </main>
