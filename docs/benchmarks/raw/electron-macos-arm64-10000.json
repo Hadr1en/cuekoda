@@ -1,0 +1,3094 @@
+{
+  "schema_version": 1,
+  "revision": "9e0f7c4677737800758053592d5813dfb1c2c022",
+  "electron": "45.3.2",
+  "command": "electron .",
+  "fixture": {
+    "rows": 10000,
+    "audio_files": 0,
+    "status": "error"
+  },
+  "host": {
+    "platform": "darwin",
+    "release": "27.2.0",
+    "arch": "arm64",
+    "cpu": "Apple M5",
+    "logical_cpus": 10,
+    "ram_bytes": 17179869184,
+    "node": "v24.22.3"
+  },
+  "cache": {
+    "profile": "fresh per run",
+    "system": "uncontrolled"
+  },
+  "summary": {
+    "renderer_ready_ms": {
+      "count": 10,
+      "median": 804.5531039999996,
+      "p95": 1076.4469169999975
+    },
+    "sampled_idle_rss_kib": {
+      "count": 10,
+      "median": 1037380,
+      "p95": 1046224
+    },
+    "sampled_idle_cpu_percent": {
+      "count": 10,
+      "median": 0.0779128071708114,
+      "p95": 0.09558350494044804
+    }
+  },
+  "failures": 0,
+  "runs": [
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 805.830292,
+      "samples": [
+        {
+          "elapsed_ms": 1069.245458,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 222256,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.298264
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 114256,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.137871
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48432,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.049403
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 662064,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.643461
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1314.653292,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 222432,
+              "cpu_percent": 0.21880688698385714,
+              "cpu_seconds": 0.303721
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 114240,
+              "cpu_percent": 0.04276281480411743,
+              "cpu_seconds": 0.138937
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0.0777996228383421,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 662064,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.643461
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1569.225667,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 224848,
+              "cpu_percent": 0.35793251005283444,
+              "cpu_seconds": 0.312738
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 114224,
+              "cpu_percent": 0.026584980676290164,
+              "cpu_seconds": 0.139607
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 664608,
+              "cpu_percent": 0.985053431601996,
+              "cpu_seconds": 0.668294
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1819.1953330000001,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 224848,
+              "cpu_percent": 0.051186116860372555,
+              "cpu_seconds": 0.314024
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 114224,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.139607
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 664608,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.668294
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2072.097042,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 224864,
+              "cpu_percent": 0.07306353783434424,
+              "cpu_seconds": 0.315861
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 114224,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.139607
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 664608,
+              "cpu_percent": 0.0028635631475331597,
+              "cpu_seconds": 0.668366
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2322.7765,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 224864,
+              "cpu_percent": 0.0753805824393077,
+              "cpu_seconds": 0.317756
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 114224,
+              "cpu_percent": 0.028404344193817876,
+              "cpu_seconds": 0.140321
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 664608,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.668366
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2574.33925,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 224864,
+              "cpu_percent": 0.07245512315780264,
+              "cpu_seconds": 0.319578
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 93072,
+              "cpu_percent": 0.12919978844479085,
+              "cpu_seconds": 0.14357
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 648144,
+              "cpu_percent": 0.043187955094071,
+              "cpu_seconds": 0.669452
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2824.314625,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 224928,
+              "cpu_percent": 0.04940207958471999,
+              "cpu_seconds": 0.320819
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 93072,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.14357
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 648144,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.669452
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3199.2379579999997,
+          "processes": [
+            {
+              "pid": 99945,
+              "type": "Browser",
+              "rss_kib": 232128,
+              "cpu_percent": 1.1881169487515861,
+              "cpu_seconds": 0.365016
+            },
+            {
+              "pid": 99946,
+              "type": "GPU",
+              "rss_kib": 93264,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.14357
+            },
+            {
+              "pid": 99947,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051342
+            },
+            {
+              "pid": 99948,
+              "type": "Tab",
+              "rss_kib": 648448,
+              "cpu_percent": 0.003386477740628057,
+              "cpu_seconds": 0.669578
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 783.4865000000004,
+      "samples": [
+        {
+          "elapsed_ms": 1043.740416,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 222784,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.301235
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 114112,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.13976
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48432,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.050993
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 661728,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.622449
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1296.0056250000002,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 222912,
+              "cpu_percent": 0.2291790713751943,
+              "cpu_seconds": 0.30697
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 114096,
+              "cpu_percent": 0.033924040517051925,
+              "cpu_seconds": 0.140609
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0.07615470672846411,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 661728,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.622449
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1545.255541,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 225360,
+              "cpu_percent": 0.36668218886938664,
+              "cpu_seconds": 0.316183
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 114080,
+              "cpu_percent": 0.02750555285763189,
+              "cpu_seconds": 0.1413
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 664256,
+              "cpu_percent": 0.9748824543453075,
+              "cpu_seconds": 0.646936
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1797.139291,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 225360,
+              "cpu_percent": 0.04662607954703819,
+              "cpu_seconds": 0.317354
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 114080,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.1413
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 664256,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.646936
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2050.1568330000005,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 225376,
+              "cpu_percent": 0.0717939335120558,
+              "cpu_seconds": 0.319159
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 114080,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.1413
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 664256,
+              "cpu_percent": 0.0033411691705547537,
+              "cpu_seconds": 0.64702
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2299.727666,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 225376,
+              "cpu_percent": 0.071359207845135,
+              "cpu_seconds": 0.320952
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 114080,
+              "cpu_percent": 0.026314113282058633,
+              "cpu_seconds": 0.141961
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 664256,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.64702
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2550.42625,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 225376,
+              "cpu_percent": 0.5397803108477993,
+              "cpu_seconds": 0.3345
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 92928,
+              "cpu_percent": 0.14303078609146158,
+              "cpu_seconds": 0.14555
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 647792,
+              "cpu_percent": 0.0540639677211001,
+              "cpu_seconds": 0.648376
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2806.2464160000004,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 225424,
+              "cpu_percent": 0.06532436388551496,
+              "cpu_seconds": 0.336178
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 92928,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.14555
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 647792,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.648376
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3173.8509580000004,
+          "processes": [
+            {
+              "pid": 105,
+              "type": "Browser",
+              "rss_kib": 231072,
+              "cpu_percent": 1.0931029362429947,
+              "cpu_seconds": 0.37593
+            },
+            {
+              "pid": 106,
+              "type": "GPU",
+              "rss_kib": 92832,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.14555
+            },
+            {
+              "pid": 107,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052899
+            },
+            {
+              "pid": 108,
+              "type": "Tab",
+              "rss_kib": 0,
+              "cpu_percent": 0.003710881128107863,
+              "cpu_seconds": 0.648511
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 795.7747499999996,
+      "samples": [
+        {
+          "elapsed_ms": 1057.7924169999997,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 222384,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.299991
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 114368,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.1389
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48432,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051131
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 662000,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.614468
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1307.8762079999997,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 222512,
+              "cpu_percent": 0.20759007409112376,
+              "cpu_seconds": 0.305222
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 114352,
+              "cpu_percent": 0.035274838207927116,
+              "cpu_seconds": 0.139789
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0.08776872227468593,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 662000,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.614468
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1553.9281249999995,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 224928,
+              "cpu_percent": 0.33009145820840397,
+              "cpu_seconds": 0.313534
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 114336,
+              "cpu_percent": 0.01641122639147729,
+              "cpu_seconds": 0.140202
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 664560,
+              "cpu_percent": 1.0174591943011155,
+              "cpu_seconds": 0.640063
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1805.280249999999,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 224928,
+              "cpu_percent": 0.015176446155566561,
+              "cpu_seconds": 0.313914
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 114336,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140202
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 664560,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.640063
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2062.0343329999987,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 224944,
+              "cpu_percent": 0.033647295305666014,
+              "cpu_seconds": 0.314761
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 114336,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140202
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 664560,
+              "cpu_percent": 0.0030159807294704967,
+              "cpu_seconds": 0.640139
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2309.309624999999,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 224960,
+              "cpu_percent": 0.063555019293488,
+              "cpu_seconds": 0.316357
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 114336,
+              "cpu_percent": 0.012509461774431296,
+              "cpu_seconds": 0.140516
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 664560,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.640139
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2569.2805,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 224960,
+              "cpu_percent": 0.026680132645190018,
+              "cpu_seconds": 0.317028
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 93184,
+              "cpu_percent": 0.07341478158505935,
+              "cpu_seconds": 0.142362
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 648096,
+              "cpu_percent": 0.019727866805079923,
+              "cpu_seconds": 0.640635
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2814.582125,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 224992,
+              "cpu_percent": 0.01685865701954811,
+              "cpu_seconds": 0.317453
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 93184,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.142362
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 648096,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.640635
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3185.9890829999995,
+          "processes": [
+            {
+              "pid": 165,
+              "type": "Browser",
+              "rss_kib": 232176,
+              "cpu_percent": 1.0965794494783572,
+              "cpu_seconds": 0.357741
+            },
+            {
+              "pid": 166,
+              "type": "GPU",
+              "rss_kib": 93376,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.142362
+            },
+            {
+              "pid": 167,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053343
+            },
+            {
+              "pid": 168,
+              "type": "Tab",
+              "rss_kib": 648400,
+              "cpu_percent": 0.003700438610811811,
+              "cpu_seconds": 0.640771
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 808.7748749999992,
+      "samples": [
+        {
+          "elapsed_ms": 1067.0004169999993,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 222464,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.30851
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 114896,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.143796
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48448,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.050365
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 661424,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.629672
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1320.5534579999985,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 222624,
+              "cpu_percent": 0.1980916243513197,
+              "cpu_seconds": 0.31348
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 114880,
+              "cpu_percent": 0.03542114909554546,
+              "cpu_seconds": 0.144685
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0.10813050563163115,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 661424,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.629672
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1564.0179579999985,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 225040,
+              "cpu_percent": 0.3189013314170509,
+              "cpu_seconds": 0.321468
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0.0277644614892937,
+              "cpu_seconds": 0.14538
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 663952,
+              "cpu_percent": 0.9463650533551817,
+              "cpu_seconds": 0.653351
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1821.5049999999992,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 225056,
+              "cpu_percent": 0.019401572799631055,
+              "cpu_seconds": 0.321956
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.14538
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 663952,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.653351
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2072.8419999999987,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 225056,
+              "cpu_percent": 0.07659083218884974,
+              "cpu_seconds": 0.32388
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0.0077212701091325915,
+              "cpu_seconds": 0.145574
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 663968,
+              "cpu_percent": 0.005572516349364932,
+              "cpu_seconds": 0.653491
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2324.751124999999,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 225072,
+              "cpu_percent": 0.07153861771625801,
+              "cpu_seconds": 0.325677
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0.029743773517290805,
+              "cpu_seconds": 0.146321
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 663968,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.653491
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2569.621083,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 225072,
+              "cpu_percent": 0.05037593388009813,
+              "cpu_seconds": 0.326946
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 93728,
+              "cpu_percent": 0.12492849879242404,
+              "cpu_seconds": 0.149466
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 647504,
+              "cpu_percent": 0.04681513980956015,
+              "cpu_seconds": 0.654669
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2821.882958,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 225088,
+              "cpu_percent": 0.012017126394702916,
+              "cpu_seconds": 0.327248
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 93728,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.149466
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 647504,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.654669
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3173.19125,
+          "processes": [
+            {
+              "pid": 272,
+              "type": "Browser",
+              "rss_kib": 232224,
+              "cpu_percent": 0.37848282917264603,
+              "cpu_seconds": 0.340567
+            },
+            {
+              "pid": 273,
+              "type": "GPU",
+              "rss_kib": 93296,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.149466
+            },
+            {
+              "pid": 274,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053079
+            },
+            {
+              "pid": 275,
+              "type": "Tab",
+              "rss_kib": 647792,
+              "cpu_percent": 0.0028700520019323125,
+              "cpu_seconds": 0.65477
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 810.3147910000007,
+      "samples": [
+        {
+          "elapsed_ms": 1069.8824160000004,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 222272,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.310956
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 114064,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.139276
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48448,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051339
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 661888,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.626793
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1320.5209159999995,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 222432,
+              "cpu_percent": 0.1821660621038785,
+              "cpu_seconds": 0.315526
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 114048,
+              "cpu_percent": 0.02992508766337265,
+              "cpu_seconds": 0.140027
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0.07690039605696207,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 661888,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.626793
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1574.4243750000005,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 224816,
+              "cpu_percent": 0.3730159994900561,
+              "cpu_seconds": 0.324889
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 114032,
+              "cpu_percent": 0.023462209510759155,
+              "cpu_seconds": 0.140616
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 664416,
+              "cpu_percent": 0.9866026269046652,
+              "cpu_seconds": 0.651566
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1823.6864999999998,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 224816,
+              "cpu_percent": 0.048373226315035114,
+              "cpu_seconds": 0.326104
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 114032,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140616
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 664416,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.651566
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2075.5768750000007,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 224832,
+              "cpu_percent": 0.05366320066929604,
+              "cpu_seconds": 0.327451
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 114032,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140616
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 664416,
+              "cpu_percent": 0.003226076254883921,
+              "cpu_seconds": 0.651647
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2325.3218749999996,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 224832,
+              "cpu_percent": 0.06447630426125049,
+              "cpu_seconds": 0.32907
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 114032,
+              "cpu_percent": 0.0221085589999761,
+              "cpu_seconds": 0.141171
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 664416,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.651647
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2576.821916000001,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 224832,
+              "cpu_percent": 0.05365978026180555,
+              "cpu_seconds": 0.330417
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 92880,
+              "cpu_percent": 0.13057992144490388,
+              "cpu_seconds": 0.144449
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 647952,
+              "cpu_percent": 0.04326021056489231,
+              "cpu_seconds": 0.652733
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2829.307041,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 224896,
+              "cpu_percent": 0.045079727287596696,
+              "cpu_seconds": 0.331547
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 92880,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.144449
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 647952,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.652733
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3178.6744579999995,
+          "processes": [
+            {
+              "pid": 467,
+              "type": "Browser",
+              "rss_kib": 230336,
+              "cpu_percent": 0.4468514581274931,
+              "cpu_seconds": 0.347331
+            },
+            {
+              "pid": 468,
+              "type": "GPU",
+              "rss_kib": 92528,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.144449
+            },
+            {
+              "pid": 469,
+              "type": "Utility",
+              "rss_kib": 48720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.053269
+            },
+            {
+              "pid": 470,
+              "type": "Tab",
+              "rss_kib": 0,
+              "cpu_percent": 0.0017850362957380135,
+              "cpu_seconds": 0.652796
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 805.3175829999982,
+      "samples": [
+        {
+          "elapsed_ms": 1068.6227920000001,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 222304,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.319503
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 114896,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.151542
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48448,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.057325
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 662000,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.635199
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1312.9857079999983,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 222416,
+              "cpu_percent": 0.1971269081613964,
+              "cpu_seconds": 0.324454
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 114880,
+              "cpu_percent": 0.03125671919919091,
+              "cpu_seconds": 0.152327
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0.06964964119881807,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 662000,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.635199
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1569.7689169999994,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 224800,
+              "cpu_percent": 0.21432458952570504,
+              "cpu_seconds": 0.329849
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0.010521676639098549,
+              "cpu_seconds": 0.152592
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 664544,
+              "cpu_percent": 0.36104750604193037,
+              "cpu_seconds": 0.644297
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1817.334249999998,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 224800,
+              "cpu_percent": 0.050276660960949,
+              "cpu_seconds": 0.331112
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.152592
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 664544,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.644297
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2072.8767499999976,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 224832,
+              "cpu_percent": 0.04444885405298145,
+              "cpu_seconds": 0.332232
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0.008053446319614705,
+              "cpu_seconds": 0.152795
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 664560,
+              "cpu_percent": 0.0056690915578108585,
+              "cpu_seconds": 0.64444
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2323.448707999998,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 224832,
+              "cpu_percent": 0.07983689493927448,
+              "cpu_seconds": 0.334233
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 114864,
+              "cpu_percent": 0.03016880162815755,
+              "cpu_seconds": 0.153551
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 664560,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.64444
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2574.4037499999995,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 224832,
+              "cpu_percent": 0.059307586910110566,
+              "cpu_seconds": 0.335722
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 93728,
+              "cpu_percent": 0.12247904596945987,
+              "cpu_seconds": 0.156627
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 648096,
+              "cpu_percent": 0.04462135535874216,
+              "cpu_seconds": 0.645561
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2824.4426669999975,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 224896,
+              "cpu_percent": 0.05765652331562863,
+              "cpu_seconds": 0.337169
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 93728,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.156627
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 648096,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.645561
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3195.0538749999996,
+          "processes": [
+            {
+              "pid": 616,
+              "type": "Browser",
+              "rss_kib": 232160,
+              "cpu_percent": 1.136215499871533,
+              "cpu_seconds": 0.37918
+            },
+            {
+              "pid": 644,
+              "type": "GPU",
+              "rss_kib": 93856,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.156627
+            },
+            {
+              "pid": 645,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.059074
+            },
+            {
+              "pid": 651,
+              "type": "Tab",
+              "rss_kib": 648384,
+              "cpu_percent": 0.005005113331998636,
+              "cpu_seconds": 0.645746
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 803.788625000001,
+      "samples": [
+        {
+          "elapsed_ms": 1063.296875,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 231056,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.303516
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 114240,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.142179
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48384,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.049513
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 661424,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.612659
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1310.6163750000014,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 231216,
+              "cpu_percent": 0.7005242777237741,
+              "cpu_seconds": 0.3211
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 114224,
+              "cpu_percent": 0.03144303192125294,
+              "cpu_seconds": 0.142968
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0.08175451323976674,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 661424,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.612659
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1567.6793749999997,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 233632,
+              "cpu_percent": 0.3354347662006968,
+              "cpu_seconds": 0.329544
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 114208,
+              "cpu_percent": 0.02711813262077098,
+              "cpu_seconds": 0.143651
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 663952,
+              "cpu_percent": 0.9340053176713361,
+              "cpu_seconds": 0.636195
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1818.9837920000027,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 233632,
+              "cpu_percent": 0.0518142962886319,
+              "cpu_seconds": 0.330846
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 114208,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.143651
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 663952,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.636195
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2070.2559170000022,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 233648,
+              "cpu_percent": 0.0717095346238133,
+              "cpu_seconds": 0.332649
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 114208,
+              "cpu_percent": 0.008988799796359933,
+              "cpu_seconds": 0.143877
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 663968,
+              "cpu_percent": 0.006801151820799593,
+              "cpu_seconds": 0.636366
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2321.8416670000006,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 233648,
+              "cpu_percent": 0.07482487161229498,
+              "cpu_seconds": 0.33453
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 114208,
+              "cpu_percent": 0.024625740462995746,
+              "cpu_seconds": 0.144496
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 663968,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.636366
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2572.099542,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 233648,
+              "cpu_percent": 0.06476008517921468,
+              "cpu_seconds": 0.336157
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 93072,
+              "cpu_percent": 0.12955069193203664,
+              "cpu_seconds": 0.147751
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 647504,
+              "cpu_percent": 0.0533705852854789,
+              "cpu_seconds": 0.637707
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2823.4206250000025,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 233712,
+              "cpu_percent": 0.05157777857373115,
+              "cpu_seconds": 0.337453
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 93072,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.147751
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 647504,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.637707
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3195.2602499999994,
+          "processes": [
+            {
+              "pid": 716,
+              "type": "Browser",
+              "rss_kib": 240976,
+              "cpu_percent": 1.1756031412680996,
+              "cpu_seconds": 0.38106
+            },
+            {
+              "pid": 717,
+              "type": "GPU",
+              "rss_kib": 93184,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.147751
+            },
+            {
+              "pid": 719,
+              "type": "Utility",
+              "rss_kib": 48656,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051564
+            },
+            {
+              "pid": 720,
+              "type": "Tab",
+              "rss_kib": 647808,
+              "cpu_percent": 0.005525770305858125,
+              "cpu_seconds": 0.637912
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 780.924791999998,
+      "samples": [
+        {
+          "elapsed_ms": 1041.969624999998,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 231264,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.298174
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 114544,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.138181
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48432,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.049774
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 661472,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.609398
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1293.0858750000007,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 231424,
+              "cpu_percent": 0.21694772611788618,
+              "cpu_seconds": 0.303639
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 114528,
+              "cpu_percent": 0.03477777557218572,
+              "cpu_seconds": 0.139057
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0.0874716600556674,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 661472,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.609398
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1543.3624999999993,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 233888,
+              "cpu_percent": 0.3729794126201794,
+              "cpu_seconds": 0.313
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 114512,
+              "cpu_percent": 0.03180626081133865,
+              "cpu_seconds": 0.139855
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 664016,
+              "cpu_percent": 0.9439183396798182,
+              "cpu_seconds": 0.633071
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1794.6699999999983,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 233888,
+              "cpu_percent": 0.03253445821754229,
+              "cpu_seconds": 0.313816
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 114512,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.139855
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 664016,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.633071
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2045.1664999999994,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 233904,
+              "cpu_percent": 0.046228768640953904,
+              "cpu_seconds": 0.314976
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 114512,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.139855
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 664016,
+              "cpu_percent": 0.003068633780477113,
+              "cpu_seconds": 0.633148
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2297.2948749999996,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 233904,
+              "cpu_percent": 0.049768689158873294,
+              "cpu_seconds": 0.316225
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 114512,
+              "cpu_percent": 0.02617373463737227,
+              "cpu_seconds": 0.140512
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 664016,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.633148
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2549.105749999999,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 233904,
+              "cpu_percent": 0.05849420234454639,
+              "cpu_seconds": 0.317694
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 93360,
+              "cpu_percent": 0.12935668044241658,
+              "cpu_seconds": 0.143761
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 647552,
+              "cpu_percent": 0.05454038775428958,
+              "cpu_seconds": 0.634518
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2801.548500000001,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 233968,
+              "cpu_percent": 0.049242258376557976,
+              "cpu_seconds": 0.318931
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 93360,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.143761
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 647552,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.634518
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3176.4497919999994,
+          "processes": [
+            {
+              "pid": 818,
+              "type": "Browser",
+              "rss_kib": 241312,
+              "cpu_percent": 1.166167078670363,
+              "cpu_seconds": 0.362426
+            },
+            {
+              "pid": 819,
+              "type": "GPU",
+              "rss_kib": 93472,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.143761
+            },
+            {
+              "pid": 822,
+              "type": "Utility",
+              "rss_kib": 48704,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.051977
+            },
+            {
+              "pid": 824,
+              "type": "Tab",
+              "rss_kib": 647840,
+              "cpu_percent": 0.003029685556175196,
+              "cpu_seconds": 0.634631
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 773.4867919999997,
+      "samples": [
+        {
+          "elapsed_ms": 1036.9629170000007,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 231072,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.298293
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 114176,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.139068
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48480,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.050464
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 662192,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.612323
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1285.0354169999991,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 231232,
+              "cpu_percent": 0.23635064069032435,
+              "cpu_seconds": 0.304212
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 114160,
+              "cpu_percent": 0.03525780523157151,
+              "cpu_seconds": 0.139951
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0.08217701199912153,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 662192,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.612323
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1538.8630420000009,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 224896,
+              "cpu_percent": 0.3860636553250434,
+              "cpu_seconds": 0.313911
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 114144,
+              "cpu_percent": 0.025676342733395963,
+              "cpu_seconds": 0.140596
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 664720,
+              "cpu_percent": 1.081965646575408,
+              "cpu_seconds": 0.639497
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1788.8896249999998,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 224896,
+              "cpu_percent": 0.04841034134067981,
+              "cpu_seconds": 0.315127
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 114144,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140596
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 664720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.639497
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2038.2604169999977,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 224928,
+              "cpu_percent": 0.06796305801928273,
+              "cpu_seconds": 0.316835
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 114144,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140596
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 664720,
+              "cpu_percent": 0.0030648473944816824,
+              "cpu_seconds": 0.639574
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2284.6765840000007,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 224928,
+              "cpu_percent": 0.05336923144323943,
+              "cpu_seconds": 0.318175
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 114144,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.140596
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 664720,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.639574
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2534.5696669999998,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 224928,
+              "cpu_percent": 0.021957040572792363,
+              "cpu_seconds": 0.318727
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 92464,
+              "cpu_percent": 0.04928695029536369,
+              "cpu_seconds": 0.141835
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 648256,
+              "cpu_percent": 0.01062200385893024,
+              "cpu_seconds": 0.639841
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2785.965208999998,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 224992,
+              "cpu_percent": 0.012538083430164073,
+              "cpu_seconds": 0.319041
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 92032,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.141835
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 48736,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 648256,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.639841
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3167.681375,
+          "processes": [
+            {
+              "pid": 898,
+              "type": "Browser",
+              "rss_kib": 223376,
+              "cpu_percent": 0.42447471909375434,
+              "cpu_seconds": 0.335221
+            },
+            {
+              "pid": 899,
+              "type": "GPU",
+              "rss_kib": 83984,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.141835
+            },
+            {
+              "pid": 900,
+              "type": "Utility",
+              "rss_kib": 44592,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.052522
+            },
+            {
+              "pid": 901,
+              "type": "Tab",
+              "rss_kib": 584512,
+              "cpu_percent": 0.0020987239758227,
+              "cpu_seconds": 0.639921
+            }
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "exit_code": 0,
+      "signal": null,
+      "ready_ms": 1076.4469169999975,
+      "samples": [
+        {
+          "elapsed_ms": 1333.6145829999987,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 195728,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.363943
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 98416,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.188354
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 43120,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 591168,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.732202
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1583.5475829999996,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 198160,
+              "cpu_percent": 0.2203485957120491,
+              "cpu_seconds": 0.36946
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 98432,
+              "cpu_percent": 0.025961576866237967,
+              "cpu_seconds": 0.189004
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 43120,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 583248,
+              "cpu_percent": 0.3981307664656309,
+              "cpu_seconds": 0.74217
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 1833.8606670000008,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 198176,
+              "cpu_percent": 0.014202963127993762,
+              "cpu_seconds": 0.369817
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 98448,
+              "cpu_percent": 0.0012333546849574494,
+              "cpu_seconds": 0.189035
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 43136,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 581504,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.74217
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2089.9677919999995,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 198192,
+              "cpu_percent": 0.013078202066196438,
+              "cpu_seconds": 0.370145
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 98448,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.189035
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 43136,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 576752,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.74217
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2340.896916999998,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 198224,
+              "cpu_percent": 0.021758067788115402,
+              "cpu_seconds": 0.370692
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 98448,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.189035
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 43136,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 576736,
+              "cpu_percent": 0.0011535080566571335,
+              "cpu_seconds": 0.742199
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2592.943875000001,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 197824,
+              "cpu_percent": 0.018515037969824087,
+              "cpu_seconds": 0.371155
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 75712,
+              "cpu_percent": 0.048667346489912625,
+              "cpu_seconds": 0.190252
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 43136,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 558912,
+              "cpu_percent": 0.021154499830044186,
+              "cpu_seconds": 0.742728
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 2839.683541999999,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 197632,
+              "cpu_percent": 0.01952944856376345,
+              "cpu_seconds": 0.371642
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 75664,
+              "cpu_percent": 0.0030477779292755114,
+              "cpu_seconds": 0.190328
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 42688,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 558864,
+              "cpu_percent": 0.0014436842822884,
+              "cpu_seconds": 0.742764
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3091.0359169999974,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 195120,
+              "cpu_percent": 0.013397022352293841,
+              "cpu_seconds": 0.371978
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 75584,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.190328
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 42688,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 555712,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.742764
+            }
+          ]
+        },
+        {
+          "elapsed_ms": 3473.2381669999995,
+          "processes": [
+            {
+              "pid": 999,
+              "type": "Browser",
+              "rss_kib": 206160,
+              "cpu_percent": 0.522752514505766,
+              "cpu_seconds": 0.392123
+            },
+            {
+              "pid": 1005,
+              "type": "GPU",
+              "rss_kib": 74464,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.190328
+            },
+            {
+              "pid": 1006,
+              "type": "Utility",
+              "rss_kib": 42528,
+              "cpu_percent": 0,
+              "cpu_seconds": 0.06995
+            },
+            {
+              "pid": 1043,
+              "type": "Tab",
+              "rss_kib": 555504,
+              "cpu_percent": 0.004930313905301644,
+              "cpu_seconds": 0.742954
+            }
+          ]
+        }
+      ],
+      "error": null
+    }
+  ]
+}

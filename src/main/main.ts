@@ -278,7 +278,8 @@ function createWindow() {
     },
   });
   if (process.platform === 'win32') win.removeMenu();
-  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  const virtualize = !app.isPackaged && (BENCHMARK_DATA || SMOKE_DIR) && process.env.CUEKODA_VIRTUAL_LIBRARY === '1';
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), virtualize ? { query: { virtualLibrary: '1' } } : undefined);
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.on('close', (event) => { if (exportInProgress) event.preventDefault(); });
@@ -716,6 +717,46 @@ function registerIpc() {
  * Adds the folder, waits for the batch, re-adds it (must come from the cache), collects renderer
  * console errors and writes a JSON report, then quits.
  */
+const BENCHMARK_DATA = !app.isPackaged ? process.env.CUEKODA_BENCHMARK_DATA : undefined;
+if (BENCHMARK_DATA) app.setPath('userData', BENCHMARK_DATA);
+
+// Desktop benchmark uses the real preload, queue, renderer selection and waveform.
+const PREPARE_BENCHMARK = !app.isPackaged ? process.env.CUEKODA_PREPARE_FILE : undefined;
+if (PREPARE_BENCHMARK && process.env.CUEKODA_EXPERIMENT_DATA) {
+  app.setPath('userData', process.env.CUEKODA_EXPERIMENT_DATA);
+}
+
+async function prepareBenchmark(window: BrowserWindow, file: string) {
+  const outcome = await window.webContents.executeJavaScript(`(async () => {
+    const file = ${JSON.stringify(file)};
+    const api = window.cuekoda;
+    const timeout = performance.now() + 100000;
+    const wait = () => new Promise(resolve => setTimeout(resolve, 15));
+    while (!document.documentElement.dataset.benchmarkBooted) {
+      if (performance.now() > timeout) throw new Error('Renderer startup timeout');
+      await wait();
+    }
+    const result = new Promise((resolve, reject) => {
+      api.onTrack(({ path, record }) => {
+        if (path !== file) return;
+        if (record.status === 'error') reject(new Error(record.error));
+        if (record.status === 'done' && record.result) resolve(record.result);
+      });
+    });
+    const added = await api.addPaths([file]);
+    if (!added.length) throw new Error('The benchmark track was not added');
+    const track = await result;
+    while (document.documentElement.dataset.benchmarkWaveform !== file) {
+      if (performance.now() > timeout) throw new Error('Waveform rendering timeout');
+      await wait();
+    }
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    return { bpm: track.bpm, key: track.key.camelot, cues: track.cues.length, sections: track.sections.length };
+  })()`);
+  console.log('CUEKODA_PREPARED ' + JSON.stringify(outcome));
+  app.quit();
+}
+
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
 const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
@@ -1325,7 +1366,67 @@ app.whenReady().then(async () => {
   registerIpc();
   createWindow();
   nativeTheme.on('updated', updateWindowsTitleBar);
-  if (SMOKE_WINDOW) {
+  if (PREPARE_BENCHMARK) {
+    const window = win!;
+    window.webContents.once('did-finish-load', () => void prepareBenchmark(window, PREPARE_BENCHMARK)
+      .catch((error) => { console.error(error); app.exit(1); }));
+    window.webContents.once('did-fail-load', () => app.exit(1));
+    return;
+  }
+
+  if (BENCHMARK_DATA) {
+    const benchmarkWindow = win!;
+    benchmarkWindow.webContents.once('did-finish-load', async () => {
+      try {
+        await benchmarkWindow.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+          const deadline = performance.now() + 15000;
+          function check() {
+            if (document.documentElement.dataset.benchmarkReady) {
+              requestAnimationFrame(() => resolve(true));
+            } else if (performance.now() > deadline) {
+              reject(new Error('Renderer boot timed out'));
+            } else {
+              requestAnimationFrame(check);
+            }
+          }
+          check();
+        })`);
+        if (process.env.CUEKODA_VIRTUAL_CHECK === '1') {
+          const evidence = await benchmarkWindow.webContents.executeJavaScript(`(async () => {
+            const table = document.querySelector('#tracks');
+            const body = document.querySelector('#rows');
+            const list = document.querySelector('#list-wrap');
+            const frame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+            const top = body.querySelectorAll('.row').length;
+            list.scrollTop = list.scrollHeight;
+            await frame();
+            await frame();
+            const mounted = [...body.querySelectorAll('.row')];
+            const last = mounted.at(-1);
+            if (last?.getAttribute('aria-rowindex') !== table.getAttribute('aria-rowcount')) throw new Error('Last row is unreachable');
+            last.focus();
+            last.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+            await frame();
+            const selected = body.querySelector('.row[aria-current="true"]');
+            if (Number(selected?.getAttribute('aria-rowindex')) !== Number(table.getAttribute('aria-rowcount')) - 1) {
+              throw new Error('Keyboard selection did not move to the previous row');
+            }
+            return { top, bottom: mounted.length, total: Number(table.getAttribute('aria-rowcount')) - 1 };
+          })()`);
+          console.log('CUEKODA_VIRTUAL_CHECK ' + JSON.stringify(evidence));
+        }
+        console.log('CUEKODA_BENCHMARK_READY');
+        setInterval(() => {
+          const metrics = app.getAppMetrics().map(({ pid, type, cpu, memory }) => ({ pid, type, cpu, memory }));
+          console.log('CUEKODA_BENCHMARK_METRICS ' + JSON.stringify(metrics));
+        }, 250);
+      } catch (error) {
+        console.error(error);
+        app.exit(1);
+      }
+    });
+    benchmarkWindow.webContents.once('did-fail-load', () => app.exit(1));
+  } else if (SMOKE_WINDOW) {
     const smokeWindow = win!;
     smokeWindow.webContents.once('did-finish-load', () => void smokeWindowsTitleBar(smokeWindow));
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));

@@ -1,0 +1,519 @@
+{
+  "source_sha256": "f010a43fe30d288c20a9ce4ea5e9a5ee14cfa4bbd06ad35ebebe7da840074739",
+  "host": {
+    "platform": "darwin",
+    "cpu": "Apple M5",
+    "release": "27.2.0",
+    "node": "v24.22.3"
+  },
+  "core": "1e45c3ffc669f4f12666b67cd5fefbe9c8c1ca83",
+  "revisions": {
+    "electron": "21847f96a03b833cd7cbd9069e802d841b6c5f63",
+    "electron-rust": "d407c16da6aacd349f965e1a149e4628e5fc01dc",
+    "tauri": "0000e5cc43e3e8b952837b9bd3a7087cf175a1e5",
+    "gpui": "5d4132ebbfed162f23a6828934027c4f0aeb1fff"
+  },
+  "cache": "fresh application data each run; uncontrolled OS cache",
+  "repeats": 10,
+  "equivalent": true,
+  "runs": [
+    {
+      "mode": "electron",
+      "prepared_ms": 2239.356875,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2388.192583
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2193.1743340000003,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2340.234792
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2242.320458,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2248.9607079999996
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1929.5048340000003,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1935.3084590000008
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2051.9915,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2205.456709
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2062.5206670000007,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2066.9714170000007
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1934.0799590000006,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1939.7535000000007
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2034.5656249999993,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2182.243458000001
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2119.714,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2125.295459000001
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1931.1786250000005,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1937.0818330000002
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2032.1884169999976,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2180.8729999999996
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2201.555958000001,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2359.717375
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1922.3695000000007,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1927.922541
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2018.5456659999982,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2165.2453749999986
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2016.5871249999982,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2171.199207999998
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2213.7698329999985,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2218.4054160000014
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2003.6811250000028,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2157.8152499999997
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2028.6445840000015,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2179.8112089999995
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2089.848665999998,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2094.1354159999973
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1928.3618329999954,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1934.262416999998
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2036.0069999999978,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2186.7420409999977
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2068.656167000001,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2072.6379579999993
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1930.6410000000033,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1936.7855419999978
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2052.508999999998,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2203.287083999996
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2064.066082999998,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2068.9946659999987
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1914.510500000004,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1920.3758750000052
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 1985.7925419999956,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2136.1635830000014
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2011.9811249999984,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2157.4462919999933
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1900.5902499999938,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1906.519207999998
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2153.9556250000023,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2303.4111669999984
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2298.1158750000104,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2458.4007080000083
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2299.2162910000043,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2306.3695410000073
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2033.5644999999931,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2183.5057090000046
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2045.640750000006,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2197.398000000001
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2110.3910000000033,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2114.4591250000085
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1975.8837080000085,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1981.5875000000087
+    },
+    {
+      "mode": "electron-rust",
+      "prepared_ms": 2044.1544580000045,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2193.9274999999907
+    },
+    {
+      "mode": "tauri",
+      "prepared_ms": 2092.0193750000035,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2096.7828750000044
+    },
+    {
+      "mode": "gpui",
+      "prepared_ms": 1920.3632500000094,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 1926.153541000007
+    },
+    {
+      "mode": "electron",
+      "prepared_ms": 2029.1389580000105,
+      "summary": {
+        "bpm": 120,
+        "key": "11A",
+        "cues": 2,
+        "sections": 4
+      },
+      "exit_code": 0,
+      "wall_ms": 2174.7183330000116
+    }
+  ],
+  "stats": {
+    "electron": {
+      "median": 2032.8764584999954,
+      "p95": 2239.356875
+    },
+    "electron-rust": {
+      "median": 2044.8976040000052,
+      "p95": 2298.1158750000104
+    },
+    "tauri": {
+      "median": 2101.2051875000034,
+      "p95": 2299.2162910000043
+    },
+    "gpui": {
+      "median": 1928.9333334999978,
+      "p95": 1975.8837080000085
+    }
+  }
+}

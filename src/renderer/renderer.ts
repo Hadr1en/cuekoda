@@ -396,6 +396,52 @@ function renderLibrary() {
       markedPaths.delete(path);
     }
   }
+  renderLibraryRows();
+  const total = state.tracks.size;
+  $('empty').hidden = total > 0;
+  $('tracks').hidden = recs.length === 0;
+  $('no-matches').hidden = total === 0 || recs.length > 0;
+  setText($('lib-count'), total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '');
+  document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
+    th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
+  });
+  syncTrackSelection();
+  updateGlobalButtons();
+  updateTransport();
+}
+
+const virtualLibrary = new URLSearchParams(location.search).get('virtualLibrary') === '1';
+const listViewport = $('list-wrap');
+const rowHeight = 38;
+const overscan = 10;
+let virtualFrame = 0;
+
+if (virtualLibrary) {
+  $('tracks').classList.add('virtual-library');
+  const refreshRows = () => {
+    if (virtualFrame) return;
+    virtualFrame = requestAnimationFrame(() => {
+      virtualFrame = 0;
+      renderLibraryRows();
+    });
+  };
+  listViewport.addEventListener('scroll', refreshRows, { passive: true });
+  new ResizeObserver(refreshRows).observe(listViewport);
+}
+
+function virtualSpacer(count: number) {
+  return h('tr', { class: 'virtual-spacer', 'aria-hidden': 'true' },
+    h('td', { colspan: $('tracks').querySelectorAll('thead th').length, style: { height: `${count * rowHeight}px` } }));
+}
+
+function renderLibraryRows() {
+  const all = visibleRecords;
+  const header = $('tracks').querySelector('thead')?.offsetHeight ?? 0;
+  const displayHeight = Math.max(rowHeight, listViewport.clientHeight - header);
+  const offset = Math.min(listViewport.scrollTop, Math.max(0, all.length * rowHeight - displayHeight));
+  const first = virtualLibrary ? Math.max(0, Math.floor(offset / rowHeight) - overscan) : 0;
+  const end = virtualLibrary ? Math.min(all.length, Math.ceil((offset + displayHeight) / rowHeight) + overscan) : all.length;
+  const recs = virtualLibrary ? all.slice(first, end) : all;
   const body = $('rows');
   const focusedRow = document.activeElement?.closest('tr.row');
   const shownRows = new Set(recs.map(({ path }) => rowEls.get(path)));
@@ -435,17 +481,30 @@ function renderLibrary() {
   if (focusedRow instanceof HTMLElement && focusedRow.isConnected && document.activeElement !== focusedRow) {
     focusedRow.focus({ preventScroll: true });
   }
-  const total = state.tracks.size;
-  $('empty').hidden = total > 0;
-  $('tracks').hidden = recs.length === 0;
-  $('no-matches').hidden = total === 0 || recs.length > 0;
-  setText($('lib-count'), total ? `${recs.length} / ${total} morceau${total > 1 ? 'x' : ''}` : '');
-  document.querySelectorAll<HTMLElement>('th[data-sort]').forEach((th) => {
-    th.setAttribute('aria-sort', th.dataset.sort === sortKey ? (sortDir > 0 ? 'ascending' : 'descending') : 'none');
-  });
-  syncTrackSelection();
-  updateGlobalButtons();
-  updateTransport();
+
+  if (virtualLibrary) {
+    const table = $('tracks');
+    table.setAttribute('aria-rowcount', String(all.length + 1));
+    for (const [index, { path }] of recs.entries()) rowEls.get(path)?.setAttribute('aria-rowindex', String(first + index + 2));
+    if (first) body.prepend(virtualSpacer(first));
+    if (end < all.length) body.append(virtualSpacer(all.length - end));
+    const mounted = new Set(recs.map(({ path }) => path));
+    for (const path of rowEls.keys()) if (!mounted.has(path)) rowEls.delete(path);
+  }
+}
+
+function scrollToTrack(path: string) {
+  if (virtualLibrary) {
+    const index = visibleIndex.get(path);
+    if (index === undefined) return;
+    const height = listViewport.clientHeight - ($('tracks').querySelector('thead')?.offsetHeight ?? 0);
+    const top = index * rowHeight;
+    if (top < listViewport.scrollTop) listViewport.scrollTop = top;
+    else if (top + rowHeight > listViewport.scrollTop + height) listViewport.scrollTop = top + rowHeight - height;
+    if (!rowEls.has(path)) renderLibraryRows();
+  } else {
+    rowEls.get(path)?.scrollIntoView({ block: 'nearest' });
+  }
 }
 
 function markRow(path: string, marked: boolean) {
@@ -702,6 +761,7 @@ function select(path: string | null) {
     wave.selectedCueId = null;
     wave.set(r);
     void api.peaks(r.path).then((pk) => {
+      if (pk) document.documentElement.dataset.benchmarkWaveform = r.path;
       if (pk && state.selected === path) {
         wave.peaks = pk;
         wave.draw();
@@ -719,7 +779,7 @@ function select(path: string | null) {
   }
   renderDetail();
   updateTransport();
-  if (path) rowEls.get(path)?.scrollIntoView({ block: 'nearest' });
+  if (path) scrollToTrack(path);
 }
 
 function jump(t: number) {
@@ -1796,7 +1856,11 @@ document.addEventListener('keydown', (e) => {
     const index = path ? visibleIndex.get(path) : undefined;
     if (e.shiftKey && selectionAnchor === null) selectionAnchor = path;
     const next = visibleRecords[Math.max(0, (index ?? -1) + (e.key === 'ArrowDown' ? 1 : -1))]?.path;
-    if (next) { chooseTrack(next, e); rowEls.get(next)?.focus(); }
+    if (next) {
+      chooseTrack(next, e);
+      if (virtualLibrary) scrollToTrack(next);
+      rowEls.get(next)?.focus({ preventScroll: virtualLibrary });
+    }
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && r && selCue) {
     e.preventDefault();
     deleteCue(r, selCue);
@@ -2181,5 +2245,6 @@ async function boot() {
     renderDetail();
   });
   api.onWatch((w) => toast(`${w.level === 'error' ? '⚠ ' : ''}${w.message} (${w.folder})`, w.level === 'error' ? 8000 : 3000));
+  document.documentElement.dataset.benchmarkReady = 'true';
 }
-void boot();
+void boot().then(() => { document.documentElement.dataset.benchmarkBooted = "true"; });

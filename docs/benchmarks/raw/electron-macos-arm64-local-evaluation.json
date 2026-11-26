@@ -1,0 +1,31 @@
+{
+  "engine": "0.6.0",
+  "coverage": {
+    "matched": 3,
+    "annotatedMetrics": {
+      "bpm": 3,
+      "grid": 2,
+      "beats": 0,
+      "key": 0,
+      "cues": 3,
+      "sections": 0,
+      "vocals": 0,
+      "vocalClips": 0
+    }
+  },
+  "summary": {
+    "bpmWithin1Pct": 1,
+    "bpmOctaveErrors": 0,
+    "medianPhaseErrorMs": 2.0573022001569297,
+    "downbeatAccuracy": 1,
+    "cueExactRecall": 0.6666666666666666,
+    "cueExactF1": 0.6956521739130435,
+    "cueF1": 0.6956521739130435
+  },
+  "performance": {
+    "meanCpuMs": 4193.200666666667,
+    "meanAnalysisMs": 7757.666666666667,
+    "meanRssDeltaMb": 87.5013656616211,
+    "meanFileSizeMb": 9.678868929545084
+  }
+}
