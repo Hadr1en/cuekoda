@@ -702,6 +702,7 @@ function select(path: string | null) {
     wave.selectedCueId = null;
     wave.set(r);
     void api.peaks(r.path).then((pk) => {
+      if (pk) document.documentElement.dataset.benchmarkWaveform = r.path;
       if (pk && state.selected === path) {
         wave.peaks = pk;
         wave.draw();
@@ -2182,4 +2183,4 @@ async function boot() {
   });
   api.onWatch((w) => toast(`${w.level === 'error' ? '⚠ ' : ''}${w.message} (${w.folder})`, w.level === 'error' ? 8000 : 3000));
 }
-void boot();
+void boot().then(() => { document.documentElement.dataset.benchmarkBooted = "true"; });
