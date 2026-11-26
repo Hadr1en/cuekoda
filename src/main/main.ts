@@ -716,6 +716,9 @@ function registerIpc() {
  * Adds the folder, waits for the batch, re-adds it (must come from the cache), collects renderer
  * console errors and writes a JSON report, then quits.
  */
+const BENCHMARK_DATA = !app.isPackaged ? process.env.CUEKODA_BENCHMARK_DATA : undefined;
+if (BENCHMARK_DATA) app.setPath('userData', BENCHMARK_DATA);
+
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
 const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
@@ -1325,7 +1328,35 @@ app.whenReady().then(async () => {
   registerIpc();
   createWindow();
   nativeTheme.on('updated', updateWindowsTitleBar);
-  if (SMOKE_WINDOW) {
+  if (BENCHMARK_DATA) {
+    const benchmarkWindow = win!;
+    benchmarkWindow.webContents.once('did-finish-load', async () => {
+      try {
+        await benchmarkWindow.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+          const deadline = performance.now() + 15000;
+          function check() {
+            if (document.documentElement.dataset.benchmarkReady) {
+              requestAnimationFrame(() => resolve(true));
+            } else if (performance.now() > deadline) {
+              reject(new Error('Renderer boot timed out'));
+            } else {
+              requestAnimationFrame(check);
+            }
+          }
+          check();
+        })`);
+        console.log('CUEKODA_BENCHMARK_READY');
+        setInterval(() => {
+          const metrics = app.getAppMetrics().map(({ pid, type, cpu, memory }) => ({ pid, type, cpu, memory }));
+          console.log('CUEKODA_BENCHMARK_METRICS ' + JSON.stringify(metrics));
+        }, 250);
+      } catch (error) {
+        console.error(error);
+        app.exit(1);
+      }
+    });
+    benchmarkWindow.webContents.once('did-fail-load', () => app.exit(1));
+  } else if (SMOKE_WINDOW) {
     const smokeWindow = win!;
     smokeWindow.webContents.once('did-finish-load', () => void smokeWindowsTitleBar(smokeWindow));
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));

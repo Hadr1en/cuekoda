@@ -2181,5 +2181,6 @@ async function boot() {
     renderDetail();
   });
   api.onWatch((w) => toast(`${w.level === 'error' ? '⚠ ' : ''}${w.message} (${w.folder})`, w.level === 'error' ? 8000 : 3000));
+  document.documentElement.dataset.benchmarkReady = 'true';
 }
 void boot();
