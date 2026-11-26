@@ -611,7 +611,7 @@ function registerIpc() {
     const pick = await dialog.showOpenDialog(win, {
       title: uiText('Importer une collection rekordbox ou Traktor'),
       properties: ['openFile'],
-      filters: [{ name: 'rekordbox XML / Traktor NML', extensions: ['xml', 'nml'] }],
+      filters: [{ name: 'rekordbox XML / Traktor NML', extensions: WAVEFORM_EXPERIMENT ? ['xml', 'nml', 'm3u8'] : ['xml', 'nml'] }],
     });
     if (pick.canceled || !pick.filePaths[0]) return { ...none, canceled: true };
     let tracks;
@@ -620,6 +620,17 @@ function registerIpc() {
       const stat = await fs.promises.stat(pick.filePaths[0]);
       if (stat.size > 256 * 1024 * 1024) throw new Error('Collection trop volumineuse (maximum 256 Mo)');
       const text = await fs.promises.readFile(pick.filePaths[0], 'utf8');
+      if (WAVEFORM_EXPERIMENT && path.extname(pick.filePaths[0]).toLowerCase() === '.m3u8') {
+        const parent = path.dirname(pick.filePaths[0]);
+        const entries = [...new Set(text.replace(/^\uFEFF/, '').split(/\r?\n/).map(line => line.trim())
+          .filter(line => line && !line.startsWith('#') && !line.includes('://'))
+          .map(line => path.resolve(parent, line)))];
+        const available = entries.filter((file) => AUDIO_EXTENSIONS.includes(path.extname(file).toLowerCase())
+          && fs.statSync(file, { throwIfNoEntry: false })?.isFile());
+        const added = addFiles(available).length;
+        return { ...none, ok: true, source: 'm3u8', added, matched: available.length, notFound: entries.length - available.length };
+      }
+
       if (text.includes('<DJ_PLAYLISTS')) { tracks = parseRekordboxXml(text); source = 'rekordbox'; }
       else if (text.includes('<NML')) { tracks = parseTraktorNml(text, macBootVolume()); source = 'traktor'; }
       else return { ...none, error: uiText('Fichier non reconnu : ni collection rekordbox XML, ni collection Traktor NML') };
