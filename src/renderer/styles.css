@@ -633,3 +633,9 @@
 
 #btn-reviewed { margin-block-start: 4px; &.done { color: var(--color-ok); border-color: currentColor; } }
 #lib-view { font-size: 12px; }
+
+/* Opt-in desktop benchmark. The fixed row height makes scroll positions reproducible. */
+#tracks.virtual-library { overflow-anchor: none; }
+#tracks.virtual-library tbody tr.row { height: 38px; }
+#tracks.virtual-library tbody tr.row > td { height: 38px; padding-block: 0; }
+#tracks.virtual-library tbody .virtual-spacer > td { border: 0; padding: 0; }

@@ -278,7 +278,8 @@ function createWindow() {
     },
   });
   if (process.platform === 'win32') win.removeMenu();
-  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  const virtualize = BENCHMARK_DATA && process.env.CUEKODA_VIRTUAL_LIBRARY === '1';
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), virtualize ? { query: { virtualLibrary: '1' } } : undefined);
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.on('close', (event) => { if (exportInProgress) event.preventDefault(); });
@@ -1390,6 +1391,30 @@ app.whenReady().then(async () => {
           }
           check();
         })`);
+        if (process.env.CUEKODA_VIRTUAL_CHECK === '1') {
+          const evidence = await benchmarkWindow.webContents.executeJavaScript(`(async () => {
+            const table = document.querySelector('#tracks');
+            const body = document.querySelector('#rows');
+            const list = document.querySelector('#list-wrap');
+            const frame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+            const top = body.querySelectorAll('.row').length;
+            list.scrollTop = list.scrollHeight;
+            await frame();
+            await frame();
+            const mounted = [...body.querySelectorAll('.row')];
+            const last = mounted.at(-1);
+            if (last?.getAttribute('aria-rowindex') !== table.getAttribute('aria-rowcount')) throw new Error('Last row is unreachable');
+            last.focus();
+            last.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+            await frame();
+            const selected = body.querySelector('.row[aria-current="true"]');
+            if (Number(selected?.getAttribute('aria-rowindex')) !== Number(table.getAttribute('aria-rowcount')) - 1) {
+              throw new Error('Keyboard selection did not move to the previous row');
+            }
+            return { top, bottom: mounted.length, total: Number(table.getAttribute('aria-rowcount')) - 1 };
+          })()`);
+          console.log('CUEKODA_VIRTUAL_CHECK ' + JSON.stringify(evidence));
+        }
         console.log('CUEKODA_BENCHMARK_READY');
         setInterval(() => {
           const metrics = app.getAppMetrics().map(({ pid, type, cpu, memory }) => ({ pid, type, cpu, memory }));

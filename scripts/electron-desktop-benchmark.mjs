@@ -44,6 +44,7 @@ async function launch(directory) {
   });
   const samples = [];
   let readyMs = null;
+  let virtualCheck = null;
   let requestedStop = false;
   let error = null;
   let idleTimer;
@@ -60,6 +61,8 @@ async function launch(directory) {
         requestedStop = true;
         child.kill();
       }, 2250);
+    } else if (line.startsWith('CUEKODA_VIRTUAL_CHECK ')) {
+      virtualCheck = JSON.parse(line.slice('CUEKODA_VIRTUAL_CHECK '.length));
     } else if (line.startsWith(metricPrefix)) {
       const metrics = JSON.parse(line.slice(metricPrefix.length));
       const rss = rssByPid(metrics);
@@ -78,7 +81,7 @@ async function launch(directory) {
   clearTimeout(timeout);
   clearTimeout(idleTimer);
   if (!requestedStop || readyMs === null || !samples.length) error ??= 'Run ended before the observation window completed';
-  return { ...result, ready_ms: readyMs, samples, error, ...(error ? { stderr } : {}) };
+  return { ...result, ready_ms: readyMs, virtual_check: virtualCheck, samples, error, ...(error ? { stderr } : {}) };
 }
 
 function summarize(values) {
@@ -116,6 +119,7 @@ try {
       'JSON.stringify(require("electron/package.json").version)'], { encoding: 'utf8' })),
     command: 'electron .', fixture: { rows, audio_files: 0, status: 'error' },
     host: { platform: platform(), release: release(), arch: arch(), cpu: cpus()[0]?.model, logical_cpus: cpus().length, ram_bytes: totalmem(), node: process.version },
+    virtual_library: process.env.CUEKODA_VIRTUAL_LIBRARY === '1',
     cache: { profile: 'fresh per run', system: 'uncontrolled' },
     summary: {
       renderer_ready_ms: summarize(successful.map((run) => run.ready_ms)),
