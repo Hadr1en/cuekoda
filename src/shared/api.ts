@@ -40,7 +40,7 @@ export interface ImportSummary {
   ok: boolean;
   canceled?: boolean;
   error?: string;
-  source?: 'rekordbox' | 'traktor';
+  source?: 'rekordbox' | 'traktor' | 'm3u8';
   /** tracks of the collection found in CueKoda (or added) */
   matched: number;
   added: number;

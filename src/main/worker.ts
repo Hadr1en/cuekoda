@@ -28,6 +28,7 @@ function cacheKey(fileHash: string, options: Partial<AnalyzeOptions>): string {
     // results differ with / without the local vocal model
     vocalModel: vocalModelAvailable(),
     neuralModels: neuralModelAssets(),
+    decoder: process.env.CUEKODA_EXPERIMENT_PCM ? 'rust-ffmpeg-pcm-v1' : undefined,
   });
   const h = createHash('sha1').update(opts).digest('hex').slice(0, 12);
   return `${fileHash}-${ENGINE_VERSION}-${h}.json`;

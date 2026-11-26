@@ -24,6 +24,7 @@ import { referenceFrom, type Reference } from '../core/evaluate';
 import { computePeaks, type Peaks } from '../core/peaks';
 import { checkNeuralModels } from '../core/neuralModels';
 import { Updater } from './updater';
+import { rustWaveform } from './rustWaveform';
 import { resolveLang, translate } from '../shared/i18n';
 import { automaticWorkerLimit, normalizeWorkerLimit, restoreWorkerLimit } from '../shared/parallelism';
 
@@ -263,7 +264,7 @@ function createWindow() {
     minHeight: 660,
     // Matches the --color-bg token (dark by default, see styles.css)
     backgroundColor: settingsStore.data.theme === 'light' || (settingsStore.data.theme === 'system' && !nativeTheme.shouldUseDarkColors) ? '#f3f4f8' : '#101116',
-    title: 'CueKoda',
+    title: WAVEFORM_EXPERIMENT ? 'CueKoda · Waveform Experiment' : 'CueKoda',
     ...(process.platform === 'win32'
       ? { titleBarStyle: 'hidden' as const, titleBarOverlay: windowsTitleBarOverlay() }
       : process.platform === 'darwin'
@@ -334,8 +335,8 @@ function registerIpc() {
     appBuild: updater.currentBuild,
     update: updater.status,
   }));
-  ipcMain.handle('update-check', () => updater.check());
-  ipcMain.handle('update-install', () => updater.install());
+  ipcMain.handle('update-check', () => WAVEFORM_EXPERIMENT ? updater.status : updater.check());
+  ipcMain.handle('update-install', () => WAVEFORM_EXPERIMENT ? undefined : updater.install());
   // Only CueKoda's own public pages and the author's support page can be opened from the UI.
   ipcMain.on('open-external', (_e, url: string) => {
     if (typeof url !== 'string') return;
@@ -610,7 +611,7 @@ function registerIpc() {
     const pick = await dialog.showOpenDialog(win, {
       title: uiText('Importer une collection rekordbox ou Traktor'),
       properties: ['openFile'],
-      filters: [{ name: 'rekordbox XML / Traktor NML', extensions: ['xml', 'nml'] }],
+      filters: [{ name: 'rekordbox XML / Traktor NML', extensions: WAVEFORM_EXPERIMENT ? ['xml', 'nml', 'm3u8'] : ['xml', 'nml'] }],
     });
     if (pick.canceled || !pick.filePaths[0]) return { ...none, canceled: true };
     let tracks;
@@ -619,6 +620,17 @@ function registerIpc() {
       const stat = await fs.promises.stat(pick.filePaths[0]);
       if (stat.size > 256 * 1024 * 1024) throw new Error('Collection trop volumineuse (maximum 256 Mo)');
       const text = await fs.promises.readFile(pick.filePaths[0], 'utf8');
+      if (WAVEFORM_EXPERIMENT && path.extname(pick.filePaths[0]).toLowerCase() === '.m3u8') {
+        const parent = path.dirname(pick.filePaths[0]);
+        const entries = [...new Set(text.replace(/^\uFEFF/, '').split(/\r?\n/).map(line => line.trim())
+          .filter(line => line && !line.startsWith('#') && !line.includes('://'))
+          .map(line => path.resolve(parent, line)))];
+        const available = entries.filter((file) => AUDIO_EXTENSIONS.includes(path.extname(file).toLowerCase())
+          && fs.statSync(file, { throwIfNoEntry: false })?.isFile());
+        const added = addFiles(available).length;
+        return { ...none, ok: true, source: 'm3u8', added, matched: available.length, notFound: entries.length - available.length };
+      }
+
       if (text.includes('<DJ_PLAYLISTS')) { tracks = parseRekordboxXml(text); source = 'rekordbox'; }
       else if (text.includes('<NML')) { tracks = parseTraktorNml(text, macBootVolume()); source = 'traktor'; }
       else return { ...none, error: uiText('Fichier non reconnu : ni collection rekordbox XML, ni collection Traktor NML') };
@@ -697,14 +709,18 @@ function registerIpc() {
   // High-resolution waveform for the opened track (small in-memory LRU, nothing persisted)
   const peaksCache = new Map<string, Peaks>();
   ipcMain.handle('peaks', async (_e, p: string): Promise<Peaks | null> => {
+    if (WAVEFORM_EXPERIMENT && !Object.hasOwn(records(), p)) return null;
     const hit = peaksCache.get(p);
     if (hit) return hit;
     try {
-      const pk = await computePeaks(p);
+      const pk = WAVEFORM_EXPERIMENT?.binary
+        ? await rustWaveform(WAVEFORM_EXPERIMENT.binary, p)
+        : await computePeaks(p);
       peaksCache.set(p, pk);
       if (peaksCache.size > 12) peaksCache.delete(peaksCache.keys().next().value!);
       return pk;
-    } catch {
+    } catch (error) {
+      if (WAVEFORM_EXPERIMENT?.binary) console.error('[Rust waveform]', error);
       return null;
     }
   });
@@ -716,6 +732,62 @@ function registerIpc() {
  * Adds the folder, waits for the batch, re-adds it (must come from the cache), collects renderer
  * console errors and writes a JSON report, then quits.
  */
+const bundledCore = path.join(process.resourcesPath, process.platform === 'win32' ? 'cuekoda-core.exe' : 'cuekoda-core');
+const packagedExperiment = app.isPackaged && fs.existsSync(bundledCore);
+const experimentBackend = packagedExperiment
+  ? process.env.CUEKODA_WAVEFORM_ENGINE ?? 'rust'
+  : !app.isPackaged ? process.env.CUEKODA_WAVEFORM_ENGINE : undefined;
+const WAVEFORM_EXPERIMENT = experimentBackend ? {
+  binary: experimentBackend === 'rust' ? (packagedExperiment ? bundledCore : process.env.CUEKODA_RUST_CORE) : undefined,
+} : undefined;
+if (WAVEFORM_EXPERIMENT) {
+  if (!['legacy', 'rust'].includes(experimentBackend!)
+    || (experimentBackend === 'rust' && !path.isAbsolute(WAVEFORM_EXPERIMENT.binary ?? ''))) {
+    throw new Error('Choose legacy or rust with CUEKODA_WAVEFORM_ENGINE and supply an absolute CUEKODA_RUST_CORE path for Rust.');
+  }
+  const experimentData = path.join(app.getPath('appData'), 'CueKoda Waveform Experiment');
+  if (WAVEFORM_EXPERIMENT.binary) process.env.CUEKODA_EXPERIMENT_PCM = WAVEFORM_EXPERIMENT.binary;
+  fs.mkdirSync(experimentData, { recursive: true });
+  app.setPath('userData', experimentData);
+}
+
+// Desktop benchmark uses the real preload, queue, renderer selection and waveform.
+const PREPARE_BENCHMARK = !app.isPackaged ? process.env.CUEKODA_PREPARE_FILE : undefined;
+if (PREPARE_BENCHMARK && process.env.CUEKODA_EXPERIMENT_DATA) {
+  app.setPath('userData', process.env.CUEKODA_EXPERIMENT_DATA);
+}
+
+async function prepareBenchmark(window: BrowserWindow, file: string) {
+  const outcome = await window.webContents.executeJavaScript(`(async () => {
+    const file = ${JSON.stringify(file)};
+    const api = window.cuekoda;
+    const timeout = performance.now() + 100000;
+    const wait = () => new Promise(resolve => setTimeout(resolve, 15));
+    while (!document.documentElement.dataset.benchmarkBooted) {
+      if (performance.now() > timeout) throw new Error('Renderer startup timeout');
+      await wait();
+    }
+    const result = new Promise((resolve, reject) => {
+      api.onTrack(({ path, record }) => {
+        if (path !== file) return;
+        if (record.status === 'error') reject(new Error(record.error));
+        if (record.status === 'done' && record.result) resolve(record.result);
+      });
+    });
+    const added = await api.addPaths([file]);
+    if (!added.length) throw new Error('The benchmark track was not added');
+    const track = await result;
+    while (document.documentElement.dataset.benchmarkWaveform !== file) {
+      if (performance.now() > timeout) throw new Error('Waveform rendering timeout');
+      await wait();
+    }
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    return { bpm: track.bpm, key: track.key.camelot, cues: track.cues.length, sections: track.sections.length };
+  })()`);
+  console.log('CUEKODA_PREPARED ' + JSON.stringify(outcome));
+  app.quit();
+}
+
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
 const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
@@ -1325,6 +1397,14 @@ app.whenReady().then(async () => {
   registerIpc();
   createWindow();
   nativeTheme.on('updated', updateWindowsTitleBar);
+  if (PREPARE_BENCHMARK) {
+    const window = win!;
+    window.webContents.once('did-finish-load', () => void prepareBenchmark(window, PREPARE_BENCHMARK)
+      .catch((error) => { console.error(error); app.exit(1); }));
+    window.webContents.once('did-fail-load', () => app.exit(1));
+    return;
+  }
+
   if (SMOKE_WINDOW) {
     const smokeWindow = win!;
     smokeWindow.webContents.once('did-finish-load', () => void smokeWindowsTitleBar(smokeWindow));
@@ -1338,7 +1418,7 @@ app.whenReady().then(async () => {
     smokeWindow.webContents.once('did-fail-load', () => app.exit(1));
   } else if (SMOKE_DIR) runSmoke();
   // update check: packaged builds only, never during the smoke test, and only if the DJ allows it
-  else if (app.isPackaged && settingsStore.data.autoUpdateCheck !== false) {
+  else if (app.isPackaged && !WAVEFORM_EXPERIMENT && settingsStore.data.autoUpdateCheck !== false) {
     setTimeout(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 8000);
     setInterval(() => { if (settingsStore.data.autoUpdateCheck !== false) void updater.check(); }, 6 * 3600 * 1000);
   }

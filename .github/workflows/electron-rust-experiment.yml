@@ -1,0 +1,38 @@
+name: CueKoda Electron Rust experiment
+on:
+  push:
+    branches: [experiment/electron-rust]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: rustup update stable
+      - run: cargo +stable build --release --locked --manifest-path rust/cuekoda-core/Cargo.toml
+      - run: npm run typecheck
+      - run: npm run build
+      - run: node scripts/fetch-ffmpeg.mjs
+      - run: npx electron-builder --config scripts/electron-waveform-package.cjs --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cuekoda-electron-rust-${{ matrix.os }}
+          path: |
+            release/waveform-experiment/*.dmg
+            release/waveform-experiment/*.exe
+          if-no-files-found: error
