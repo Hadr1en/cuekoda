@@ -719,6 +719,43 @@ function registerIpc() {
 const BENCHMARK_DATA = !app.isPackaged ? process.env.CUEKODA_BENCHMARK_DATA : undefined;
 if (BENCHMARK_DATA) app.setPath('userData', BENCHMARK_DATA);
 
+// Desktop benchmark uses the real preload, queue, renderer selection and waveform.
+const PREPARE_BENCHMARK = !app.isPackaged ? process.env.CUEKODA_PREPARE_FILE : undefined;
+if (PREPARE_BENCHMARK && process.env.CUEKODA_EXPERIMENT_DATA) {
+  app.setPath('userData', process.env.CUEKODA_EXPERIMENT_DATA);
+}
+
+async function prepareBenchmark(window: BrowserWindow, file: string) {
+  const outcome = await window.webContents.executeJavaScript(`(async () => {
+    const file = ${JSON.stringify(file)};
+    const api = window.cuekoda;
+    const timeout = performance.now() + 100000;
+    const wait = () => new Promise(resolve => setTimeout(resolve, 15));
+    while (!document.documentElement.dataset.benchmarkBooted) {
+      if (performance.now() > timeout) throw new Error('Renderer startup timeout');
+      await wait();
+    }
+    const result = new Promise((resolve, reject) => {
+      api.onTrack(({ path, record }) => {
+        if (path !== file) return;
+        if (record.status === 'error') reject(new Error(record.error));
+        if (record.status === 'done' && record.result) resolve(record.result);
+      });
+    });
+    const added = await api.addPaths([file]);
+    if (!added.length) throw new Error('The benchmark track was not added');
+    const track = await result;
+    while (document.documentElement.dataset.benchmarkWaveform !== file) {
+      if (performance.now() > timeout) throw new Error('Waveform rendering timeout');
+      await wait();
+    }
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    return { bpm: track.bpm, key: track.key.camelot, cues: track.cues.length, sections: track.sections.length };
+  })()`);
+  console.log('CUEKODA_PREPARED ' + JSON.stringify(outcome));
+  app.quit();
+}
+
 const SMOKE_DIR = process.env.CUEKODA_SMOKE_DIR;
 const SMOKE_WINDOW = process.platform === 'win32' && process.env.CUEKODA_SMOKE_WINDOW === '1';
 const SMOKE_SETTINGS = process.env.CUEKODA_SMOKE_SETTINGS === '1';
@@ -1328,6 +1365,14 @@ app.whenReady().then(async () => {
   registerIpc();
   createWindow();
   nativeTheme.on('updated', updateWindowsTitleBar);
+  if (PREPARE_BENCHMARK) {
+    const window = win!;
+    window.webContents.once('did-finish-load', () => void prepareBenchmark(window, PREPARE_BENCHMARK)
+      .catch((error) => { console.error(error); app.exit(1); }));
+    window.webContents.once('did-fail-load', () => app.exit(1));
+    return;
+  }
+
   if (BENCHMARK_DATA) {
     const benchmarkWindow = win!;
     benchmarkWindow.webContents.once('did-finish-load', async () => {
