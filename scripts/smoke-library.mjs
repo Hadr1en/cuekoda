@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, linkSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, linkSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
@@ -25,10 +25,16 @@ try {
   runInNewContext(readFileSync(preview, 'utf8'), { window }, { timeout: 3000 });
   const [result] = window.__RESULTS__;
   const tracks = {};
+  let linkSource = original;
   for (let index = 0; index < count; index++) {
     const name = `Library fixture ${String(index).padStart(4, '0')}`;
     const path = join(audio, `${name}.wav`);
-    linkSync(original, path);
+    // NTFS limits the number of hard links per file.
+    if (index % 500 === 0) {
+      linkSource = join(directory, `reference-${index}.wav`);
+      copyFileSync(original, linkSource);
+    }
+    linkSync(linkSource, path);
     tracks[path] = { path, fileName: basename(path), status: 'done', addedAt: index, result: { ...result, path, fileName: basename(path), title: name } };
   }
   writeFileSync(join(directory, 'library.json'), JSON.stringify({ version: 1, tracks }));

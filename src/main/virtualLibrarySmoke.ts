@@ -89,6 +89,31 @@ const ZOOM = `(async () => {
   return true;
 })()`;
 
+async function checkAccessibility(window: BrowserWindow) {
+  const client = window.webContents.debugger;
+  // Inspect Chromium's actual accessibility nodes without enabling a debugging port.
+  client.attach('1.3');
+  try {
+    const { root } = await client.sendCommand('DOM.getDocument');
+    const checks = [
+      { selector: '#tracks', role: 'table' },
+      { selector: '#rows tr[data-track]', role: 'row' },
+      { selector: '#rows tr[data-track] input[type=checkbox]', role: 'checkbox' },
+      { selector: '#rows tr.library-spacer', ignored: true },
+    ];
+    for (const { selector, role, ignored } of checks) {
+      const { nodeId } = await client.sendCommand('DOM.querySelector', { nodeId: root.nodeId, selector });
+      const { nodes } = await client.sendCommand('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+      const node = nodes[0];
+      if (!node || (ignored ? !node.ignored : node.ignored || node.role?.value !== role)) {
+        throw new Error(`Unexpected accessibility node for ${selector}`);
+      }
+    }
+  } finally {
+    client.detach();
+  }
+}
+
 export async function smokeVirtualLibrary(window: BrowserWindow) {
   const contents = window.webContents;
   if (process.env.CUEKODA_SMOKE_LIBRARY_MEASURE === '1') {
@@ -132,6 +157,7 @@ export async function smokeVirtualLibrary(window: BrowserWindow) {
       }
     })()`);
     await contents.executeJavaScript(ZOOM);
+    if (zoom === 1) await checkAccessibility(window);
     console.log('[library smoke]', JSON.stringify({ zoom, ...result }));
   }
 }
