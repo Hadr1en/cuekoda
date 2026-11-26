@@ -8,17 +8,19 @@ use std::{
     time::{Duration, Instant},
 };
 
-pub fn decode(
-    path: &Path,
-    options: &Options,
-    cancellation: &Cancellation,
-) -> Result<Vec<f32>, Error> {
-    let mut child = Command::new(&options.ffmpeg)
+fn pcm_command(ffmpeg: &Path, path: &Path, rate: usize, left: bool, log: &str) -> Command {
+    let mut command = Command::new(ffmpeg);
+    let filter = if left {
+        "ebur128=peak=true:framelog=quiet,pan=mono|c0=c0"
+    } else {
+        "ebur128=peak=true:framelog=quiet"
+    };
+    command
         .args([
             "-hide_banner",
             "-nostats",
             "-v",
-            "error",
+            log,
             "-nostdin",
             "-filter_threads",
             "1",
@@ -31,17 +33,38 @@ pub fn decode(
             "-i",
         ])
         .arg(path)
-        .args([
-            "-vn",
-            "-af",
-            "ebur128=peak=true:framelog=quiet",
-            "-ac",
-            "1",
-            "-ar",
-        ])
-        .arg(SAMPLE_RATE.to_string())
+        .args(["-vn", "-af", filter, "-ac", "1", "-ar"])
+        .arg(rate.to_string())
         .args(["-f", "f32le", "pipe:1"])
-        .stdin(Stdio::null())
+        .stdin(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    command
+}
+
+/// Write unbuffered FFmpeg PCM and its original loudness diagnostics to stdout/stderr.
+/// The host consumes the stream and applies its existing byte and duration bounds.
+pub fn stream_pcm(ffmpeg: &Path, path: &Path, rate: usize, left: bool) -> Result<i32, Error> {
+    if !(8_000..=192_000).contains(&rate) {
+        return Err(Error::InvalidLimits);
+    }
+    let path = path.canonicalize()?;
+    if !path.is_file() || !crate::supported_file(&path) {
+        return Err(Error::InvalidInput);
+    }
+    let status = pcm_command(ffmpeg, &path, rate, left, "info").status()?;
+    Ok(status.code().unwrap_or(1))
+}
+
+pub fn decode(
+    path: &Path,
+    options: &Options,
+    cancellation: &Cancellation,
+) -> Result<Vec<f32>, Error> {
+    let mut child = pcm_command(&options.ffmpeg, path, SAMPLE_RATE, false, "error")
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()?;

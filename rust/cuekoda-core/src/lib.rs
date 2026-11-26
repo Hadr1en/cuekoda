@@ -2,6 +2,7 @@
 
 mod decode;
 mod metadata;
+pub mod music;
 mod waveform;
 
 use serde::{Deserialize, Serialize};
@@ -14,6 +15,7 @@ use std::{
     time::Duration,
 };
 
+pub use decode::stream_pcm;
 pub use metadata::Metadata;
 pub use waveform::{Peaks, compare_peaks};
 
