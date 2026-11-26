@@ -32,3 +32,11 @@ rust/cuekoda-tauri/target/debug/cuekoda-tauri --library-benchmark > /tmp/tauri-l
 ```
 
 The Windows CI initially failed because Tauri requires an ICO for its executable resources. The experiment now supplies it from the existing CueKoda artwork.
+
+## Musical preparation
+
+The shared Rust decoder and local compatibility worker now support BPM, key, the variable beatgrid, sections, and editable cues. The library restores analyzed tracks and previously saved edits from the Tauri experiment data directory. Rekordbox XML and Traktor NML import the selected track's cues, and M3U8 imports local paths into the library. Export supports the three formats for the selected track.
+
+From an artifact directory with Node installed, run `npm ci --omit=dev`, then `node scripts/launch-native-experiment.mjs bin/cuekoda-tauri`. Use `bin/cuekoda-tauri.exe` on Windows. The launcher resolves the staged decoder, FFmpeg, worker and models. From the repository, build the normal JS bundles before the Tauri renderer, build both Rust binaries, and pass the Tauri binary path to the launcher.
+
+The compatibility path uses the current CueKoda musical algorithms and format adapters in Node. The dedicated Tauri renderer shares visual primitives and behaviors with the current UI. Full production UI coverage, bulk export, and the release updater remain outside this validated workflow.

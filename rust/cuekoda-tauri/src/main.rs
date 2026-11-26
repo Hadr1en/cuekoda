@@ -69,6 +69,25 @@ async fn import_tracks(app: AppHandle, folder: bool) -> Result<Vec<Track>, Strin
     .map_err(|error| error.to_string())?
 }
 
+#[tauri::command]
+async fn import_playlist(app: AppHandle) -> Result<Vec<Track>, String> {
+    async_runtime::spawn_blocking(move || {
+        let Some(file) = app
+            .dialog()
+            .file()
+            .add_filter("M3U8", &["m3u8"])
+            .blocking_pick_file()
+            .and_then(|value| value.into_path().ok())
+        else {
+            return Ok(Vec::new());
+        };
+        let sources = music::read_playlist(&file).map_err(|error| error.to_string())?;
+        approve_tracks(&app, sources)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 fn approve_tracks(app: &AppHandle, paths: Vec<PathBuf>) -> Result<Vec<Track>, String> {
     let state = app.state::<Mutex<Library>>();
     let mut library = state.lock().map_err(|error| error.to_string())?;
@@ -272,13 +291,7 @@ async fn edit_music(
                 let collection = backend
                     .export(&format, &track.value, &cancellation)
                     .map_err(|error| error.to_string())?;
-                use std::io::Write;
-                fs::OpenOptions::new()
-                    .create_new(true)
-                    .write(true)
-                    .open(file)
-                    .and_then(|mut output| output.write_all(collection.as_bytes()))
-                    .map_err(|error| error.to_string())?;
+                music::write_export(&file, &collection).map_err(|error| error.to_string())?;
                 return Ok(Some(track.summary));
             }
         }
@@ -343,7 +356,13 @@ fn main() {
         .manage(Mutex::new(Library::default()))
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let paths = collect(std::env::args_os().skip(1).map(PathBuf::from).collect());
+            let mut paths = collect(std::env::args_os().skip(1).map(PathBuf::from).collect());
+            if !prepare_benchmark_enabled()
+                && !library_benchmark_enabled()
+                && let Ok(root) = music::storage_root(PROJECT_NAME)
+            {
+                paths.extend(music::saved_sources(&root));
+            }
             approve_tracks(app.handle(), paths).map_err(std::io::Error::other)?;
             Ok(())
         })
@@ -357,6 +376,7 @@ fn main() {
             library_benchmark_enabled,
             finish_library_benchmark,
             import_tracks,
+            import_playlist,
             analyze,
             cancel
         ])

@@ -23,14 +23,15 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
       - run: npm ci
+      - run: npm run build
       - run: node experiments/tauri/build.mjs
       - run: rustup update stable
       - run: cargo +stable fmt --manifest-path rust/cuekoda-tauri/Cargo.toml --check
       - run: cargo +stable build --release --locked --manifest-path rust/cuekoda-tauri/Cargo.toml
+      - run: cargo +stable build --release --locked --manifest-path rust/cuekoda-core/Cargo.toml
+      - run: node scripts/stage-native-experiment.mjs cuekoda-tauri release/tauri-experiment
       - uses: actions/upload-artifact@v4
         with:
           name: cuekoda-tauri-${{ matrix.os }}
-          path: |
-            rust/cuekoda-tauri/target/release/cuekoda-tauri
-            rust/cuekoda-tauri/target/release/cuekoda-tauri.exe
+          path: release/tauri-experiment/
           if-no-files-found: error

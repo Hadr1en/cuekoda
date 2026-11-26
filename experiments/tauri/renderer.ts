@@ -4,7 +4,7 @@ interface Track { path: string; title: string }
 interface Music {
   bpm: number;
   key: { camelot: string; musical: string };
-  grid: { firstDownbeatSec: number; bpm: number };
+  beats: { timeSec: number; downbeat: boolean }[];
   cues: { slot: number; name: string; timeSec: number }[];
   sections: { label: string; startSec: number; endSec: number }[];
 }
@@ -186,11 +186,15 @@ function draw() {
       context.fillStyle = index % 2 ? '#34c7b6' : '#795eff';
       context.fillRect(x(section.startSec), 0, x(section.endSec) - x(section.startSec), 4 * devicePixelRatio);
     }
-    const bar = 240 / analysis.grid.bpm;
-    if (bar > 0 && span / bar < 1000) {
-      context.fillStyle = 'rgba(255,255,255,0.35)';
-      const first = analysis.grid.firstDownbeatSec + Math.ceil((start - analysis.grid.firstDownbeatSec) / bar) * bar;
-      for (let time = first; time < start + span; time += bar) context.fillRect(x(time), 0, 1, height);
+    let previous = -Infinity;
+    for (const beat of analysis.beats) {
+      if (beat.timeSec < start) continue;
+      if (beat.timeSec >= start + span) break;
+      const position = x(beat.timeSec);
+      if (!beat.downbeat && position - previous < 10 * devicePixelRatio) continue;
+      context.fillStyle = beat.downbeat ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.15)';
+      context.fillRect(position, 0, 1, height);
+      previous = position;
     }
     context.fillStyle = '#7ee89b';
     for (const cue of analysis.cues) context.fillRect(x(cue.timeSec), 0, 2, height);
@@ -268,6 +272,11 @@ analyze.onclick = async () => {
     cancel.disabled = true;
   }
 };
+get('playlist').textContent = copy('Importer M3U8', 'Import M3U8');
+get('playlist').onclick = () => {
+  void core.invoke<Track[]>('import_playlist').then(addImported).catch((error) => { status.textContent = String(error); });
+};
+get('import-music').textContent = copy('Importer XML/NML', 'Import XML/NML');
 get('import-music').onclick = () => void editMusic({ kind: 'import' });
 for (const format of ['xml', 'nml', 'm3u8']) {
   get(`export-${format}`).onclick = () => void editMusic({ kind: 'export', format });
