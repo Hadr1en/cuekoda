@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use std::{
     fs::{self, File},
-    io::Read,
+    io::{BufReader, Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
@@ -100,12 +100,68 @@ pub struct Key {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Summary {
+    pub duration_sec: f64,
+    #[serde(default, skip_serializing)]
+    tempo_map: Vec<TempoMarker>,
+    #[serde(skip_deserializing)]
+    pub beats: Vec<GridBeat>,
     pub bpm: f64,
     pub key: Key,
     pub grid: BeatGrid,
     pub cues: Vec<Cue>,
+    #[serde(default)]
     pub sections: Vec<Section>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TempoMarker {
+    start_sec: f64,
+    bpm: f64,
+    beat_in_bar: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GridBeat {
+    pub time_sec: f64,
+    pub downbeat: bool,
+}
+
+fn grid_beats(duration: f64, markers: &[TempoMarker]) -> Vec<GridBeat> {
+    let mut beats = Vec::new();
+    if !duration.is_finite() || !(0.0..=crate::MAX_DURATION_SECONDS as f64).contains(&duration) {
+        return beats;
+    }
+    for (index, marker) in markers.iter().enumerate() {
+        if !(1.0..=1200.0).contains(&marker.bpm) || !marker.start_sec.is_finite() {
+            continue;
+        }
+        let period = 60.0 / marker.bpm;
+        let start = if index == 0 {
+            0.0
+        } else {
+            marker.start_sec.max(0.0)
+        };
+        let end = markers
+            .get(index + 1)
+            .map_or(duration, |next| next.start_sec.min(duration));
+        let mut beat = ((start - marker.start_sec - 1e-9) / period).ceil();
+        loop {
+            let time = marker.start_sec + beat * period;
+            if time >= end - 1e-9 || beats.len() >= 40_000 {
+                break;
+            }
+            beats.push(GridBeat {
+                time_sec: time.max(0.0),
+                downbeat: (f64::from(marker.beat_in_bar) - 1.0 + beat) % 4.0 == 0.0,
+            });
+            beat += 1.0;
+        }
+    }
+    beats
 }
 
 impl Backend {
@@ -264,7 +320,18 @@ pub struct Track {
 impl TryFrom<Value> for Track {
     type Error = BackendError;
     fn try_from(value: Value) -> Result<Self, Self::Error> {
-        let summary = Summary::deserialize(&value)?;
+        let mut summary = Summary::deserialize(&value)?;
+        let fallback = [TempoMarker {
+            start_sec: summary.grid.first_downbeat_sec,
+            bpm: summary.bpm,
+            beat_in_bar: 1,
+        }];
+        let markers = if summary.tempo_map.is_empty() {
+            &fallback[..]
+        } else {
+            &summary.tempo_map
+        };
+        summary.beats = grid_beats(summary.duration_sec, markers);
         Ok(Self { value, summary })
     }
 }
@@ -295,10 +362,9 @@ pub fn write_track(path: &Path, track: &Track) -> Result<(), BackendError> {
 
 // Encode the same path to the same cache entry after restart. Confirm the path in the file before loading.
 pub fn track_path(root: &Path, source: &Path) -> PathBuf {
-    use std::hash::{DefaultHasher, Hash, Hasher};
-    let mut hash = DefaultHasher::new();
-    source.hash(&mut hash);
-    root.join(format!("{:016x}.json", hash.finish()))
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(source.as_os_str().as_encoded_bytes());
+    root.join(format!("{digest:x}.json"))
 }
 
 pub fn saved_track(root: &Path, source: &Path) -> Result<Option<Track>, BackendError> {
@@ -331,4 +397,91 @@ pub fn storage_root(app: &str) -> std::io::Result<PathBuf> {
         .ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::NotFound, "No experiment data directory")
         })
+}
+
+/// Recover previously analyzed tracks without changing their source paths or granting access to new paths.
+pub fn saved_sources(root: &Path) -> Vec<PathBuf> {
+    fs::read_dir(root)
+        .ok()
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|entry| {
+            if !entry.file_type().ok()?.is_file() || entry.path().extension()? != "json" {
+                return None;
+            }
+            #[derive(Deserialize)]
+            struct StoredSource {
+                path: PathBuf,
+            }
+            let input = BufReader::new(File::open(entry.path()).ok()?).take(MAX_MESSAGE);
+            let stored: StoredSource = serde_json::from_reader(input).ok()?;
+            let source = stored.path.canonicalize().ok()?;
+            (source.is_file()
+                && crate::supported_file(&source)
+                && track_path(root, &source) == entry.path())
+            .then_some(source)
+        })
+        .collect()
+}
+
+/// Read UTF-8 M3U8 paths relative to the playlist or absolute on the current filesystem.
+pub fn read_playlist(path: &Path) -> Result<Vec<PathBuf>, BackendError> {
+    let mut playlist = String::new();
+    File::open(path)?
+        .take(MAX_MESSAGE + 1)
+        .read_to_string(&mut playlist)?;
+    if playlist.len() as u64 > MAX_MESSAGE {
+        return Err(BackendError::InvalidResponse);
+    }
+    let directory = path.parent().ok_or(BackendError::InvalidResponse)?;
+    let mut seen = std::collections::HashSet::new();
+    Ok(playlist
+        .trim_start_matches('\u{feff}')
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#') && !line.contains("://"))
+        .filter_map(|line| directory.join(line).canonicalize().ok())
+        .filter(|source| {
+            source.is_file() && crate::supported_file(source) && seen.insert(source.clone())
+        })
+        .collect())
+}
+
+pub fn write_export(path: &Path, contents: &str) -> Result<(), BackendError> {
+    let parent = path.parent().ok_or(BackendError::InvalidResponse)?;
+    let mut file = tempfile::NamedTempFile::new_in(parent)?;
+    file.write_all(contents.as_bytes())?;
+    file.persist_noclobber(path).map_err(|error| error.error)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tempo_changes_share_one_boundary_beat() {
+        let beats = grid_beats(
+            4.0,
+            &[
+                TempoMarker {
+                    start_sec: 0.0,
+                    bpm: 120.0,
+                    beat_in_bar: 1,
+                },
+                TempoMarker {
+                    start_sec: 2.0,
+                    bpm: 60.0,
+                    beat_in_bar: 1,
+                },
+            ],
+        );
+        assert_eq!(
+            beats.iter().map(|beat| beat.time_sec).collect::<Vec<_>>(),
+            [0., 0.5, 1., 1.5, 2., 3.]
+        );
+        assert!(beats[4].downbeat);
+        assert!(!beats[5].downbeat);
+    }
 }
