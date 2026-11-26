@@ -1856,7 +1856,11 @@ document.addEventListener('keydown', (e) => {
     const index = path ? visibleIndex.get(path) : undefined;
     if (e.shiftKey && selectionAnchor === null) selectionAnchor = path;
     const next = visibleRecords[Math.max(0, (index ?? -1) + (e.key === 'ArrowDown' ? 1 : -1))]?.path;
-    if (next) { chooseTrack(next, e); scrollToTrack(next); rowEls.get(next)?.focus({ preventScroll: virtualLibrary }); }
+    if (next) {
+      chooseTrack(next, e);
+      if (virtualLibrary) scrollToTrack(next);
+      rowEls.get(next)?.focus({ preventScroll: virtualLibrary });
+    }
   } else if ((e.key === 'Delete' || e.key === 'Backspace') && r && selCue) {
     e.preventDefault();
     deleteCue(r, selCue);

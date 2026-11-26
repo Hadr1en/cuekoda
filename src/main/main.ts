@@ -278,7 +278,7 @@ function createWindow() {
     },
   });
   if (process.platform === 'win32') win.removeMenu();
-  const virtualize = BENCHMARK_DATA && process.env.CUEKODA_VIRTUAL_LIBRARY === '1';
+  const virtualize = !app.isPackaged && (BENCHMARK_DATA || SMOKE_DIR) && process.env.CUEKODA_VIRTUAL_LIBRARY === '1';
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), virtualize ? { query: { virtualLibrary: '1' } } : undefined);
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
